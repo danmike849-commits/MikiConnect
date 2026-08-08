@@ -1,0 +1,110 @@
+# MikiConnect
+
+## Slogan
+Chat Without Limits
+
+## Theme
+Blue and White
+
+## Logo
+Blue letter M inside a chat bubble.
+
+## Version 1.0 Features
+
+- User Registration
+- User Login
+- User Profiles
+- Home Feed
+- Posts
+- Likes
+- Comments
+- Private Chat
+- Group Chat
+- Stories
+- Notifications
+- Search
+- Settings
+
+## Future Features
+
+- Voice Calls
+- Video Calls
+- Marketplace
+- AI Assistant
+- Communities
+- Live Streaming0
+
+# MikiConnect
+
+## Slogan
+Chat Without Limits
+
+## Theme
+Blue and White
+
+## Logo
+Blue letter M inside a chat bubble.
+
+## Version 1.0 Features
+
+- User Registration
+- User Login
+- User Profiles
+- Home Feed
+- Posts
+- Likes
+- Comments
+- Private Chat
+- Group Chat
+- Stories
+- Notifications
+- Search
+- Settings
+
+## Future Features
+
+- Voice Calls
+- Video Calls
+- Marketplace
+- AI Assistant
+- Communities
+- Live Streaming
+# MikiConnect
+
+## Slogan
+Chat Without Limits
+
+## Theme
+Blue and White
+
+## Logo
+Blue letter M inside a chat bubble.
+
+## Version 1.0 Features
+
+- User Registration
+- User Login
+- User Profiles
+- Home Feed
+- Posts
+- Likes
+- Comments
+- Private Chat
+- Group Chat
+- Stories
+- Notifications
+- Search
+- Settings
+
+## Future Features
+
+- Voice Calls
+- Video Calls
+- Marketplace
+- AI Assistant
+- Communities
+- Live Streaming
+
+
+
+
