@@ -4,390 +4,64 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MikiConnect</title>
+  
+  <!-- Web App Manifest for PWABuilder -->
+  <link rel="manifest" href="/manifest.json">
+  
   <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-    body { background: #000000; color: #ffffff; padding-bottom: 70px; }
-    header { background: #121212; color: #1db954; padding: 14px 18px; font-weight: bold; font-size: 22px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #282828; }
-    .banner { background: #1db954; color: #000000; padding: 10px 16px; font-weight: bold; font-size: 13px; text-align: center; display: none; }
-    .container { max-width: 450px; margin: 0 auto; padding: 16px; }
-    .card { background: #121212; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); margin-bottom: 16px; border: 1px solid #282828; }
-    input, textarea, select { width: 100%; padding: 14px; margin: 8px 0 16px 0; background: #282828; border: 1px solid #3e3e3e; border-radius: 10px; font-size: 14px; color: #ffffff; outline: none; }
-    input::placeholder, textarea::placeholder { color: #b3b3b3; }
-    .btn { width: 100%; padding: 14px; background: #1db954; color: #ffffff; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; }
-    .btn-secondary { background: #282828; color: #ffffff; }
-    .btn-danger { background: #e11d48; color: #ffffff; }
-    .chat-box { height: 320px; overflow-y: auto; padding: 12px; background: #050505; border-radius: 10px; display: flex; flex-direction: column; gap: 10px; }
-    .msg { max-width: 80%; padding: 10px 14px; border-radius: 10px; font-size: 14px; word-wrap: break-word; }
-    .msg.me { background: #1db954; color: #ffffff; align-self: flex-end; }
-    .msg.them { background: #282828; color: #ffffff; align-self: flex-start; }
-    .msg .time { font-size: 10px; color: #e5e5e5; text-align: right; margin-top: 4px; } 
-    .post { border-bottom: 1px solid #282828; padding-bottom: 16px; margin-bottom: 16px; }
-    .post-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .user-info { display: flex; align-items: center; gap: 12px; }
-    .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: white; background-size: cover; background-position: center; flex-shrink: 0; }
-    .post-media { width: 100%; border-radius: 10px; margin-top: 10px; max-height: 350px; object-fit: cover; }
-    .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-    .action-btn { background: #282828; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; color: #b3b3b3; cursor: pointer; }
-    .comments-section { margin-top: 12px; border-top: 1px solid #282828; padding-top: 10px; }
-    .comment-item { font-size: 13px; margin-bottom: 6px; background: #1a1a1a; padding: 6px 10px; border-radius: 8px; color: #ffffff; }
-    .comment-item strong { color: #1db954; }
-    nav.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #121212; display: flex; border-top: 1px solid #282828; height: 60px; z-index: 1000; }
-    nav.bottom-bar button { flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #b3b3b3; font-size: 11px; font-weight: bold; }
-    nav.bottom-bar button.active { color: #1db954; }
-    nav.bottom-bar button span { font-size: 18px; margin-bottom: 2px; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f6f8;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      background: #ffffff;
+      width: 100%;
+      max-width: 480px;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+    p {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .status-box {
+      padding: 12px;
+      background-color: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      color: #2e7d32;
+      border-radius: 6px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
 
-  <header>
-    <div id="appHeaderTitle">MikiConnect</div>
-    <div id="userHeader" style="font-size: 14px; font-weight: normal; color: #b3b3b3;"></div>
-  </header>
-
-  <div id="globalBanner" class="banner"></div>
-
-  <!-- AUTH SECTION -->
-  <div id="authSection" class="container">
-    <div class="card">
-      <h2 id="authTitle" style="text-align: center; margin-bottom: 16px; color: #ffffff;">Login</h2>
-      <input type="text" id="username" placeholder="Username" />
-      <input type="password" id="password" placeholder="Password" />
-      <button class="btn" id="authBtn" onclick="handleAuth()">Login</button>
-      <p style="text-align: center; margin-top: 16px; font-size: 13px; color: #b3b3b3;">
-        <span id="toggleText">Don't have an account?</span> 
-        <a href="#" id="toggleLink" onclick="toggleAuthMode()" style="color: #1db954; text-decoration: none; font-weight: bold;">Register</a>
-      </p>
+  <div class="container">
+    <h1>MikiConnect</h1>
+    <p>Welcome to MikiConnect!</p>
+    <div class="status-box">
+      Backend Connected & Live
     </div>
   </div>
 
-  <!-- APP SECTION -->
-  <div id="appSection" class="container" style="display: none;">
-    <div id="feedTab" class="tab-content active">
-      <div class="card">
-        <textarea id="postContent" rows="3" placeholder="What's on your mind?"></textarea>
-        <input type="file" id="postFile" accept="image/*,video/*" style="display: none;" onchange="updateFileLabel()">
-        <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-          <button class="btn btn-secondary" style="width: auto; padding: 8px 12px;" onclick="document.getElementById('postFile').click()">📷 Photo/Video</button>
-          <span id="fileName" style="font-size: 12px; color: #b3b3b3; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
-          <button class="btn" style="width: auto; padding: 8px 16px;" onclick="createPost()">Post</button>
-        </div>
-      </div>
-      <div id="feedContainer"></div>
-    </div>
-
-    <div id="chatTab" class="tab-content">
-      <div class="card">
-        <h3 style="margin-bottom: 12px; color: #ffffff;">Active Users</h3>
-        <div id="usersList" style="display: flex; flex-direction: column; gap: 8px;"></div>
-      </div>
-
-      <div id="chatWindow" class="card" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h3 id="chatWithTitle" style="color: #ffffff;">Chat</h3>
-          <button class="action-btn" onclick="closeChat()">Close</button>
-        </div>
-        <div id="chatBox" class="chat-box"></div>
-        <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
-          <input type="text" id="chatMsg" placeholder="Type a message..." style="margin: 0;" onkeypress="if(event.key==='Enter') sendTextMessage()" />
-          <button class="btn" style="width: auto; padding: 10px 14px;" onclick="sendTextMessage()">Send</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="profileTab" class="tab-content">
-      <div class="card" style="text-align: center;">
-        <div id="myAvatar" class="avatar" style="width: 80px; height: 80px; font-size: 32px; margin: 0 auto 12px auto;"></div>
-        <h2 id="myProfileName" style="color: #ffffff;"></h2>
-        <button class="btn btn-danger" style="margin-top: 16px;" onclick="logout()">Logout</button>
-      </div>
-    </div>
-
-    <div id="adminTab" class="tab-content">
-      <div class="card">
-        <h2 style="color: #1db954; margin-bottom: 16px;">⚙️ Global Site Settings</h2>
-        <label style="font-size: 12px; color: #b3b3b3;">Website Title</label>
-        <input type="text" id="settingSiteTitle" placeholder="MikiConnect" />
-        <label style="font-size: 12px; color: #b3b3b3;">Broadcast Announcement</label>
-        <input type="text" id="settingAnnouncement" placeholder="Welcome message..." />
-        <button class="btn" style="margin-top: 8px;" onclick="saveGlobalSettings()">Save Settings</button>
-      </div>
-    </div>
-  </div>
-
-  <nav id="bottomBar" class="bottom-bar" style="display: none;">
-    <button id="navFeed" class="active" onclick="switchTab('feed')"><span>🏠</span> Feed</button>
-    <button id="navChat" onclick="switchTab('chat')"><span>💬</span> Chat</button>
-    <button id="navProfile" onclick="switchTab('profile')"><span>👤</span> Profile</button>
-    <button id="navAdmin" style="display: none;" onclick="switchTab('admin')"><span>🛡️</span> Admin</button>
-  </nav>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    let currentUser = null;
-    let isRegisterMode = false;
-    let activeChatUser = null;
-
-    window.addEventListener('DOMContentLoaded', () => {
-      loadGlobalSettings();
-      const savedUser = localStorage.getItem('mikiconnect_user');
-      if (savedUser) {
-        try {
-          currentUser = JSON.parse(savedUser);
-          showApp();
-        } catch(e) {
-          localStorage.removeItem('mikiconnect_user');
-        }
-      }
-    });
-
-    socket.on('receive_message', (data) => {
-      if (activeChatUser === data.sender) {
-        loadMessages();
-      }
-    });
-
-    socket.on('update_users', () => {
-      loadUsers();
-    });
-
-    async function loadGlobalSettings() {
-      try {
-        const res = await fetch('/api/settings');
-        const settings = await res.json();
-        if (settings.site_title) {
-          document.getElementById('appHeaderTitle').innerText = settings.site_title;
-          document.title = settings.site_title;
-        }
-      } catch(e) {}
-    }
-
-    function toggleAuthMode() {
-      isRegisterMode = !isRegisterMode;
-      document.getElementById('authTitle').innerText = isRegisterMode ? 'Register' : 'Login';
-      document.getElementById('authBtn').innerText = isRegisterMode ? 'Register' : 'Login';
-    }
-
-    async function handleAuth() {
-      const u = document.getElementById('username').value.trim();
-      const p = document.getElementById('password').value.trim();
-      if (!u || !p) return alert('Enter username & password');
-
-      const endpoint = isRegisterMode ? '/api/register' : '/api/login';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        currentUser = data;
-        localStorage.setItem('mikiconnect_user', JSON.stringify(currentUser));
-        showApp();
-      } else {
-        alert(data.error || 'Auth failed');
-      }
-    }
-
-    function showApp() {
-      document.getElementById('authSection').style.display = 'none';
-      document.getElementById('appSection').style.display = 'block';
-      document.getElementById('bottomBar').style.display = 'flex';
-      document.getElementById('userHeader').innerText = `@${currentUser.username}`;
-
-      if (currentUser.is_admin === 1) {
-        document.getElementById('navAdmin').style.display = 'flex';
-      }
-
-      socket.emit('register_user', currentUser.username);
-      loadProfile();
-      loadFeed();
-      loadUsers();
-    }
-
-    function logout() {
-      localStorage.removeItem('mikiconnect_user');
-      location.reload();
-    }
-
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('nav.bottom-bar button').forEach(el => el.classList.remove('active'));
-      
-      if (tab === 'feed') {
-        document.getElementById('feedTab').classList.add('active');
-        document.getElementById('navFeed').classList.add('active');
-        loadFeed();
-      } else if (tab === 'chat') {
-        document.getElementById('chatTab').classList.add('active');
-        document.getElementById('navChat').classList.add('active');
-        loadUsers();
-      } else if (tab === 'profile') {
-        document.getElementById('profileTab').classList.add('active');
-        document.getElementById('navProfile').classList.add('active');
-      }
-    }
-
-    function renderAvatar(element, username) {
-      element.style.backgroundColor = '#1db954';
-      element.innerText = (username || 'A')[0].toUpperCase();
-    }
-
-    function loadProfile() {
-      document.getElementById('myProfileName').innerText = `@${currentUser.username}`;
-      renderAvatar(document.getElementById('myAvatar'), currentUser.username);
-    }
-
-    function updateFileLabel() {
-      const file = document.getElementById('postFile').files[0];
-      document.getElementById('fileName').innerText = file ? file.name : '';
-    }
-
-    async function createPost() {
-      const content = document.getElementById('postContent').value.trim();
-      const file = document.getElementById('postFile').files[0];
-      if (!content && !file) return alert('Enter text or choose media');
-
-      const formData = new FormData();
-      formData.append('content', content);
-      formData.append('username', currentUser.username);
-      if (file) formData.append('media', file);
-
-      const res = await fetch('/api/posts', { method: 'POST', body: formData });
-      if (res.ok) {
-        document.getElementById('postContent').value = '';
-        document.getElementById('postFile').value = '';
-        document.getElementById('fileName').innerText = '';
-        loadFeed();
-      }
-    }
-
-    async function loadFeed() {
-      const res = await fetch('/api/posts');
-      const posts = await res.json();
-      const container = document.getElementById('feedContainer');
-      container.innerHTML = '';
-
-      posts.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'card post';
-
-        let commentsList = (p.comments || []).map(c => 
-          `<div class="comment-item"><strong>@${c.username}:</strong> ${c.text}</div>`
-        ).join('');
-
-        div.innerHTML = `
-          <div class="post-header">
-            <div class="user-info">
-              <div id="avatar-post-${p.id}" class="avatar"></div>
-              <div><strong>@${p.username}</strong></div>
-            </div>
-          </div>
-          <p style="margin: 8px 0;">${p.content || ''}</p>
-          <div class="actions">
-            <button class="action-btn" onclick="likePost(${p.id})">❤️ ${p.likes || 0} Likes</button>
-          </div>
-          <div class="comments-section">
-            <div id="comments-list-${p.id}">${commentsList}</div>
-            <div style="display: flex; gap: 6px; margin-top: 8px;">
-              <input type="text" id="comment-input-${p.id}" placeholder="Write a comment..." style="margin:0; padding:8px;" />
-              <button class="btn" style="width:auto; padding:8px 12px;" onclick="addComment(${p.id})">Reply</button>
-            </div>
-          </div>
-        `;
-        container.appendChild(div);
-        renderAvatar(document.getElementById(`avatar-post-${p.id}`), p.username);
-      });
-    }
-
-    async function likePost(id) {
-      await fetch(`/api/posts/${id}/like`, { method: 'POST' });
-      loadFeed();
-    }
-
-    async function addComment(postId) {
-      const input = document.getElementById(`comment-input-${postId}`);
-      const text = input.value.trim();
-      if (!text) return;
-
-      await fetch(`/api/posts/${postId}/comment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser.username, text })
-      });
-
-      input.value = '';
-      loadFeed();
-    }
-
-    async function loadUsers() {
-      const res = await fetch('/api/users');
-      const users = await res.json();
-      const container = document.getElementById('usersList');
-      container.innerHTML = '';
-
-      users.filter(u => u.username !== currentUser.username).forEach(u => {
-        const div = document.createElement('div');
-        div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #282828; border-radius: 10px; cursor: pointer;';
-        div.onclick = () => openChat(u.username);
-        div.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div id="user-avatar-${u.username}" class="avatar" style="width: 36px; height: 36px;"></div>
-            <span style="font-weight: bold;">@${u.username}</span>
-          </div>
-          <button class="action-btn" style="background: #1db954; color: #fff;">Chat</button>
-        `;
-        container.appendChild(div);
-        renderAvatar(document.getElementById(`user-avatar-${u.username}`), u.username);
-      });
-    }
-
-    function openChat(username) {
-      activeChatUser = username;
-      document.getElementById('chatWithTitle').innerText = `Chat with @${username}`;
-      document.getElementById('chatWindow').style.display = 'block';
-      loadMessages();
-    }
-
-    function closeChat() {
-      activeChatUser = null;
-      document.getElementById('chatWindow').style.display = 'none';
-    }
-
-    async function loadMessages() {
-      if (!activeChatUser) return;
-      const res = await fetch(`/api/messages/${activeChatUser}?username=${currentUser.username}`);
-      const msgs = await res.json();
-      const box = document.getElementById('chatBox');
-      box.innerHTML = '';
-
-      msgs.forEach(m => {
-        const isMe = m.sender === currentUser.username;
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `msg ${isMe ? 'me' : 'them'}`;
-        msgDiv.innerText = m.text;
-        box.appendChild(msgDiv);
-      });
-      box.scrollTop = box.scrollHeight;
-    }
-
-    async function sendTextMessage() {
-      const input = document.getElementById('chatMsg');
-      const text = input.value.trim();
-      if (!text || !activeChatUser) return;
-
-      socket.emit('send_message', {
-        sender: currentUser.username,
-        receiver: activeChatUser,
-        text
-      });
-
-      input.value = '';
-      loadMessages();
-    }
-  </script>
 </body>
 </html>
