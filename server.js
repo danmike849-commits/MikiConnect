@@ -1,4 +1,4 @@
-  const express = require('express');
+const express = require('express');
 const http = require('http');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -16,7 +16,7 @@ const io = new Server(server, {
 // Port configuration for Render deployment
 const PORT = process.env.PORT || 10000;
 
-// Middleware
+// Body Parsing & Static File Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
@@ -27,7 +27,7 @@ app.use(express.static(path.join(__dirname)));
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
-  console.error("CRITICAL ERROR: MONGO_URI environment variable is not set!");
+  console.error("CRITICAL ERROR: MONGO_URI environment variable is missing!");
 } else {
   mongoose.connect(MONGO_URI)
     .then(() => console.log('Successfully connected to MongoDB Atlas!'))
@@ -35,19 +35,19 @@ if (!MONGO_URI) {
 }
 
 // -------------------------------------------------------------
-// Database Schemas & Models
+// MongoDB Schemas & Models
 // -------------------------------------------------------------
 const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email:    { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  username:  { type: String, required: true, unique: true },
+  email:     { type: String, required: true, unique: true },
+  password:  { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
 
 const MessageSchema = new mongoose.Schema({
-  sender:   { type: String, required: true },
-  content:  { type: String, required: true },
-  room:     { type: String, default: 'general' },
+  sender:    { type: String, required: true },
+  content:   { type: String, required: true },
+  room:      { type: String, default: 'general' },
   timestamp: { type: Date, default: Date.now }
 });
 
@@ -55,10 +55,10 @@ const User = mongoose.model('User', UserSchema);
 const Message = mongoose.model('Message', MessageSchema);
 
 // -------------------------------------------------------------
-// Authentication Routes
+// API Endpoints
 // -------------------------------------------------------------
 
-// Register New User
+// User Registration
 app.post('/api/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -82,7 +82,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// Login User
+// User Login
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -103,26 +103,30 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Fetch Recent Messages
+// Fetch Message History
 app.get('/api/messages', async (req, res) => {
   try {
     const messages = await Message.find().sort({ timestamp: 1 }).limit(50);
     res.json({ success: true, messages });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to retrieve messages.' });
-  }
-});
-
-// Serve Main Frontend
-app.get('*', (req, res) => {
+   
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+});
+
+// Fallback Route to serve index.html
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+
 // -------------------------------------------------------------
-// Socket.io Real-time Communication
+// Socket.io Real-Time Messaging
 // -------------------------------------------------------------
 io.on('connection', (socket) => {
-  console.log(`New client connected: ${socket.id}`);
+  console.log(`Socket connected: ${socket.id}`);
 
   socket.on('sendMessage', async (data) => {
     try {
@@ -136,19 +140,18 @@ io.on('connection', (socket) => {
         timestamp: newMessage.timestamp
       });
     } catch (err) {
-      console.error('Socket Message Error:', err);
+      console.error('Socket error:', err);
     }
   });
 
   socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
+    console.log(`Socket disconnected: ${socket.id}`);
   });
 });
 
 // -------------------------------------------------------------
-// Start Server
+// Start Express Server
 // -------------------------------------------------------------
 server.listen(PORT, () => {
-  console.log(`MikiConnect Server running on port ${PORT}`);
+  console.log(`MikiConnect running on port ${PORT}`);
 });
-
