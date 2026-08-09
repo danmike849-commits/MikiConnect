@@ -1,84 +1,154 @@
-const express = require('express');
+  const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const multer = require('multer');
+const mongoose = require('mongoose');
+const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Port configuration for Render deployment
+const PORT = process.env.PORT || 10000;
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(path.join(__dirname)));
 
-// File Upload Configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+// -------------------------------------------------------------
+// MongoDB Atlas Connection
+// -------------------------------------------------------------
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+  console.error("CRITICAL ERROR: MONGO_URI environment variable is not set!");
+} else {
+  mongoose.connect(MONGO_URI)
+    .then(() => console.log('Successfully connected to MongoDB Atlas!'))
+    .catch((err) => console.error('MongoDB Atlas Connection Error:', err));
+}
+
+// -------------------------------------------------------------
+// Database Schemas & Models
+// -------------------------------------------------------------
+const UserSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  email:    { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
 });
-const upload = multer({ storage });
 
-// Database Connection
-const db = new sqlite3.Database('./database.db', (err) => {
-  if (err) {
-    console.error('Database connection error:', err.message);
-  } else {
-    console.log('Connected to SQLite database.');
+const MessageSchema = new mongoose.Schema({
+  sender:   { type: String, required: true },
+  content:  { type: String, required: true },
+  room:     { type: String, default: 'general' },
+  timestamp: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', UserSchema);
+const Message = mongoose.model('Message', MessageSchema);
+
+// -------------------------------------------------------------
+// Authentication Routes
+// -------------------------------------------------------------
+
+// Register New User
+app.post('/api/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    
+    if (!username || !email || !password) {
+      return res.status(400).json({ success: false, error: 'All fields are required.' });
+    }
+
+    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    if (existingUser) {
+      return res.status(400).json({ success: false, error: 'Username or email already exists.' });
+    }
+
+    const newUser = new User({ username, email, password });
+    await newUser.save();
+
+    res.status(201).json({ success: true, message: 'User registered successfully!' });
+  } catch (error) {
+    console.error('Registration Error:', error);
+    res.status(500).json({ success: false, error: 'Server error during registration.' });
   }
 });
 
-// Initialize Database Tables
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    password TEXT,
-    role TEXT DEFAULT 'user'
-  )`);
+// Login User
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  db.run(`CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user TEXT,
-    message TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+    const user = await User.findOne({ username, password });
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Invalid username or password.' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Login successful!',
+      user: { username: user.username, email: user.email }
+    });
+  } catch (error) {
+    console.error('Login Error:', error);
+    res.status(500).json({ success: false, error: 'Server error during login.' });
+  }
 });
 
-// Routes
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', app: 'MikiConnect' });
+// Fetch Recent Messages
+app.get('/api/messages', async (req, res) => {
+  try {
+    const messages = await Message.find().sort({ timestamp: 1 }).limit(50);
+    res.json({ success: true, messages });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to retrieve messages.' });
+  }
 });
 
-// File Upload Route
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  res.json({ filePath: `/uploads/${req.file.filename}` });
+// Serve Main Frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Socket.io Realtime Chat & Push Notifications
+// -------------------------------------------------------------
+// Socket.io Real-time Communication
+// -------------------------------------------------------------
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+  console.log(`New client connected: ${socket.id}`);
 
-  socket.on('chatMessage', (data) => {
-    const stmt = db.prepare('INSERT INTO messages (user, message) VALUES (?, ?)');
-    stmt.run(data.user, data.message);
-    stmt.finalize();
+  socket.on('sendMessage', async (data) => {
+    try {
+      const { sender, content, room } = data;
+      const newMessage = new Message({ sender, content, room });
+      await newMessage.save();
 
-    io.emit('message', data);
+      io.emit('receiveMessage', {
+        sender: newMessage.sender,
+        content: newMessage.content,
+        timestamp: newMessage.timestamp
+      });
+    } catch (err) {
+      console.error('Socket Message Error:', err);
+    }
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    console.log(`Client disconnected: ${socket.id}`);
   });
 });
 
-const PORT = process.env.PORT || 10000;
-
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+// -------------------------------------------------------------
+// Start Server
+// -------------------------------------------------------------
+server.listen(PORT, () => {
+  console.log(`MikiConnect Server running on port ${PORT}`);
 });
 
