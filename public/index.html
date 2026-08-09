@@ -262,6 +262,15 @@
       if (e.key === 'Enter') joinChat();
     });
 
+    // Receive and render chat history from SQLite on connect
+    socket.on('chat_history', (messages) => {
+      messagesContainer.innerHTML = '';
+      messages.forEach((data) => {
+        const isMine = data.user === currentUser;
+        renderMessage(data, isMine);
+      });
+    });
+
     // Send Message
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
