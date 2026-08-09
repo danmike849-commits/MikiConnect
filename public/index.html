@@ -9,14 +9,17 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #0f172a; color: #f8fafc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Header */
-    header { background-color: #1e293b; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    header { background-color: #1e293b; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
     .logo-box h1 { font-size: 1.1rem; color: #38bdf8; font-weight: 700; }
     .header-actions { display: flex; align-items: center; gap: 10px; }
     .badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 12px; background-color: #10b981; font-weight: 600; }
     .logout-btn { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: none; }
 
-    /* Auth Container */
+    #nav-bar { display: none; background: #1e293b; border-bottom: 1px solid #334155; }
+    .nav-tabs { display: flex; }
+    .nav-tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #94a3b8; font-weight: 600; font-size: 0.85rem; }
+    .nav-tab.active { color: #38bdf8; border-bottom: 3px solid #38bdf8; background: #0f172a; }
+
     #auth-screen { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
     .auth-card { background: #1e293b; width: 100%; max-width: 380px; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
     .tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #334155; }
@@ -28,18 +31,48 @@
     .auth-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #0284c7; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; }
     .error-msg { color: #f87171; font-size: 0.85rem; margin-top: 10px; text-align: center; }
 
-    /* Main Chat Screen */
-    #chat-screen { flex: 1; display: none; flex-direction: column; height: calc(100vh - 60px); }
-    #messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .app-view { flex: 1; display: none; flex-direction: column; height: calc(100vh - 105px); overflow-y: auto; }
+
+    .messages-box { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .message { max-width: 80%; padding: 10px 14px; border-radius: 14px; background: #334155; align-self: flex-start; word-break: break-word; }
     .message.mine { align-self: flex-end; background: #0284c7; }
     .message .username { font-size: 0.75rem; color: #94a3b8; margin-bottom: 2px; display: block; }
     .message.mine .username { color: #bae6fd; }
 
-    /* Chat Input */
-    #chat-form { display: flex; padding: 12px 16px; background: #1e293b; border-top: 1px solid #334155; gap: 10px; }
-    #chat-form input { flex: 1; padding: 12px 16px; border-radius: 24px; border: 1px solid #334155; background: #0f172a; color: white; outline: none; }
-    #chat-form button { padding: 12px 20px; border-radius: 24px; border: none; background: #0284c7; color: white; font-weight: 600; cursor: pointer; }
+    .chat-input-bar { display: flex; padding: 12px 16px; background: #1e293b; border-top: 1px solid #334155; gap: 8px; align-items: center; }
+    .chat-input-bar input { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #334155; background: #0f172a; color: white; outline: none; }
+    .chat-input-bar button { padding: 10px 16px; border-radius: 20px; border: none; background: #0284c7; color: white; font-weight: 600; cursor: pointer; }
+    .mic-btn { background: #334155 !important; border: 1px solid #475569 !important; font-size: 1rem; border-radius: 50% !important; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; padding: 0 !important; }
+    .mic-btn.recording { background: #ef4444 !important; animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+    #feed-screen { padding: 16px; gap: 16px; }
+    .create-post-card { background: #1e293b; padding: 14px; border-radius: 12px; border: 1px solid #334155; }
+    .create-post-card textarea { width: 100%; height: 70px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; padding: 10px; outline: none; resize: none; font-size: 0.95rem; }
+    .post-btn { margin-top: 8px; padding: 8px 16px; border-radius: 8px; border: none; background: #0284c7; color: white; font-weight: 600; cursor: pointer; float: right; }
+    
+    .posts-list { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+    .post-card { background: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid #334155; }
+    .post-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .post-author { font-weight: 700; color: #38bdf8; font-size: 0.95rem; }
+    .post-content { font-size: 0.95rem; line-height: 1.4; color: #f1f5f9; margin-bottom: 12px; word-break: break-word; }
+    .post-actions { display: flex; gap: 16px; border-top: 1px solid #334155; padding-top: 10px; font-size: 0.85rem; color: #94a3b8; }
+    .action-btn { cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600; }
+
+    .comments-section { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #334155; display: none; }
+    .comment-item { background: #0f172a; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 0.85rem; }
+    .comment-author { font-weight: 600; color: #38bdf8; margin-right: 6px; }
+    .add-comment-box { display: flex; gap: 6px; margin-top: 8px; }
+    .add-comment-box input { flex: 1; background: #0f172a; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; color: white; font-size: 0.85rem; outline: none; }
+    .add-comment-box button { background: #0284c7; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; }
+
+    #dm-screen { flex-direction: row; }
+    .dm-user-list { width: 120px; background: #1e293b; border-right: 1px solid #334155; overflow-y: auto; }
+    .dm-user-item { padding: 12px 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border-bottom: 1px solid #334155; color: #94a3b8; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+    .dm-user-item.active { background: #0284c7; color: white; }
+    .dm-chat-area { flex: 1; display: flex; flex-direction: column; }
+    .dm-header { padding: 10px 14px; background: #1e293b; border-bottom: 1px solid #334155; font-weight: 700; color: #38bdf8; font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -54,15 +87,21 @@
     </div>
   </header>
 
-  <!-- Auth Screen -->
+  <div id="nav-bar">
+    <div class="nav-tabs">
+      <div id="tab-chat" class="nav-tab active" onclick="switchAppView('chat')">Global Chat</div>
+      <div id="tab-dm" class="nav-tab" onclick="switchAppView('dm')">Direct DMs</div>
+      <div id="tab-feed" class="nav-tab" onclick="switchAppView('feed')">Social Feed</div>
+    </div>
+  </div>
+
   <div id="auth-screen">
     <div class="auth-card">
       <div class="tabs">
-        <div id="tab-login" class="tab active" onclick="switchTab('login')">Login</div>
-        <div id="tab-register" class="tab" onclick="switchTab('register')">Register</div>
+        <div id="tab-login" class="tab active" onclick="switchAuthTab('login')">Login</div>
+        <div id="tab-register" class="tab" onclick="switchAuthTab('register')">Register</div>
       </div>
 
-      <!-- Login Form -->
       <form id="login-form">
         <div class="form-group">
           <input type="email" id="login-email" placeholder="Email address" required>
@@ -73,7 +112,6 @@
         <button type="submit" class="auth-btn">Log In</button>
       </form>
 
-      <!-- Register Form -->
       <form id="register-form" style="display: none;">
         <div class="form-group">
           <input type="text" id="reg-username" placeholder="Username" required>
@@ -91,31 +129,62 @@
     </div>
   </div>
 
-  <!-- Chat Screen -->
-  <div id="chat-screen">
-    <div id="messages-container"></div>
-    <form id="chat-form">
+  <!-- Public Global Chat -->
+  <div id="chat-screen" class="app-view">
+    <div id="messages-container" class="messages-box"></div>
+    <form id="chat-form" class="chat-input-bar">
       <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
       <button type="submit">Send</button>
     </form>
   </div>
 
+  <!-- Direct Messages Screen -->
+  <div id="dm-screen" class="app-view">
+    <div class="dm-user-list" id="dm-users-list"></div>
+    <div class="dm-chat-area">
+      <div class="dm-header" id="dm-header-title">Select a contact</div>
+      <div id="dm-messages-container" class="messages-box"></div>
+      <div class="chat-input-bar">
+        <button type="button" id="mic-btn" class="mic-btn" onclick="toggleVoiceRecord()">🎙️</button>
+        <input type="text" id="dm-input" placeholder="Message or hold mic..." autocomplete="off">
+        <button type="button" onclick="sendDirectMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Social Feed Screen -->
+  <div id="feed-screen" class="app-view">
+    <div class="create-post-card">
+      <textarea id="post-input" placeholder="What's on your mind?"></textarea>
+      <button class="post-btn" onclick="submitPost()">Post</button>
+      <div style="clear: both;"></div>
+    </div>
+    <div id="posts-list" class="posts-list"></div>
+  </div>
+
   <script>
     const socket = io();
     let currentUser = JSON.parse(localStorage.getItem('miki_user')) || null;
+    let selectedDmUser = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
 
     const authScreen = document.getElementById('auth-screen');
+    const navBar = document.getElementById('nav-bar');
     const chatScreen = document.getElementById('chat-screen');
+    const dmScreen = document.getElementById('dm-screen');
+    const feedScreen = document.getElementById('feed-screen');
     const logoutBtn = document.getElementById('logout-btn');
     const onlineBadge = document.getElementById('online-badge');
     const authError = document.getElementById('auth-error');
     const messagesContainer = document.getElementById('messages-container');
 
     if (currentUser) {
-      showChatScreen();
+      showMainApp();
     }
 
-    function switchTab(tab) {
+    function switchAuthTab(tab) {
       authError.textContent = '';
       if (tab === 'login') {
         document.getElementById('tab-login').classList.add('active');
@@ -130,10 +199,28 @@
       }
     }
 
-    // Handle Registration
+    function switchAppView(view) {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      chatScreen.style.display = 'none';
+      dmScreen.style.display = 'none';
+      feedScreen.style.display = 'none';
+
+      if (view === 'chat') {
+        document.getElementById('tab-chat').classList.add('active');
+        chatScreen.style.display = 'flex';
+      } else if (view === 'dm') {
+        document.getElementById('tab-dm').classList.add('active');
+        dmScreen.style.display = 'flex';
+        loadDmUsers();
+      } else {
+        document.getElementById('tab-feed').classList.add('active');
+        feedScreen.style.display = 'flex';
+        loadPosts();
+      }
+    }
+
     document.getElementById('register-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      authError.textContent = '';
       const username = document.getElementById('reg-username').value;
       const email = document.getElementById('reg-email').value;
       const password = document.getElementById('reg-password').value;
@@ -146,17 +233,15 @@
       const data = await res.json();
 
       if (data.success) {
-        alert('Account created successfully! Please log in.');
-        switchTab('login');
+        alert('Account created! Log in now.');
+        switchAuthTab('login');
       } else {
         authError.textContent = data.error;
       }
     });
 
-    // Handle Login
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      authError.textContent = '';
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
 
@@ -170,61 +255,244 @@
       if (data.success) {
         currentUser = data.user;
         localStorage.setItem('miki_user', JSON.stringify(currentUser));
-        showChatScreen();
+        showMainApp();
       } else {
         authError.textContent = data.error;
       }
     });
 
-    // Logout
     logoutBtn.addEventListener('click', () => {
       localStorage.removeItem('miki_user');
       currentUser = null;
       location.reload();
     });
 
-    function showChatScreen() {
+    function showMainApp() {
       authScreen.style.display = 'none';
-      chatScreen.style.display = 'flex';
+      navBar.style.display = 'block';
       logoutBtn.style.display = 'block';
+      switchAppView('chat');
       socket.emit('user_joined', currentUser);
     }
 
-    // Socket Events
-    socket.on('online_count', (count) => {
-      onlineBadge.textContent = `${count} Online`;
-    });
+    socket.on('online_count', (count) => { onlineBadge.textContent = `${count} Online`; });
 
     socket.on('chat_history', (messages) => {
       messagesContainer.innerHTML = '';
-      messages.forEach((data) => {
-        renderMessage(data, data.user === currentUser?.username);
-      });
+      messages.forEach((data) => { renderMessage(data, data.user === currentUser?.username, messagesContainer); });
     });
 
     document.getElementById('chat-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const input = document.getElementById('message-input');
       if (input.value.trim() && currentUser) {
-        const payload = { user: currentUser.username, text: input.value.trim() };
-        socket.emit('chat_message', payload);
+        socket.emit('chat_message', { user: currentUser.username, text: input.value.trim() });
         input.value = '';
       }
     });
 
     socket.on('chat_message', (data) => {
-      renderMessage(data, data.user === currentUser?.username);
+      renderMessage(data, data.user === currentUser?.username, messagesContainer);
     });
 
-    function renderMessage(data, isMine) {
+    function renderMessage(data, isMine, container) {
       const bubble = document.createElement('div');
       bubble.className = `message ${isMine ? 'mine' : ''}`;
-      bubble.innerHTML = `
-        <span class="username">${data.user}</span>
-        <div class="text">${data.text}</div>
-      `;
-      messagesContainer.appendChild(bubble);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      
+      let contentHtml = `<span class="username">${data.user || data.sender}</span>`;
+      if (data.text) contentHtml += `<div class="text">${data.text}</div>`;
+      if (data.audio_data) {
+        contentHtml += `<audio controls src="${data.audio_data}" style="max-width: 100%; margin-top: 4px;"></audio>`;
+      }
+
+      bubble.innerHTML = contentHtml;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // --- DIRECT MESSAGING LOGIC ---
+
+    async function loadDmUsers() {
+      const res = await fetch('/api/users');
+      const users = await res.json();
+      const list = document.getElementById('dm-users-list');
+      list.innerHTML = '';
+
+      users.forEach(u => {
+        if (u.username !== currentUser.username) {
+          const item = document.createElement('div');
+          item.className = `dm-user-item ${selectedDmUser === u.username ? 'active' : ''}`;
+          item.textContent = `@${u.username}`;
+          item.onclick = () => selectDmUser(u.username, item);
+          list.appendChild(item);
+        }
+      });
+    }
+
+    async function selectDmUser(username, element) {
+      selectedDmUser = username;
+      document.querySelectorAll('.dm-user-item').forEach(i => i.classList.remove('active'));
+      if (element) element.classList.add('active');
+      document.getElementById('dm-header-title').textContent = `Chatting with @${username}`;
+
+      const res = await fetch(`/api/dm/${currentUser.username}/${username}`);
+      const messages = await res.json();
+      const container = document.getElementById('dm-messages-container');
+      container.innerHTML = '';
+
+      messages.forEach(m => {
+        renderMessage(m, m.sender === currentUser.username, container);
+      });
+    }
+
+    function sendDirectMessage(audioBase64 = null) {
+      if (!selectedDmUser) return alert('Select a user to chat with!');
+      const input = document.getElementById('dm-input');
+      const text = input.value.trim();
+
+      if (!text && !audioBase64) return;
+
+      socket.emit('private_message', {
+        sender: currentUser.username,
+        recipient: selectedDmUser,
+        text: text || null,
+        audio_data: audioBase64 || null
+      });
+
+      input.value = '';
+    }
+
+    socket.on('private_message', (msg) => {
+      if (
+        (msg.sender === selectedDmUser && msg.recipient === currentUser.username) ||
+        (msg.sender === currentUser.username && msg.recipient === selectedDmUser)
+      ) {
+        const container = document.getElementById('dm-messages-container');
+        renderMessage(msg, msg.sender === currentUser.username, container);
+      }
+    });
+
+    // --- VOICE NOTE RECORDING LOGIC ---
+
+    async function toggleVoiceRecord() {
+      const micBtn = document.getElementById('mic-btn');
+
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = () => {
+              const base64Audio = reader.result;
+              sendDirectMessage(base64Audio);
+            };
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          micBtn.classList.add('recording');
+        } catch (err) {
+          alert('Microphone access denied or unavailable.');
+        }
+      } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        micBtn.classList.remove('recording');
+      }
+    }
+
+    // --- SOCIAL FEED LOGIC ---
+
+    async function loadPosts() {
+      const res = await fetch('/api/posts');
+      const posts = await res.json();
+      const list = document.getElementById('posts-list');
+      list.innerHTML = '';
+
+      posts.forEach(post => {
+        const card = document.createElement('div');
+        card.className = 'post-card';
+        card.innerHTML = `
+          <div class="post-header"><span class="post-author">@${post.username}</span></div>
+          <div class="post-content">${post.content}</div>
+          <div class="post-actions">
+            <span class="action-btn" onclick="likePost(${post.id}, this)">❤️ <span class="like-count">${post.likes}</span></span>
+            <span class="action-btn" onclick="toggleComments(${post.id})">💬 <span>${post.comment_count}</span> Comments</span>
+          </div>
+          <div id="comments-${post.id}" class="comments-section">
+            <div id="comment-list-${post.id}"></div>
+            <div class="add-comment-box">
+              <input type="text" id="comment-input-${post.id}" placeholder="Write a comment...">
+              <button onclick="submitComment(${post.id})">Reply</button>
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    async function submitPost() {
+      const content = document.getElementById('post-input').value.trim();
+      if (!content) return;
+
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser.username, content })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        document.getElementById('post-input').value = '';
+        loadPosts();
+      }
+    }
+
+    async function likePost(postId, el) {
+      const res = await fetch(`/api/posts/${postId}/like`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) { el.querySelector('.like-count').textContent = data.likes; }
+    }
+
+    async function toggleComments(postId) {
+      const box = document.getElementById(`comments-${postId}`);
+      if (box.style.display === 'block') box.style.display = 'none';
+      else { box.style.display = 'block'; loadComments(postId); }
+    }
+
+    async function loadComments(postId) {
+      const res = await fetch(`/api/posts/${postId}/comments`);
+      const comments = await res.json();
+      const list = document.getElementById(`comment-list-${postId}`);
+      list.innerHTML = '';
+
+      comments.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'comment-item';
+        item.innerHTML = `<span class="comment-author">@${c.username}:</span>${c.comment}`;
+        list.appendChild(item);
+      });
+    }
+
+    async function submitComment(postId) {
+      const input = document.getElementById(`comment-input-${postId}`);
+      const comment = input.value.trim();
+      if (!comment) return;
+
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser.username, comment })
+      });
+      const data = await res.json();
+
+      if (data.success) { input.value = ''; loadComments(postId); }
     }
   </script>
 </body>
