@@ -109,18 +109,14 @@ app.get('/api/messages', async (req, res) => {
     const messages = await Message.find().sort({ timestamp: 1 }).limit(50);
     res.json({ success: true, messages });
   } catch (error) {
-   
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
+    res.status(500).json({ success: false, error: 'Failed to retrieve messages.' });
+  }
 });
 
 // Fallback Route to serve index.html
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
-
 
 // -------------------------------------------------------------
 // Socket.io Real-Time Messaging
