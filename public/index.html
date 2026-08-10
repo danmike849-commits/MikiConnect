@@ -8,16 +8,12 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background: #eef2f5; color: #333; }
-
-    /* Header & Navigation */
     header { background: #007bff; color: white; padding: 15px; text-align: center; }
-    .nav-tabs { display: flex; background: #0056b3; justify-content: space-around; }
-    .nav-tab { flex: 1; padding: 12px; text-align: center; color: white; cursor: pointer; font-weight: bold; }
+    .nav-tabs { display: flex; background: #0056b3; justify-content: space-around; overflow-x: auto; }
+    .nav-tab { flex: 1; padding: 12px; text-align: center; color: white; cursor: pointer; font-weight: bold; white-space: nowrap; }
     .nav-tab.active { background: #004085; border-bottom: 3px solid #ffc107; }
 
     .container { max-width: 600px; margin: 15px auto; padding: 15px; }
-
-    /* Auth Cards */
     .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
@@ -28,7 +24,8 @@
 
     /* Post Cards */
     .post-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #007bff; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-    .post-header { display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-bottom: 8px; }
+    .post-header { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #666; margin-bottom: 8px; }
+    .post-img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 6px; margin: 8px 0; }
     .like-btn { background: #e9ecef; color: #333; width: auto; padding: 5px 12px; font-size: 13px; }
     .like-btn.liked { background: #dc3545; color: white; }
 
@@ -39,8 +36,8 @@
     .comment-box input { margin: 0; }
     .comment-box button { width: auto; margin: 0; padding: 6px 12px; }
 
-    /* Real-Time Chat */
-    #chat-box { height: 250px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background: #fafafa; margin-bottom: 10px; }
+    /* Chat & DMs */
+    .chat-box { height: 220px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background: #fafafa; margin-bottom: 10px; }
     .chat-msg { margin-bottom: 8px; font-size: 14px; }
     .chat-msg <strong> { color: #007bff; }
 
@@ -60,21 +57,21 @@
   </header>
 
   <div id="user-bar" style="display: none;">
-    <span id="user-display">Logged in as @user</span>
+    <span id="user-display">Logged in</span>
     <button onclick="logout()">Logout</button>
   </div>
 
-  <!-- Navigation Tabs -->
   <div class="nav-tabs">
     <div class="nav-tab active" onclick="switchTab('feed-tab', this)">Feed</div>
-    <div class="nav-tab" onclick="switchTab('chat-tab', this)">Chat</div>
+    <div class="nav-tab" onclick="switchTab('chat-tab', this)">Public Chat</div>
+    <div class="nav-tab" onclick="switchTab('dm-tab', this)">Private DMs</div>
     <div class="nav-tab" onclick="switchTab('admin-tab', this)">Admin</div>
     <div class="nav-tab" id="auth-tab-btn" onclick="switchTab('auth-tab', this)">Account</div>
   </div>
 
   <div class="container">
 
-    <!-- AUTH TAB (Login & Register) -->
+    <!-- AUTH TAB -->
     <div id="auth-tab" class="tab-content">
       <div class="card">
         <h3>Login</h3>
@@ -84,10 +81,11 @@
       </div>
 
       <div class="card">
-        <h3>Register</h3>
+        <h3>Register Account</h3>
         <input type="text" id="reg-user" placeholder="Username" />
         <input type="email" id="reg-email" placeholder="Email" />
         <input type="password" id="reg-pass" placeholder="Password" />
+        <input type="text" id="reg-avatar" placeholder="Avatar Image URL (Optional)" />
         <button onclick="register()">Create Account</button>
       </div>
     </div>
@@ -97,22 +95,36 @@
       <div class="card">
         <h3>Create Post</h3>
         <textarea id="post-content" rows="3" placeholder="What's on your mind?"></textarea>
+        <input type="text" id="post-image-url" placeholder="Photo/Image URL (Optional)" />
         <button onclick="createPost()">Publish Post</button>
       </div>
 
       <div id="feed-container">
-        <p>Loading feed...</p>
+        <p>Loading posts...</p>
       </div>
     </div>
 
-    <!-- CHAT TAB -->
+    <!-- PUBLIC CHAT TAB -->
     <div id="chat-tab" class="tab-content">
       <div class="card">
         <h3>Live Public Chat</h3>
-        <div id="chat-box"></div>
+        <div id="public-chat-box" class="chat-box"></div>
         <div style="display: flex; gap: 5px;">
-          <input type="text" id="chat-input" placeholder="Type a message..." style="margin: 0;" />
-          <button onclick="sendChatMessage()" style="width: auto; margin: 0;">Send</button>
+          <input type="text" id="public-chat-input" placeholder="Type a public message..." style="margin: 0;" />
+          <button onclick="sendPublicChat()" style="width: auto; margin: 0;">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRIVATE DMS TAB -->
+    <div id="dm-tab" class="tab-content">
+      <div class="card">
+        <h3>1-on-1 Direct Messaging</h3>
+        <input type="text" id="dm-recipient" placeholder="Recipient's Username" />
+        <div id="dm-chat-box" class="chat-box"></div>
+        <div style="display: flex; gap: 5px;">
+          <input type="text" id="dm-chat-input" placeholder="Type a private message..." style="margin: 0;" />
+          <button onclick="sendPrivateDM()" style="width: auto; margin: 0;">Send DM</button>
         </div>
       </div>
     </div>
@@ -120,8 +132,8 @@
     <!-- ADMIN TAB -->
     <div id="admin-tab" class="tab-content">
       <div class="card">
-        <h3>Admin Moderation Panel</h3>
-        <button onclick="loadAdminUsers()" style="margin-bottom: 10px;">Refresh Registered Users</button>
+        <h3>Admin Dashboard</h3>
+        <button onclick="loadAdminUsers()" style="margin-bottom: 10px;">Load Users List</button>
         <ul id="admin-user-list"></ul>
       </div>
     </div>
