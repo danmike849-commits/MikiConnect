@@ -16,10 +16,13 @@ const io = new Server(server, {
 // Port configuration for Render deployment
 const PORT = process.env.PORT || 10000;
 
-// Body Parsing & Static File Middleware
+// Body Parsing Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname)));
+
+// Serve static frontend files from 'public' folder and root directory
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // -------------------------------------------------------------
 // MongoDB Atlas Connection
@@ -113,9 +116,17 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-// Fallback Route to serve index.html
+// Fallback Route: Serve index.html from 'public' folder
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
+    if (err) {
+      res.sendFile(path.join(__dirname, 'index.html'), (err2) => {
+        if (err2) {
+          res.status(404).send('index.html not found on server.');
+        }
+      });
+    }
+  });
 });
 
 // -------------------------------------------------------------
