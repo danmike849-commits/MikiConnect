@@ -85,12 +85,27 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// User Login
+// User Login (Supports Username OR Email)
 app.post('/api/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, email, identifier, password } = req.body;
+    
+    // Accept 'username', 'email', or 'identifier' from frontend
+    const loginId = username || email || identifier;
 
-    const user = await User.findOne({ username, password });
+    if (!loginId || !password) {
+      return res.status(400).json({ success: false, error: 'Please enter your username/email and password.' });
+    }
+
+    // Find user where EITHER username OR email matches loginId
+    const user = await User.findOne({
+      $or: [
+        { username: loginId },
+        { email: loginId }
+      ],
+      password: password
+    });
+
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid username or password.' });
     }
@@ -105,6 +120,7 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ success: false, error: 'Server error during login.' });
   }
 });
+
 
 // Fetch Message History
 app.get('/api/messages', async (req, res) => {
