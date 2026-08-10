@@ -272,3 +272,20 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => console.log(`MikiConnect running on port ${PORT}`));
+// Emergency route to turn your account into an Admin
+app.get('/api/make-me-admin/:username', async (req, res) => {
+  try {
+    const user = await User.findOneAndUpdate(
+      { username: req.params.username },
+      { isAdmin: true },
+      { new: true }
+    );
+    if (user) {
+      res.send(`SUCCESS: @${user.username} is now an ADMIN! Log out and log back in on the app.`);
+    } else {
+      res.send(`User '${req.params.username}' not found in database. Check the spelling.`);
+    }
+  } catch (err) {
+    res.status(500).send(`Error: ${err.message}`);
+  }
+});
