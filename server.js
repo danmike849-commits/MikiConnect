@@ -271,7 +271,6 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => console.log(`MikiConnect running on port ${PORT}`));
 // Emergency route to turn your account into an Admin
 app.get('/api/make-me-admin/:username', async (req, res) => {
   try {
@@ -281,11 +280,23 @@ app.get('/api/make-me-admin/:username', async (req, res) => {
       { new: true }
     );
     if (user) {
-      res.send(`SUCCESS: @${user.username} is now an ADMIN! Log out and log back in on the app.`);
+      res.send(`SUCCESS: @${user.username} is now an ADMIN! Log out and log back in.`);
     } else {
-      res.send(`User '${req.params.username}' not found in database. Check the spelling.`);
+      res.send(`User '${req.params.username}' not found in database.`);
     }
   } catch (err) {
     res.status(500).send(`Error: ${err.message}`);
   }
 });
+
+// Quick route to list all usernames so you can find your account name
+app.get('/api/list-users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'username email isAdmin');
+    res.json(users);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+server.listen(PORT, () => console.log(`MikiConnect running on port ${PORT}`));
