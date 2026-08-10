@@ -1,4 +1,3 @@
-cat << 'EOF' > server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -10,14 +9,18 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MongoDB Connection
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://admin442:admin442@cluster0.mongodb.net/mikiconnect?retryWrites=true&w=majority";
+// Safely load database connection string from Render Environment Variables
+const MONGO_URI = process.env.MONGO_URI;
 
-mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => console.log("MongoDB Connected Successfully"))
-  .catch(err => console.error("MongoDB Connection Error:", err));
+if (!MONGO_URI) {
+    console.error("CRITICAL: MONGO_URI is missing in Environment settings!");
+} else {
+    mongoose.connect(MONGO_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    }).then(() => console.log("MongoDB Connected Successfully"))
+      .catch(err => console.error("MongoDB Connection Error:", err));
+}
 
 // User Schema
 const UserSchema = new mongoose.Schema({
@@ -40,7 +43,6 @@ const Post = mongoose.model('Post', PostSchema);
 
 // --- AUTH ROUTES ---
 
-// Registration Route
 app.post('/api/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -55,7 +57,6 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ error: 'Username already registered' });
         }
 
-        // Hash password ONCE
         const hashedPassword = await bcrypt.hash(password, 10);
         
         const newUser = new User({
@@ -72,7 +73,6 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// Login Route
 app.post('/api/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -87,7 +87,6 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ error: 'Invalid username or password' });
         }
 
-        // Compare plain password with stored hash
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ error: 'Invalid username or password' });
@@ -109,7 +108,6 @@ app.post('/api/login', async (req, res) => {
 
 // --- ADMIN / UTILITY ROUTES ---
 
-// Route to make any user an Admin directly
 app.get('/api/make-me-admin/:username', async (req, res) => {
     try {
         const cleanUsername = req.params.username.trim().toLowerCase();
@@ -129,7 +127,6 @@ app.get('/api/make-me-admin/:username', async (req, res) => {
     }
 });
 
-// Route to list users
 app.get('/api/list-users', async (req, res) => {
     try {
         const users = await User.find({}, 'username email isAdmin');
@@ -161,11 +158,9 @@ app.post('/api/posts', async (req, res) => {
     }
 });
 
-// Serve frontend SPA fallback
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-EOF
