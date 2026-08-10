@@ -1,230 +1,218 @@
-// Retrieve stored user session (saved during login)
-let currentUser = JSON.parse(localStorage.getItem('user')) || null;
+const socket = io();
+let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 
-// -------------------------------------------------------------
-// 1. CREATE A NEW FEED POST
-// -------------------------------------------------------------
-async function createPost() {
-  const contentInput = document.getElementById('post-content');
-  const content = contentInput ? contentInput.value.trim() : '';
+// Handle UI tab switching
+function switchTab(tabId, element) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
 
-  if (!currentUser) {
-    alert('Please log in first to create a post.');
-    return;
-  }
+  document.getElementById(tabId).classList.add('active');
+  if (element) element.classList.add('active');
 
-  if (!content) {
-    alert('Post content cannot be empty.');
-    return;
-  }
+  if (tabId === 'feed-tab') loadFeed();
+  if (tabId === 'admin-tab') loadAdminUsers();
+}
 
-  try {
-    const response = await fetch('/api/posts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        author: currentUser.username,
-        content: content
-      })
-    });
+// User Session UI
+function updateAuthUI() {
+  const userBar = document.getElementById('user-bar');
+  const userDisplay = document.getElementById('user-display');
+  const authBtn = document.getElementById('auth-tab-btn');
 
-    const data = await response.json();
-    if (data.success) {
-      if (contentInput) contentInput.value = '';
-      loadFeed(); // Refresh feed immediately
-    } else {
-      alert('Error creating post: ' + data.error);
-    }
-  } catch (err) {
-    console.error('Create Post Error:', err);
+  if (currentUser) {
+    userBar.style.display = 'flex';
+    userDisplay.textContent = `Logged in as @${currentUser.username}${currentUser.isAdmin ? ' [ADMIN]' : ''}`;
+    if (authBtn) authBtn.textContent = 'Profile';
+  } else {
+    userBar.style.display = 'none';
+    if (authBtn) authBtn.textContent = 'Account';
   }
 }
 
-// -------------------------------------------------------------
-// 2. FETCH AND DISPLAY FEED POSTS
-// -------------------------------------------------------------
+// Register
+async function register() {
+  const username = document.getElementById('reg-user').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value.trim();
+
+  if (!username || !email || !password) return alert('Fill in all fields.');
+
+  const res = await fetch('/api/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, email, password })
+  });
+  const data = await res.json();
+
+  if (data.success) {
+    alert('Registration successful! Please login.');
+    document.getElementById('reg-user').value = '';
+    document.getElementById('reg-email').value = '';
+    document.getElementById('reg-pass').value = '';
+  } else {
+    alert(data.error);
+  }
+}
+
+// Login
+async function login() {
+  const identifier = document.getElementById('login-id').value.trim();
+  const password = document.getElementById('login-pass').value.trim();
+
+  if (!identifier || !password) return alert('Enter login credentials.');
+
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identifier, password })
+  });
+  const data = await res.json();
+
+  if (data.success) {
+    currentUser = data.user;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    updateAuthUI();
+    alert(`Welcome back @${currentUser.username}!`);
+    switchTab('feed-tab', document.querySelectorAll('.nav-tab')[0]);
+  } else {
+    alert(data.error);
+  }
+}
+
+function logout() {
+  localStorage.removeItem('currentUser');
+  currentUser = null;
+  updateAuthUI();
+  alert('Logged out.');
+}
+
+// Feed Functions
 async function loadFeed() {
-  const feedContainer = document.getElementById('feed-container');
-  if (!feedContainer) return;
-
   try {
-    const response = await fetch('/api/posts');
-    const data = await response.json();
-
+    const res = await fetch('/api/posts');
+    const data = await res.json();
     if (!data.success) return;
 
-    feedContainer.innerHTML = ''; // Clear feed before rendering
+    const feedContainer = document.getElementById('feed-container');
+    feedContainer.innerHTML = '';
 
     data.posts.forEach(post => {
       const isLiked = currentUser && post.likes.includes(currentUser.username);
-      
-      const postCard = document.createElement('div');
-      postCard.className = 'post-card';
-      postCard.style.cssText = 'border: 1px solid #ccc; padding: 12px; margin-bottom: 12px; border-radius: 8px; background: #fff;';
-
-      postCard.innerHTML = `
-        <div style="font-weight: bold; color: #333;">@${post.author}</div>
-        <p style="margin: 8px 0; font-size: 15px;">${post.content}</p>
-        <small style="color: #777;">${new Date(post.createdAt).toLocaleString()}</small>
-        
-        <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
-          <button onclick="toggleLike('${post._id}')" style="padding: 4px 10px; cursor: pointer;">
-            ${isLiked ? '❤️ Liked' : '🤍 Like'} (${post.likes.length})
-          </button>
+      const card = document.createElement('div');
+      card.className = 'post-card';
+      card.innerHTML = `
+        <div class="post-header">
+          <strong>@${post.author}</strong>
+          <small>${new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
         </div>
-
-        <!-- Comments Section -->
-        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #eee;">
-          <strong>Comments (${post.comments.length}):</strong>
-          <div id="comments-${post._id}" style="margin-top: 6px;">
-            ${post.comments.map(c => `
-              <div style="font-size: 13px; background: #f4f4f4; padding: 4px 8px; border-radius: 4px; margin-top: 4px;">
-                <strong>@${c.username}:</strong> ${c.text}
-              </div>
-            `).join('')}
-          </div>
-
-          <!-- Add Comment Input -->
-          <div style="display: flex; gap: 6px; margin-top: 8px;">
-            <input type="text" id="input-comment-${post._id}" placeholder="Write a comment..." style="flex: 1; padding: 4px 8px;" />
-            <button onclick="addComment('${post._id}')" style="padding: 4px 10px;">Send</button>
+        <p style="margin: 8px 0;">${post.content}</p>
+        <button onclick="toggleLike('${post._id}')" class="like-btn ${isLiked ? 'liked' : ''}">
+          ❤️ ${post.likes.length} Likes
+        </button>
+        <div class="comments-section">
+          ${post.comments.map(c => `<div class="comment-item"><strong>@${c.username}:</strong> ${c.text}</div>`).join('')}
+          <div class="comment-box" style="margin-top: 6px;">
+            <input type="text" id="comment-input-${post._id}" placeholder="Write a comment..." />
+            <button onclick="submitComment('${post._id}')">Send</button>
           </div>
         </div>
       `;
-
-      feedContainer.appendChild(postCard);
+      feedContainer.appendChild(card);
     });
-  } catch (err) {
-    console.error('Fetch Feed Error:', err);
+  } catch (e) {
+    console.error(e);
   }
 }
 
-// -------------------------------------------------------------
-// 3. TOGGLE LIKE / UNLIKE
-// -------------------------------------------------------------
+async function createPost() {
+  if (!currentUser) return alert('Please login first on the Account tab!');
+  const content = document.getElementById('post-content').value.trim();
+  if (!content) return alert('Post cannot be empty.');
+
+  const res = await fetch('/api/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ author: currentUser.username, content })
+  });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('post-content').value = '';
+    loadFeed();
+  }
+}
+
 async function toggleLike(postId) {
-  if (!currentUser) {
-    alert('Please log in to like posts.');
-    return;
-  }
-
-  try {
-    const response = await fetch(`/api/posts/${postId}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: currentUser.username })
-    });
-
-    const data = await response.json();
-    if (data.success) {
-      loadFeed(); // Refresh feed to update like count & button state
-    }
-  } catch (err) {
-    console.error('Like Error:', err);
-  }
-}
-
-// -------------------------------------------------------------
-// 4. ADD COMMENT TO A POST
-// -------------------------------------------------------------
-async function addComment(postId) {
-  if (!currentUser) {
-    alert('Please log in to comment.');
-    return;
-  }
-
-  const commentInput = document.getElementById(`input-comment-${postId}`);
-  const text = commentInput ? commentInput.value.trim() : '';
-
-  if (!text) return;
-
-  try {
-    const response = await fetch(`/api/posts/${postId}/comment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: currentUser.username,
-        text: text
-      })
-    });
-
-    const data = await response.json();
-    if (data.success) {
-      commentInput.value = '';
-      loadFeed(); // Refresh feed to display new comment
-    }
-  } catch (err) {
-    console.error('Comment Error:', err);
-  }
-}
-
-// -------------------------------------------------------------
-// 5. ADMIN DASHBOARD (Fetch & Manage Registered Users)
-// -------------------------------------------------------------
-async function loadAdminDashboard() {
-  const adminContainer = document.getElementById('admin-container');
-  if (!adminContainer) return;
-
-  if (!currentUser || !currentUser.isAdmin) {
-    adminContainer.style.display = 'none';
-    return;
-  }
-
-  adminContainer.style.display = 'block';
-
-  try {
-    const response = await fetch('/api/admin/users');
-    const data = await response.json();
-
-    if (!data.success) return;
-
-    adminContainer.innerHTML = `
-      <h3>Admin Dashboard</h3>
-      <table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse; background: #fff;">
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Registered Date</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.users.map(u => `
-            <tr>
-              <td>@${u.username} ${u.isAdmin ? '👑' : ''}</td>
-              <td>${u.email}</td>
-              <td>${new Date(u.createdAt).toLocaleDateString()}</td>
-              <td>
-                ${!u.isAdmin ? `<button onclick="deleteUser('${u._id}')" style="color: red;">Delete</button>` : 'Admin'}
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-  } catch (err) {
-    console.error('Admin Fetch Error:', err);
-  }
-}
-
-// Delete User from Admin Dashboard
-async function deleteUser(userId) {
-  if (!confirm('Are you sure you want to delete this user?')) return;
-
-  try {
-    const response = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
-    const data = await response.json();
-    if (data.success) {
-      loadAdminDashboard(); // Refresh admin table
-    }
-  } catch (err) {
-    console.error('Delete User Error:', err);
-  }
-}
-
-// Automatically load feed and admin panel on page load
-document.addEventListener('DOMContentLoaded', () => {
+  if (!currentUser) return alert('Please login to like posts!');
+  await fetch(`/api/posts/${postId}/like`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: currentUser.username })
+  });
   loadFeed();
-  loadAdminDashboard();
+}
+
+async function submitComment(postId) {
+  if (!currentUser) return alert('Please login to comment!');
+  const input = document.getElementById(`comment-input-${postId}`);
+  if (!input || !input.value.trim()) return;
+
+  await fetch(`/api/posts/${postId}/comment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: currentUser.username, text: input.value.trim() })
+  });
+  loadFeed();
+}
+
+// Socket.io Real-Time Chat
+function sendChatMessage() {
+  if (!currentUser) return alert('Please login to chat!');
+  const input = document.getElementById('chat-input');
+  if (!input.value.trim()) return;
+
+  socket.emit('sendMessage', { sender: currentUser.username, content: input.value.trim() });
+  input.value = '';
+}
+
+socket.on('receiveMessage', data => {
+  const chatBox = document.getElementById('chat-box');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'chat-msg';
+  msgDiv.innerHTML = `<strong>@${data.sender}:</strong> ${data.content}`;
+  chatBox.appendChild(msgDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
+});
+
+// Admin Moderation
+async function loadAdminUsers() {
+  const res = await fetch('/api/admin/users');
+  const data = await res.json();
+  const list = document.getElementById('admin-user-list');
+  if (!list) return;
+
+  list.innerHTML = '';
+  if (!data.success) {
+    list.innerHTML = `<li>${data.error || 'Failed to load users'}</li>`;
+    return;
+  }
+
+  data.users.forEach(u => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span><strong>@${u.username}</strong> (${u.email}) ${u.isAdmin ? '[ADMIN]' : ''}</span>
+      ${!u.isAdmin ? `<button class="del-btn" onclick="deleteUser('${u._id}')">Delete</button>` : ''}
+    `;
+    list.appendChild(li);
+  });
+}
+
+async function deleteUser(id) {
+  if (!confirm('Delete user?')) return;
+  await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+  loadAdminUsers();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateAuthUI();
+  loadFeed();
 });
