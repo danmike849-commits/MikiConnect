@@ -7,47 +7,40 @@
   <script src="/socket.io/socket.io.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background: #eef2f5; color: #333; }
-    header { background: #007bff; color: white; padding: 15px; text-align: center; }
-    .nav-tabs { display: flex; background: #0056b3; justify-content: space-around; overflow-x: auto; }
-    .nav-tab { flex: 1; padding: 12px; text-align: center; color: white; cursor: pointer; font-weight: bold; white-space: nowrap; }
-    .nav-tab.active { background: #004085; border-bottom: 3px solid #ffc107; }
+    body { background: #1e232a; color: #e1e6ed; }
+    header { background: #0d2818; color: #40c057; padding: 15px; text-align: center; border-bottom: 2px solid #164228; }
 
-    .container { max-width: 600px; margin: 15px auto; padding: 15px; }
-    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    .online-bar { background: #164228; color: #a9e34b; padding: 8px 15px; font-size: 13px; display: flex; align-items: center; gap: 8px; overflow-x: auto; white-space: nowrap; }
+    .status-dot { width: 8px; height: 8px; background: #40c057; border-radius: 50%; display: inline-block; }
+
+    .nav-tabs { display: flex; background: #0f1217; border-bottom: 1px solid #2b313a; overflow-x: auto; }
+    .nav-tab { flex: 1; padding: 12px; text-align: center; color: #909296; cursor: pointer; font-weight: bold; white-space: nowrap; }
+    .nav-tab.active { color: #40c057; border-bottom: 3px solid #40c057; background: #164228; }
+
+    .container { max-width: 600px; margin: 15px auto; padding: 0 10px; }
+    .card { background: #2b313a; padding: 18px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #3b424e; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    input, textarea, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc; font-size: 15px; }
-    button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
-    button:hover { background: #0056b3; }
+    input, textarea, button, select { width: 100%; padding: 10px; margin: 8px 0; border-radius: 5px; border: 1px solid #3b424e; background: #1e232a; color: #fff; font-size: 14px; }
+    button { background: #164228; color: #40c057; border: 1px solid #40c057; cursor: pointer; font-weight: bold; }
+    button:hover { background: #40c057; color: #0d2818; }
 
-    /* Post Cards */
-    .post-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #007bff; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-    .post-header { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #666; margin-bottom: 8px; }
-    .post-img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 6px; margin: 8px 0; }
-    .like-btn { background: #e9ecef; color: #333; width: auto; padding: 5px 12px; font-size: 13px; }
-    .like-btn.liked { background: #dc3545; color: white; }
+    .media-btn-row { display: flex; gap: 5px; margin: 5px 0; }
+    .media-btn-row label { flex: 1; text-align: center; background: #1e232a; padding: 8px; border: 1px solid #3b424e; border-radius: 5px; cursor: pointer; font-size: 12px; }
 
-    /* Comments */
-    .comments-section { background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; }
-    .comment-item { font-size: 13px; margin: 4px 0; }
-    .comment-box { display: flex; gap: 5px; }
-    .comment-box input { margin: 0; }
-    .comment-box button { width: auto; margin: 0; padding: 6px 12px; }
+    /* Post Styles */
+    .post-card { background: #2b313a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #40c057; }
+    .post-header { display: flex; justify-content: space-between; font-size: 13px; color: #adb5bd; margin-bottom: 8px; }
+    .post-media { width: 100%; max-height: 300px; object-fit: cover; border-radius: 6px; margin: 8px 0; }
 
-    /* Chat & DMs */
-    .chat-box { height: 220px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background: #fafafa; margin-bottom: 10px; }
-    .chat-msg { margin-bottom: 8px; font-size: 14px; }
-    .chat-msg <strong> { color: #007bff; }
+    /* Chat UI */
+    .chat-box { height: 280px; overflow-y: auto; border: 1px solid #3b424e; padding: 10px; border-radius: 5px; background: #1e232a; margin-bottom: 10px; }
+    .chat-msg { background: #2b313a; padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
+    .chat-controls { display: flex; flex-direction: column; gap: 5px; }
 
-    /* Admin List */
-    ul { list-style: none; }
-    li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-    .del-btn { background: #dc3545; width: auto; padding: 4px 8px; font-size: 12px; }
-    
-    #user-bar { background: #343a40; color: white; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
-    #user-bar button { width: auto; padding: 4px 10px; margin: 0; background: #dc3545; font-size: 12px; }
+    #user-bar { background: #0d2818; color: white; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    .logout-btn { background: #c92a2a; color: #fff; border: none; width: auto; padding: 6px 12px; margin: 0; }
   </style>
 </head>
 <body>
@@ -56,76 +49,90 @@
     <h2>MikiConnect</h2>
   </header>
 
+  <div class="online-bar">
+    <span class="status-dot"></span> Active Users: <span id="online-users-list">None online</span>
+  </div>
+
   <div id="user-bar" style="display: none;">
     <span id="user-display">Logged in</span>
-    <button onclick="logout()">Logout</button>
+    <button class="logout-btn" onclick="logout()">Logout</button>
   </div>
 
   <div class="nav-tabs">
     <div class="nav-tab active" onclick="switchTab('feed-tab', this)">Feed</div>
-    <div class="nav-tab" onclick="switchTab('chat-tab', this)">Public Chat</div>
-    <div class="nav-tab" onclick="switchTab('dm-tab', this)">Private DMs</div>
-    <div class="nav-tab" onclick="switchTab('admin-tab', this)">Admin</div>
+    <div class="nav-tab" onclick="switchTab('chat-tab', this)">Live Chat</div>
+    <div class="nav-tab" onclick="switchTab('groups-tab', this)">Groups</div>
+    <div class="nav-tab" id="admin-tab-btn" style="display: none;" onclick="switchTab('admin-tab', this)">Admin</div>
     <div class="nav-tab" id="auth-tab-btn" onclick="switchTab('auth-tab', this)">Account</div>
   </div>
 
   <div class="container">
-
-    <!-- AUTH TAB -->
-    <div id="auth-tab" class="tab-content">
-      <div class="card">
-        <h3>Login</h3>
-        <input type="text" id="login-id" placeholder="Username or Email" />
-        <input type="password" id="login-pass" placeholder="Password" />
-        <button onclick="login()">Login</button>
-      </div>
-
-      <div class="card">
-        <h3>Register Account</h3>
-        <input type="text" id="reg-user" placeholder="Username" />
-        <input type="email" id="reg-email" placeholder="Email" />
-        <input type="password" id="reg-pass" placeholder="Password" />
-        <input type="text" id="reg-avatar" placeholder="Avatar Image URL (Optional)" />
-        <button onclick="register()">Create Account</button>
-      </div>
-    </div>
 
     <!-- FEED TAB -->
     <div id="feed-tab" class="tab-content active">
       <div class="card">
         <h3>Create Post</h3>
         <textarea id="post-content" rows="3" placeholder="What's on your mind?"></textarea>
-        <input type="text" id="post-image-url" placeholder="Photo/Image URL (Optional)" />
+        
+        <div class="media-btn-row">
+          <label>📷 Add Picture <input type="file" id="post-img-file" accept="image/*" style="display:none;" onchange="previewMedia(this, 'img-preview')"></label>
+          <label>🎥 Add Video <input type="file" id="post-vid-file" accept="video/*" style="display:none;" onchange="previewMedia(this, 'vid-preview')"></label>
+        </div>
+        <p id="img-preview" style="font-size: 11px; color: #40c057;"></p>
+        <p id="vid-preview" style="font-size: 11px; color: #40c057;"></p>
+
         <button onclick="createPost()">Publish Post</button>
       </div>
 
       <div id="feed-container">
-        <p>Loading posts...</p>
+        <p>Loading feed...</p>
       </div>
     </div>
 
-    <!-- PUBLIC CHAT TAB -->
+    <!-- LIVE CHAT TAB -->
     <div id="chat-tab" class="tab-content">
       <div class="card">
         <h3>Live Public Chat</h3>
         <div id="public-chat-box" class="chat-box"></div>
-        <div style="display: flex; gap: 5px;">
-          <input type="text" id="public-chat-input" placeholder="Type a public message..." style="margin: 0;" />
-          <button onclick="sendPublicChat()" style="width: auto; margin: 0;">Send</button>
+        
+        <div class="chat-controls">
+          <input type="text" id="chat-msg-input" placeholder="Type a message..." />
+          
+          <div class="media-btn-row">
+            <label>📷 Photo <input type="file" id="chat-img" accept="image/*" style="display:none;"></label>
+            <label>🎥 Video/Cam <input type="file" id="chat-vid" accept="video/*" capture="user" style="display:none;"></label>
+            <button type="button" onclick="toggleVoiceRecord()" id="voice-btn" style="flex:1; margin:0; padding:8px; font-size:12px;">🎙️ Record Voice</button>
+          </div>
+
+          <div style="display: flex; gap: 5px;">
+            <select id="emoji-select" style="width: auto;" onchange="addEmoji(this.value)">
+              <option value="">😃 Emojis</option>
+              <option value="❤️">❤️ Love</option>
+              <option value="👍">👍 Like</option>
+              <option value="🔥">🔥 Fire</option>
+              <option value="😂">😂 Laugh</option>
+            </select>
+            <button onclick="sendChatMessage('public')" style="flex: 1;">Send Message</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- PRIVATE DMS TAB -->
-    <div id="dm-tab" class="tab-content">
+    <!-- GROUPS TAB -->
+    <div id="groups-tab" class="tab-content">
       <div class="card">
-        <h3>1-on-1 Direct Messaging</h3>
-        <input type="text" id="dm-recipient" placeholder="Recipient's Username" />
-        <div id="dm-chat-box" class="chat-box"></div>
-        <div style="display: flex; gap: 5px;">
-          <input type="text" id="dm-chat-input" placeholder="Type a private message..." style="margin: 0;" />
-          <button onclick="sendPrivateDM()" style="width: auto; margin: 0;">Send DM</button>
-        </div>
+        <h3>Create Group Forum</h3>
+        <input type="text" id="group-name-input" placeholder="Group Forum Name..." />
+        <button onclick="createGroup()">Create Forum</button>
+      </div>
+
+      <div class="card">
+        <h3>Group Forums</h3>
+        <select id="active-group-select" onchange="loadGroupChat(this.value)">
+          <option value="">Select a Group Forum...</option>
+        </select>
+        <div id="group-chat-box" class="chat-box" style="margin-top: 10px;"></div>
+        <button onclick="sendChatMessage('group')">Send to Group</button>
       </div>
     </div>
 
@@ -133,8 +140,32 @@
     <div id="admin-tab" class="tab-content">
       <div class="card">
         <h3>Admin Dashboard</h3>
-        <button onclick="loadAdminUsers()" style="margin-bottom: 10px;">Load Users List</button>
-        <ul id="admin-user-list"></ul>
+        <button onclick="loadAdminUsers()">Load Users List</button>
+        <ul id="admin-user-list" style="margin-top: 10px; list-style: none;"></ul>
+      </div>
+    </div>
+
+    <!-- ACCOUNT TAB -->
+    <div id="auth-tab" class="tab-content">
+      <div class="card" id="logged-in-profile" style="display: none;">
+        <h3>My Account</h3>
+        <p id="profile-details" style="margin: 10px 0;"></p>
+        <button class="logout-btn" style="width: 100%;" onclick="logout()">Logout Account</button>
+      </div>
+
+      <div class="card" id="login-card">
+        <h3>Login</h3>
+        <input type="text" id="login-id" placeholder="Username or Email" />
+        <input type="password" id="login-pass" placeholder="Password" />
+        <button onclick="login()">Login</button>
+      </div>
+
+      <div class="card" id="register-card">
+        <h3>Register Account</h3>
+        <input type="text" id="reg-user" placeholder="Username" />
+        <input type="email" id="reg-email" placeholder="Email" />
+        <input type="password" id="reg-pass" placeholder="Password" />
+        <button onclick="register()">Create Account</button>
       </div>
     </div>
 
