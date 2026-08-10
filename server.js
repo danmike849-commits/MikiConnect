@@ -9,7 +9,7 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Safely load database connection string from Render Environment Variables
+// Load database connection string from Render Environment Variables
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
@@ -18,8 +18,11 @@ if (!MONGO_URI) {
     mongoose.connect(MONGO_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true
-    }).then(() => console.log("MongoDB Connected Successfully"))
-      .catch(err => console.error("MongoDB Connection Error:", err));
+    }).then(function() {
+        console.log("MongoDB Connected Successfully");
+    }).catch(function(err) {
+        console.error("MongoDB Connection Error:", err);
+    });
 }
 
 // User Schema
@@ -43,9 +46,12 @@ const Post = mongoose.model('Post', PostSchema);
 
 // --- AUTH ROUTES ---
 
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', async function(req, res) {
     try {
-        const { username, email, password } = req.body;
+        const username = req.body.username;
+        const email = req.body.email;
+        const password = req.body.password;
+
         if (!username || !email || !password) {
             return res.status(400).json({ error: 'All fields are required' });
         }
@@ -73,9 +79,11 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', async function(req, res) {
     try {
-        const { username, password } = req.body;
+        const username = req.body.username;
+        const password = req.body.password;
+
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password required' });
         }
@@ -108,7 +116,7 @@ app.post('/api/login', async (req, res) => {
 
 // --- ADMIN / UTILITY ROUTES ---
 
-app.get('/api/make-me-admin/:username', async (req, res) => {
+app.get('/api/make-me-admin/:username', async function(req, res) {
     try {
         const cleanUsername = req.params.username.trim().toLowerCase();
         const user = await User.findOneAndUpdate(
@@ -118,16 +126,16 @@ app.get('/api/make-me-admin/:username', async (req, res) => {
         );
 
         if (!user) {
-            return res.status(404).send(`User ${cleanUsername} not found in database.`);
+            return res.status(404).send("User not found in database.");
         }
 
-        res.send(`SUCCESS: @${user.username} is now an ADMIN! Log out and log back in.`);
+        res.send("SUCCESS: Admin updated! Log out and log back in.");
     } catch (err) {
         res.status(500).send("Error updating admin status: " + err.message);
     }
 });
 
-app.get('/api/list-users', async (req, res) => {
+app.get('/api/list-users', async function(req, res) {
     try {
         const users = await User.find({}, 'username email isAdmin');
         res.json(users);
@@ -138,7 +146,7 @@ app.get('/api/list-users', async (req, res) => {
 
 // --- POSTS / FEED ROUTES ---
 
-app.get('/api/posts', async (req, res) => {
+app.get('/api/posts', async function(req, res) {
     try {
         const posts = await Post.find().sort({ createdAt: -1 });
         res.json(posts);
@@ -147,10 +155,11 @@ app.get('/api/posts', async (req, res) => {
     }
 });
 
-app.post('/api/posts', async (req, res) => {
+app.post('/api/posts', async function(req, res) {
     try {
-        const { username, content } = req.body;
-        const newPost = new Post({ username, content });
+        const username = req.body.username;
+        const content = req.body.content;
+        const newPost = new Post({ username: username, content: content });
         await newPost.save();
         res.json(newPost);
     } catch (err) {
@@ -158,9 +167,11 @@ app.post('/api/posts', async (req, res) => {
     }
 });
 
-app.get('*', (req, res) => {
+app.get('*', function(req, res) {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, function() {
+    console.log("Server running on port " + PORT);
+});
