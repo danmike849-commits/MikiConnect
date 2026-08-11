@@ -177,33 +177,43 @@ function previewMedia(input, previewId) {
 
 // Feed Posts
 async function loadFeed() {
-  const res = await fetch('/api/posts');
-  const data = await res.json();
-  if (!data.success) return;
+    const feedContainer = document.getElementById("feed-container");
+    if (!feedContainer) return;
 
-  const container = document.getElementById('feed-container');
-  container.innerHTML = '';
+    try {
+        const res = await fetch("/api/posts?v=" + Date.now());
+        if (!res.ok) {
+            feedContainer.innerHTML = `<div style="padding:15px; color:#ff6b6b; text-align:center;">Error ${res.status}: Failed to load feed</div>`;
+            return;
+        }
 
-  data.posts.forEach(post => {
-    const userColor = getUserColor(post.author);
-    const isLiked = currentUser && post.likes.includes(currentUser.username);
+        const data = await res.json();
+        const posts = Array.isArray(data) ? data : (data.posts || []);
 
-    const card = document.createElement('div');
-    card.className = 'post-card';
-    card.innerHTML = `
-      <div class="post-header">
-        <strong style="color:${userColor}">@${post.author}</strong>
-        <small>${new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
-      </div>
-      <p style="margin: 8px 0;">${post.content}</p>
-      ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-media" />` : ''}
-      ${post.videoUrl ? `<video src="${post.videoUrl}" controls class="post-media"></video>` : ''}
-      <button onclick="toggleLike('${post._id}')" style="width: auto; padding: 4px 10px;">
-        ${isLiked ? '❤️' : '🤍'} ${post.likes.length} Likes
-      </button>
-    `;
-    container.appendChild(card);
-  });
+        if (posts.length === 0) {
+            feedContainer.innerHTML = `<div style="padding:25px; text-align:center; color:#888;">No posts yet. Be the first to post!</div>`;
+            return;
+        }
+
+        feedContainer.innerHTML = posts.map(p => {
+            const author = p.username || "Anonymous";
+            const body = p.content || p.text || "";
+            const time = p.createdAt ? new Date(p.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : "";
+            const color = typeof getUserColor === "function" ? getUserColor(author) : "#40c057";
+
+            return `
+                <div style="background:#25282c; border-radius:8px; padding:12px; margin-bottom:12px; border:1px solid #333;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <strong style="color:${color}">@${author}</strong>
+                        <small style="color:#777">${time}</small>
+                    </div>
+                    <div style="color:#eee; font-size:14px; white-space:pre-wrap; word-break:break-word;">${body}</div>
+                </div>
+            `;
+        }).join("");
+    } catch(err) {
+        feedContainer.innerHTML = `<div style="padding:15px; color:#ff6b6b; text-align:center;">Feed error: ${err.message}</div>`;
+    }
 }
 
 async function createPost() {
@@ -579,3 +589,13 @@ setInterval(() => {
 
 window.switchTab = switchTab;
 window.loadAdminUsers = loadAdminUsers;
+
+window.loadFeed = loadFeed;
+
+// Feed auto-poll
+setInterval(() => {
+    const feedTab = document.getElementById("feed-tab");
+    if (typeof loadFeed === "function" && feedTab && feedTab.classList.contains("active")) {
+        loadFeed();
+    }
+}, 4000);

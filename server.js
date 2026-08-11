@@ -9,6 +9,58 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+
+// ==================== FEED & POST ENDPOINTS ====================
+global.inMemoryPosts = global.inMemoryPosts || [];
+
+app.post('/api/posts', async (req, res) => {
+    try {
+        const { username, content, text } = req.body || {};
+        const postContent = content || text;
+
+        if (!postContent || !postContent.trim()) {
+            return res.status(400).json({ error: "Post content cannot be empty." });
+        }
+
+        const newPost = {
+            id: Date.now().toString(),
+            username: username || "Anonymous",
+            content: postContent.trim(),
+            createdAt: new Date().toISOString()
+        };
+
+        // Try MongoDB if model exists, otherwise store in server memory
+        if (typeof Post !== 'undefined') {
+            try {
+                const dbPost = await Post.create({ username: newPost.username, content: newPost.content });
+                return res.json({ success: true, post: dbPost });
+            } catch (dbErr) {
+                console.error("DB Post error, using memory store:", dbErr.message);
+            }
+        }
+
+        global.inMemoryPosts.unshift(newPost);
+        res.json({ success: true, post: newPost });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/posts', async (req, res) => {
+    try {
+        if (typeof Post !== 'undefined') {
+            try {
+                const dbPosts = await Post.find().sort({ createdAt: -1 });
+                return res.json(dbPosts);
+            } catch (dbErr) {}
+        }
+        res.json(global.inMemoryPosts || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// ==============================================================
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 const MONGO_URI = process.env.MONGO_URI;
