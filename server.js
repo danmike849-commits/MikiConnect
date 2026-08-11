@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Global In-Memory Data Stores
+// Global Data Stores
 global.inMemoryUsers = global.inMemoryUsers || [];
 global.inMemoryPosts = global.inMemoryPosts || [];
 global.inMemoryChat = global.inMemoryChat || [];
@@ -178,10 +178,10 @@ app.post('/api/chat', (req, res) => {
     }
 });
 
-// Serve Static Files
+// Serve Static Frontend
 app.use(express.static(path.join(__dirname, "public")));
 
-// Catch-all route for SPA
+// SPA Catch-All
 app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
