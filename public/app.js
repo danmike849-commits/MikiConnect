@@ -96,31 +96,42 @@ async function register() {
   }
 }
 
-async function login() {
-  const identifier = document.getElementById('login-id').value.trim();
-  const password = document.getElementById('login-pass').value.trim();
+async async function login() {
+    const idEl = document.getElementById("login-id");
+    const passEl = document.getElementById("login-pass");
+    const identifier = idEl ? idEl.value.trim() : "";
+    const password = passEl ? passEl.value.trim() : "";
 
-  if (!identifier || !password) return alert('Enter credentials.');
+    if (!identifier || !password) {
+        alert("Please enter both username/email and password.");
+        return;
+    }
 
-  const res = await fetch('/api/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ identifier, password })
-  });
-  const data = await res.json();
+    try {
+        const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: identifier, password: password })
+        });
 
-  if (data.success) {
-    currentUser = data.user;
-    authToken = data.token;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    localStorage.setItem('token', authToken);
+        const data = await res.json();
 
-    updateAuthUI();
-    alert(`Logged in as @${currentUser.username}`);
-    switchTab('feed-tab', document.querySelectorAll('.nav-tab')[0]);
-  } else {
-    alert(data.error);
-  }
+        if (!res.ok) {
+            alert(data.error || "Login failed");
+            return;
+        }
+
+        const userObj = data.user || data;
+        const username = userObj.username || data.username || "User";
+
+        localStorage.setItem("currentUser", JSON.stringify(userObj));
+        localStorage.setItem("username", username);
+
+        alert("Login successful! Welcome " + username);
+        location.reload();
+    } catch (e) {
+        alert("Login error: " + e.message);
+    }
 }
 
 function logout() {
