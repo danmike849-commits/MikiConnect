@@ -203,32 +203,34 @@ async function loadFeed() {
 }
 
 async function createPost() {
-  if (!authToken) return alert('Please login to post.');
-  const content = document.getElementById('post-content').value.trim();
-  const imgFile = document.getElementById('post-img-file').files[0];
-  const vidFile = document.getElementById('post-vid-file').files[0];
+    const textEl = document.querySelector("#post-text, #post-input, textarea, input[placeholder*='mind']");
+    const text = textEl ? textEl.value.trim() : "";
+    
+    if (!text) {
+        alert("Please write something before posting.");
+        return;
+    }
 
-  let imageUrl = '', videoUrl = '';
-  if (imgFile) imageUrl = await fileToBase64(imgFile);
-  if (vidFile) videoUrl = await fileToBase64(vidFile);
+    try {
+        const username = localStorage.getItem("username") || "Anonymous";
+        const res = await fetch("/api/posts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, content: text, text })
+        });
 
-  const res = await fetch('/api/posts', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
-    },
-    body: JSON.stringify({ content, imageUrl, videoUrl })
-  });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || "Failed to create post.");
+            return;
+        }
 
-  const data = await res.json();
-  if (data.success) {
-    document.getElementById('post-content').value = '';
-    document.getElementById('post-img-file').value = '';
-    document.getElementById('post-vid-file').value = '';
-    document.getElementById('img-preview').innerText = '';
-    document.getElementById('vid-preview').innerText = '';
-  }
+        if (textEl) textEl.value = "";
+        alert("Post created successfully!");
+        if (typeof loadFeed === "function") loadFeed();
+    } catch (e) {
+        alert("Post error: " + e.message);
+    }
 }
 
 async function toggleLike(postId) {
@@ -269,33 +271,46 @@ function addEmoji(emoji) {
 }
 
 // Chat Messaging
-async function sendChatMessage(targetType) {
-  if (!currentUser) return alert('Login required.');
-  const content = document.getElementById('chat-msg-input').value.trim();
-  const imgFile = document.getElementById('chat-img').files[0];
-  const vidFile = document.getElementById('chat-vid').files[0];
+async function sendChatMessage(type) {
+    const inputEl = document.getElementById("chat-msg-input");
+    const message = inputEl ? inputEl.value.trim() : "";
 
-  let mediaUrl = '', mediaType = '';
-  if (imgFile) { mediaUrl = await fileToBase64(imgFile); mediaType = 'image'; }
-  else if (vidFile) { mediaUrl = await fileToBase64(vidFile); mediaType = 'video'; }
-  else if (recordedVoiceBase64) { mediaUrl = recordedVoiceBase64; mediaType = 'voice'; }
+    if (!message) {
+        alert("Please type a message first.");
+        return;
+    }
 
-  const groupId = targetType === 'group' ? document.getElementById('active-group-select').value : '';
+    const username = localStorage.getItem("username") || "Anonymous";
 
-  socket.emit('sendChatMessage', {
-    sender: currentUser.username,
-    recipient: targetType === 'group' ? 'group' : 'public',
-    groupId,
-    content,
-    mediaUrl,
-    mediaType
-  });
+    try {
+        const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, message, type: type || "public" })
+        });
 
-  document.getElementById('chat-msg-input').value = '';
-  document.getElementById('chat-img').value = '';
-  document.getElementById('chat-vid').value = '';
-  recordedVoiceBase64 = '';
-  document.getElementById('voice-btn').innerText = '🎙️ Record Voice';
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || "Failed to send message.");
+            return;
+        }
+
+        if (inputEl) inputEl.value = "";
+        
+        // Append message to box immediately or reload chat
+        const chatBox = document.getElementById("public-chat-box");
+        if (chatBox) {
+            const msgDiv = document.createElement("div");
+            msgDiv.style.cssText = "margin: 6px 0; padding: 6px 10px; background: #2b2b2b; border-radius: 6px;";
+            msgDiv.innerHTML = `<strong style="color:#40c057">@${username}:</strong> ${message}`;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        if (typeof loadChat === "function") loadChat();
+    } catch (e) {
+        alert("Chat send error: " + e.message);
+    }
 }
 
 socket.on('receiveChatMessage', (msg) => {
@@ -527,3 +542,9 @@ if (typeof createGroup !== 'undefined') window.createGroup = createGroup;
 if (typeof loadAdminUsers !== 'undefined') window.loadAdminUsers = loadAdminUsers;
 if (typeof deleteUser !== 'undefined') window.deleteUser = deleteUser;
 if (typeof loadGroupChat !== 'undefined') window.loadGroupChat = loadGroupChat;
+
+setInterval(() => {
+        if (typeof loadChat === "function" && document.getElementById("chat-tab")?.classList.contains("active")) {
+            loadChat();
+        }
+    }, 3000);
