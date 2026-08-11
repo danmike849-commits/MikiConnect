@@ -123,12 +123,27 @@ async function login() {
 
         const userObj = data.user || data;
         const username = userObj.username || data.username || "User";
+        const role = userObj.role || data.role || "";
 
         localStorage.setItem("currentUser", JSON.stringify(userObj));
         localStorage.setItem("username", username);
+        localStorage.setItem("role", role);
 
         alert("Login successful! Welcome " + username);
-        location.reload();
+
+        // Redirect or load admin panel if user is admin
+        if (role === "admin" || username.toLowerCase() === "admin") {
+            if (typeof loadAdminDashboard === "function") {
+                loadAdminDashboard();
+            } else if (document.getElementById("admin-dashboard")) {
+                document.getElementById("login-screen").style.display = "none";
+                document.getElementById("admin-dashboard").style.display = "block";
+            } else {
+                window.location.href = "/admin.html"; // Adjust if you have a separate admin page
+            }
+        } else {
+            location.reload();
+        }
     } catch (e) {
         alert("Login error: " + e.message);
     }
