@@ -708,3 +708,57 @@ async function register() {
 
 window.showAuthMode = showAuthMode;
 window.register = register;
+
+
+async function loadUsersList() {
+    const adminContainer = document.getElementById("admin-user-list") || document.getElementById("admin-container") || document.querySelector("#admin-tab .card") || document.querySelector("#admin-tab");
+    
+    // Find or create result container
+    let displayBox = document.getElementById("admin-users-display");
+    if (!displayBox && adminContainer) {
+        displayBox = document.createElement("div");
+        displayBox.id = "admin-users-display";
+        displayBox.style.marginTop = "15px";
+        adminContainer.appendChild(displayBox);
+    }
+
+    if (displayBox) {
+        displayBox.innerHTML = '<div style="color:#aaa; text-align:center; padding:10px;">Loading users...</div>';
+    }
+
+    try {
+        const res = await fetch("/api/admin/users?v=" + Date.now());
+        if (!res.ok) {
+            if (displayBox) displayBox.innerHTML = `<div style="color:#ff6b6b; padding:10px; text-align:center;">Error ${res.status}: Failed to fetch users</div>`;
+            return;
+        }
+
+        const users = await res.json();
+        if (!Array.isArray(users)) {
+            if (displayBox) displayBox.innerHTML = '<div style="color:#ff6b6b; padding:10px; text-align:center;">Invalid response format from server.</div>';
+            return;
+        }
+
+        if (users.length === 0) {
+            if (displayBox) displayBox.innerHTML = '<div style="color:#888; padding:10px; text-align:center;">No users registered yet.</div>';
+            return;
+        }
+
+        const userCards = users.map(u => `
+            <div style="background:#181a1d; border:1px solid #333; border-radius:6px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <strong style="color:#40c057;">@${u.username || 'User'}</strong>
+                    <div style="color:#888; font-size:12px;">${u.email || 'No email registered'}</div>
+                </div>
+                <span style="background:#2b5235; color:#40c057; font-size:11px; padding:3px 8px; border-radius:12px;">Active</span>
+            </div>
+        `).join("");
+
+        if (displayBox) displayBox.innerHTML = userCards;
+    } catch(err) {
+        if (displayBox) displayBox.innerHTML = `<div style="color:#ff6b6b; padding:10px; text-align:center;">Network error: ${err.message}</div>`;
+    }
+}
+
+window.loadUsersList = loadUsersList;
+window.loadUsers = loadUsersList;

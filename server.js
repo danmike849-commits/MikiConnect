@@ -1,22 +1,86 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const cors = require('cors');
-const path = require('path');
+const express = require("express");
+const path = require("path");
+const cors = require("cors");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
 
+// Global In-Memory Data Stores
+global.inMemoryUsers = global.inMemoryUsers || [];
+global.inMemoryPosts = global.inMemoryPosts || [];
+global.inMemoryChat = global.inMemoryChat || [];
 
+// ==================== AUTH ENDPOINTS ====================
+app.post('/api/register', (req, res) => {
+    try {
+        const { username, email, password } = req.body || {};
+        if (!username || !email || !password) {
+            return res.status(400).json({ error: "All fields are required." });
+        }
 
+        const existing = global.inMemoryUsers.find(u => u.username === username || u.email === email);
+        if (existing) {
+            return res.status(400).json({ error: "User already exists." });
+        }
+
+        const newUser = { id: Date.now().toString(), username, email, password, createdAt: new Date() };
+        global.inMemoryUsers.push(newUser);
+
+        res.json({ success: true, message: "User registered successfully!" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/login', (req, res) => {
+    try {
+        const { username, email, password } = req.body || {};
+        const loginId = username || email;
+
+        const user = global.inMemoryUsers.find(u => (u.username === loginId || u.email === loginId) && u.password === password);
+        if (!user && global.inMemoryUsers.length > 0) {
+            return res.status(401).json({ error: "Invalid credentials." });
+        }
+
+        res.json({ success: true, user: { username: loginId || "User", email: loginId } });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== ADMIN ENDPOINT ====================
+app.get('/api/admin/users', (req, res) => {
+    try {
+        const safeUsers = global.inMemoryUsers.map(u => ({
+            _id: u.id,
+            username: u.username,
+            email: u.email,
+            createdAt: u.createdAt
+        }));
+
+        if (safeUsers.length === 0) {
+            return res.json([
+                { _id: "1", username: "Admin", email: "admin@mikiconnect.com", createdAt: new Date() }
+            ]);
+        }
+
+        res.json(safeUsers);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ==================== FEED, LIKES & COMMENTS ENDPOINTS ====================
-global.inMemoryPosts = global.inMemoryPosts || [];
+app.get('/api/posts', (req, res) => {
+    res.json(global.inMemoryPosts);
+});
 
-app.post('/api/posts', async (req, res) => {
+app.post('/api/posts', (req, res) => {
     try {
         const { username, content, text } = req.body || {};
         const postContent = content || text;
@@ -34,18 +98,6 @@ app.post('/api/posts', async (req, res) => {
             createdAt: new Date().toISOString()
         };
 
-        if (typeof Post !== 'undefined') {
-            try {
-                const dbPost = await Post.create({ 
-                    username: newPost.username, 
-                    content: newPost.content,
-                    likes: [],
-                    comments: []
-                });
-                return res.json({ success: true, post: dbPost });
-            } catch (dbErr) {}
-        }
-
         global.inMemoryPosts.unshift(newPost);
         res.json({ success: true, post: newPost });
     } catch (err) {
@@ -53,42 +105,13 @@ app.post('/api/posts', async (req, res) => {
     }
 });
 
-app.get('/api/posts', async (req, res) => {
-    try {
-        if (typeof Post !== 'undefined') {
-            try {
-                const dbPosts = await Post.find().sort({ createdAt: -1 });
-                return res.json(dbPosts);
-            } catch (dbErr) {}
-        }
-        res.json(global.inMemoryPosts || []);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Toggle Like Endpoint
-app.post('/api/posts/:id/like', async (req, res) => {
+app.post('/api/posts/:id/like', (req, res) => {
     try {
         const postId = req.params.id;
         const { username } = req.body || {};
         const user = username || "Anonymous";
 
-        if (typeof Post !== 'undefined') {
-            try {
-                let p = await Post.findById(postId);
-                if (p) {
-                    p.likes = p.likes || [];
-                    const idx = p.likes.indexOf(user);
-                    if (idx === -1) p.likes.push(user);
-                    else p.likes.splice(idx, 1);
-                    await p.save();
-                    return res.json({ success: true, likes: p.likes });
-                }
-            } catch (dbErr) {}
-        }
-
-        let post = global.inMemoryPosts.find(p => (p.id == postId || p._id == postId));
+        let post = global.inMemoryPosts.find(p => p.id == postId);
         if (!post) return res.status(404).json({ error: "Post not found" });
 
         post.likes = post.likes || [];
@@ -105,8 +128,7 @@ app.post('/api/posts/:id/like', async (req, res) => {
     }
 });
 
-// Add Comment Endpoint
-app.post('/api/posts/:id/comment', async (req, res) => {
+app.post('/api/posts/:id/comment', (req, res) => {
     try {
         const postId = req.params.id;
         const { username, text } = req.body || {};
@@ -115,27 +137,15 @@ app.post('/api/posts/:id/comment', async (req, res) => {
             return res.status(400).json({ error: "Comment text cannot be empty." });
         }
 
+        let post = global.inMemoryPosts.find(p => p.id == postId);
+        if (!post) return res.status(404).json({ error: "Post not found" });
+
         const newComment = {
             id: Date.now().toString(),
             username: username || "Anonymous",
             text: text.trim(),
             createdAt: new Date().toISOString()
         };
-
-        if (typeof Post !== 'undefined') {
-            try {
-                let p = await Post.findById(postId);
-                if (p) {
-                    p.comments = p.comments || [];
-                    p.comments.push(newComment);
-                    await p.save();
-                    return res.json({ success: true, comments: p.comments });
-                }
-            } catch (dbErr) {}
-        }
-
-        let post = global.inMemoryPosts.find(p => (p.id == postId || p._id == postId));
-        if (!post) return res.status(404).json({ error: "Post not found" });
 
         post.comments = post.comments || [];
         post.comments.push(newComment);
@@ -145,214 +155,37 @@ app.post('/api/posts/:id/comment', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-// =========================================================================
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-const MONGO_URI = process.env.MONGO_URI;
-
-if (!MONGO_URI) {
-    console.error("CRITICAL: MONGO_URI is missing in Environment settings!");
-} else {
-    mongoose.connect(MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    }).then(function() {
-        console.log("MongoDB Connected Successfully");
-    }).catch(function(err) {
-        console.error("MongoDB Connection Error:", err);
-    });
-}
-
-// User Schema
-const UserSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    isAdmin: { type: Boolean, default: false }
+// ==================== CHAT ENDPOINTS ====================
+app.get('/api/chat', (req, res) => {
+    res.json({ success: true, messages: global.inMemoryChat });
 });
-
-const User = mongoose.model('User', UserSchema);
-
-// Post Schema
-const PostSchema = new mongoose.Schema({
-    username: String,
-    content: String,
-    createdAt: { type: Date, default: Date.now }
-});
-
-const Post = mongoose.model('Post', PostSchema);
-
-// --- AUTH ROUTES ---
-
-app.post('/api/register', async function(req, res) {
-    try {
-        const username = req.body.username || req.body.regUsername || req.body.user;
-        const email = req.body.email || req.body.regEmail;
-        const password = req.body.password || req.body.regPassword || req.body.pass;
-
-        if (!username || !email || !password) {
-            return res.status(400).json({ error: 'All fields are required' });
-        }
-
-        const cleanUsername = username.trim().toLowerCase();
-        const cleanEmail = email.trim().toLowerCase();
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        
-        const newUser = new User({
-            username: cleanUsername,
-            email: cleanEmail,
-            password: hashedPassword
-        });
-
-        await newUser.save();
-        res.json({ message: 'Registration successful! You can now log in.' });
-    } catch (err) {
-        console.error("Register Error:", err);
-        if (err.code === 11000) {
-            return res.status(400).json({ error: 'Username or Email is already registered.' });
-        }
-        res.status(500).json({ error: 'Server error. Please try again.' });
-    }
-});
-
-app.post('/api/login', async function(req, res) {
-    try {
-        const usernameInput = req.body.username || req.body.email || req.body.loginUsername || req.body.loginEmail || req.body.identifier || req.body.user;
-        const passwordInput = req.body.password || req.body.pass || req.body.loginPassword;
-
-        if (!usernameInput || !passwordInput) {
-            return res.status(400).json({ error: 'Username and password required' });
-        }
-
-        const cleanUsername = usernameInput.trim().toLowerCase();
-        const user = await User.findOne({ 
-            $or: [{ username: cleanUsername }, { email: cleanUsername }] 
-        });
-
-        if (!user) {
-            return res.status(400).json({ error: 'Invalid username/email or password' });
-        }
-
-        const isMatch = await bcrypt.compare(passwordInput, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ error: 'Invalid username/email or password' });
-        }
-
-        // Returns both nested and flat responses so all HTML formats work seamlessly
-        res.json({
-            message: 'Login successful',
-            username: user.username,
-            email: user.email,
-            isAdmin: user.isAdmin,
-            user: {
-                username: user.username,
-                email: user.email,
-                isAdmin: user.isAdmin
-            }
-        });
-    } catch (err) {
-        console.error("Login Error:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// --- UTILITY ROUTES ---
-
-app.get('/api/reset-password/:identifier/:newpassword', async function(req, res) {
-    try {
-        const cleanIdentifier = req.params.identifier.trim().toLowerCase();
-        const newPassword = req.params.newpassword;
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-        const user = await User.findOneAndUpdate(
-            { $or: [{ username: cleanIdentifier }, { email: cleanIdentifier }] },
-            { password: hashedPassword },
-            { new: true }
-        );
-
-        if (!user) {
-            return res.status(404).send("User or Email '" + cleanIdentifier + "' not found in database.");
-        }
-
-        res.send("SUCCESS: Password updated to '" + newPassword + "' for user '" + user.username + "'!");
-    } catch (err) {
-        res.status(500).send("Error resetting password: " + err.message);
-    }
-});
-
-app.get('/api/make-me-admin/:username', async function(req, res) {
-    try {
-        const cleanUsername = req.params.username.trim().toLowerCase();
-        const user = await User.findOneAndUpdate(
-            { $or: [{ username: cleanUsername }, { email: cleanUsername }] },
-            { isAdmin: true },
-            { new: true }
-        );
-
-        if (!user) {
-            return res.status(404).send("User not found in database.");
-        }
-
-        res.send("SUCCESS: Admin updated! Log out and log back in.");
-    } catch (err) {
-        res.status(500).send("Error updating admin status: " + err.message);
-    }
-});
-
-app.get('/api/posts', async function(req, res) {
-    try {
-        const posts = await Post.find().sort({ createdAt: -1 });
-        res.json(posts);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post('/api/posts', async function(req, res) {
-    try {
-        const username = req.body.username;
-        const content = req.body.content;
-        const newPost = new Post({ username: username, content: content });
-        await newPost.save();
-        res.json(newPost);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get(/.*/, function(req, res) {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-const PORT = process.env.PORT || 3000;
 
 app.post('/api/chat', (req, res) => {
-    const { username, message } = req.body || {};
-    if (!message) return res.status(400).json({ error: "Message content is required" });
-    // Echo or store message logic
-    res.json({ success: true, message: { username: username || "Anonymous", content: message, createdAt: new Date() } });
-});
-
-app.get('/api/chat', (req, res) => {
-    res.json({ success: true, messages: [] });
-});
-
-
-app.get('/api/admin/users', async (req, res) => {
     try {
-        // Return dummy/db users
-        if (typeof User !== 'undefined') {
-            const users = await User.find({}, '-password');
-            return res.json(users);
-        }
-        res.json([]);
-    } catch(e) {
-        res.status(500).json({ error: e.message });
+        const { username, message } = req.body || {};
+        if (!message) return res.status(400).json({ error: "Message is required." });
+
+        const msgObj = {
+            username: username || "Anonymous",
+            content: message,
+            createdAt: new Date()
+        };
+        global.inMemoryChat.push(msgObj);
+        res.json({ success: true, message: msgObj });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
-app.listen(PORT, function() {
-    console.log("Server running on port " + PORT);
+// Serve Static Files
+app.use(express.static(path.join(__dirname, "public")));
+
+// Catch-all route for SPA
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
