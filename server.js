@@ -189,6 +189,32 @@ app.get(/.*/, function(req, res) {
 });
 
 const PORT = process.env.PORT || 3000;
+
+app.post('/api/chat', (req, res) => {
+    const { username, message } = req.body || {};
+    if (!message) return res.status(400).json({ error: "Message content is required" });
+    // Echo or store message logic
+    res.json({ success: true, message: { username: username || "Anonymous", content: message, createdAt: new Date() } });
+});
+
+app.get('/api/chat', (req, res) => {
+    res.json({ success: true, messages: [] });
+});
+
+
+app.get('/api/admin/users', async (req, res) => {
+    try {
+        // Return dummy/db users
+        if (typeof User !== 'undefined') {
+            const users = await User.find({}, '-password');
+            return res.json(users);
+        }
+        res.json([]);
+    } catch(e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.listen(PORT, function() {
     console.log("Server running on port " + PORT);
 });
