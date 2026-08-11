@@ -379,3 +379,42 @@ document.addEventListener('DOMContentLoaded', () => {
   updateAuthUI();
   loadFeed();
 });
+
+// --- OVERRIDE LOGIN FUNCTION ---
+window.login = async function() {
+    const idEl = document.getElementById("login-id");
+    const passEl = document.getElementById("login-pass");
+    const identifier = idEl ? idEl.value.trim() : "";
+    const password = passEl ? passEl.value.trim() : "";
+
+    if (!identifier || !password) {
+        alert("Please enter both username/email and password.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: identifier, password: password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.error || "Login failed");
+            return;
+        }
+
+        const userObj = data.user || data;
+        const username = userObj.username || data.username || "User";
+
+        localStorage.setItem("currentUser", JSON.stringify(userObj));
+        localStorage.setItem("username", username);
+
+        alert("Login successful! Welcome " + username);
+        location.reload();
+    } catch (e) {
+        alert("Login error: " + e.message);
+    }
+};
