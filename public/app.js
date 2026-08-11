@@ -176,45 +176,7 @@ function previewMedia(input, previewId) {
 }
 
 // Feed Posts
-async function loadFeed() {
-    const feedContainer = document.getElementById("feed-container");
-    if (!feedContainer) return;
 
-    try {
-        const res = await fetch("/api/posts?v=" + Date.now());
-        if (!res.ok) {
-            feedContainer.innerHTML = `<div style="padding:15px; color:#ff6b6b; text-align:center;">Error ${res.status}: Failed to load feed</div>`;
-            return;
-        }
-
-        const data = await res.json();
-        const posts = Array.isArray(data) ? data : (data.posts || []);
-
-        if (posts.length === 0) {
-            feedContainer.innerHTML = `<div style="padding:25px; text-align:center; color:#888;">No posts yet. Be the first to post!</div>`;
-            return;
-        }
-
-        feedContainer.innerHTML = posts.map(p => {
-            const author = p.username || "Anonymous";
-            const body = p.content || p.text || "";
-            const time = p.createdAt ? new Date(p.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : "";
-            const color = typeof getUserColor === "function" ? getUserColor(author) : "#40c057";
-
-            return `
-                <div style="background:#25282c; border-radius:8px; padding:12px; margin-bottom:12px; border:1px solid #333;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                        <strong style="color:${color}">@${author}</strong>
-                        <small style="color:#777">${time}</small>
-                    </div>
-                    <div style="color:#eee; font-size:14px; white-space:pre-wrap; word-break:break-word;">${body}</div>
-                </div>
-            `;
-        }).join("");
-    } catch(err) {
-        feedContainer.innerHTML = `<div style="padding:15px; color:#ff6b6b; text-align:center;">Feed error: ${err.message}</div>`;
-    }
-}
 
 async function createPost() {
     const textEl = document.querySelector("#post-text, #post-input, textarea, input[placeholder*='mind']");
@@ -599,3 +561,116 @@ setInterval(() => {
         loadFeed();
     }
 }, 4000);
+
+
+async function loadFeed() {
+    const feedContainer = document.getElementById("feed-container");
+    if (!feedContainer) return;
+
+    try {
+        const res = await fetch("/api/posts?v=" + Date.now());
+        if (!res.ok) {
+            feedContainer.innerHTML = `<div style="padding:15px; color:#ff6b6b; text-align:center;">Error ${res.status}: Failed to load feed</div>`;
+            return;
+        }
+
+        const data = await res.json();
+        const posts = Array.isArray(data) ? data : (data.posts || []);
+
+        if (posts.length === 0) {
+            feedContainer.innerHTML = `<div style="padding:25px; text-align:center; color:#888;">No posts yet. Be the first to post!</div>`;
+            return;
+        }
+
+        const currentUser = localStorage.getItem("username") || "Anonymous";
+
+        feedContainer.innerHTML = posts.map(p => {
+            const id = p._id || p.id;
+            const author = p.username || "Anonymous";
+            const body = p.content || p.text || "";
+            const time = p.createdAt ? new Date(p.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : "";
+            const color = typeof getUserColor === "function" ? getUserColor(author) : "#40c057";
+
+            const likes = p.likes || [];
+            const comments = p.comments || [];
+            const hasLiked = likes.includes(currentUser);
+
+            const commentsHtml = comments.map(c => `
+                <div style="background:#1c1e22; border-radius:6px; padding:6px 10px; margin-top:6px; font-size:13px;">
+                    <strong style="color:#40c057;">@${c.username || 'User'}:</strong> 
+                    <span style="color:#ddd;">${c.text}</span>
+                </div>
+            `).join("");
+
+            return `
+                <div style="background:#25282c; border-radius:8px; padding:12px; margin-bottom:12px; border:1px solid #333;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <strong style="color:${color}">@${author}</strong>
+                        <small style="color:#777">${time}</small>
+                    </div>
+                    <div style="color:#eee; font-size:14px; white-space:pre-wrap; word-break:break-word; margin-bottom:10px;">${body}</div>
+
+                    <!-- Action Bar -->
+                    <div style="display:flex; gap:10px; border-top:1px solid #333; padding-top:8px; align-items:center;">
+                        <button onclick="toggleLike('${id}')" style="background:${hasLiked ? '#2b5235' : '#333'}; color:${hasLiked ? '#40c057' : '#ccc'}; border:none; padding:5px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                            ${hasLiked ? '❤️ Liked' : '🤍 Like'} (${likes.length})
+                        </button>
+                        <span style="color:#888; font-size:12px;">💬 ${comments.length} Comments</span>
+                    </div>
+
+                    <!-- Comments List -->
+                    <div style="margin-top:8px;">
+                        ${commentsHtml}
+                    </div>
+
+                    <!-- Comment Input -->
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        <input type="text" id="comment-input-${id}" placeholder="Write a comment..." style="flex:1; background:#181a1d; border:1px solid #444; color:#fff; border-radius:4px; padding:6px 8px; font-size:12px;" />
+                        <button onclick="submitComment('${id}')" style="background:#40c057; color:#fff; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">Send</button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    } catch(err) {
+        feedContainer.innerHTML = `<div style="padding:15px; color:#ff6b6b; text-align:center;">Feed error: ${err.message}</div>`;
+    }
+}
+
+async function toggleLike(postId) {
+    try {
+        const username = localStorage.getItem("username") || "Anonymous";
+        await fetch(`/api/posts/${postId}/like`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username })
+        });
+        loadFeed();
+    } catch(err) {
+        console.error("Like error:", err);
+    }
+}
+
+async function submitComment(postId) {
+    const input = document.getElementById(`comment-input-${postId}`);
+    if (!input || !input.value.trim()) return;
+
+    try {
+        const username = localStorage.getItem("username") || "Anonymous";
+        const res = await fetch(`/api/posts/${postId}/comment`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, text: input.value.trim() })
+        });
+
+        if (res.ok) {
+            input.value = "";
+            loadFeed();
+        }
+    } catch(err) {
+        console.error("Comment error:", err);
+    }
+}
+
+window.loadFeed = loadFeed;
+window.toggleLike = toggleLike;
+window.submitComment = submitComment;

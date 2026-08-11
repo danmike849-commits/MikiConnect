@@ -10,7 +10,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// ==================== FEED & POST ENDPOINTS ====================
+
+
+
+// ==================== FEED, LIKES & COMMENTS ENDPOINTS ====================
 global.inMemoryPosts = global.inMemoryPosts || [];
 
 app.post('/api/posts', async (req, res) => {
@@ -26,17 +29,21 @@ app.post('/api/posts', async (req, res) => {
             id: Date.now().toString(),
             username: username || "Anonymous",
             content: postContent.trim(),
+            likes: [],
+            comments: [],
             createdAt: new Date().toISOString()
         };
 
-        // Try MongoDB if model exists, otherwise store in server memory
         if (typeof Post !== 'undefined') {
             try {
-                const dbPost = await Post.create({ username: newPost.username, content: newPost.content });
+                const dbPost = await Post.create({ 
+                    username: newPost.username, 
+                    content: newPost.content,
+                    likes: [],
+                    comments: []
+                });
                 return res.json({ success: true, post: dbPost });
-            } catch (dbErr) {
-                console.error("DB Post error, using memory store:", dbErr.message);
-            }
+            } catch (dbErr) {}
         }
 
         global.inMemoryPosts.unshift(newPost);
@@ -59,7 +66,86 @@ app.get('/api/posts', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-// ==============================================================
+
+// Toggle Like Endpoint
+app.post('/api/posts/:id/like', async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const { username } = req.body || {};
+        const user = username || "Anonymous";
+
+        if (typeof Post !== 'undefined') {
+            try {
+                let p = await Post.findById(postId);
+                if (p) {
+                    p.likes = p.likes || [];
+                    const idx = p.likes.indexOf(user);
+                    if (idx === -1) p.likes.push(user);
+                    else p.likes.splice(idx, 1);
+                    await p.save();
+                    return res.json({ success: true, likes: p.likes });
+                }
+            } catch (dbErr) {}
+        }
+
+        let post = global.inMemoryPosts.find(p => (p.id == postId || p._id == postId));
+        if (!post) return res.status(404).json({ error: "Post not found" });
+
+        post.likes = post.likes || [];
+        const index = post.likes.indexOf(user);
+        if (index === -1) {
+            post.likes.push(user);
+        } else {
+            post.likes.splice(index, 1);
+        }
+
+        res.json({ success: true, likes: post.likes });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Add Comment Endpoint
+app.post('/api/posts/:id/comment', async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const { username, text } = req.body || {};
+
+        if (!text || !text.trim()) {
+            return res.status(400).json({ error: "Comment text cannot be empty." });
+        }
+
+        const newComment = {
+            id: Date.now().toString(),
+            username: username || "Anonymous",
+            text: text.trim(),
+            createdAt: new Date().toISOString()
+        };
+
+        if (typeof Post !== 'undefined') {
+            try {
+                let p = await Post.findById(postId);
+                if (p) {
+                    p.comments = p.comments || [];
+                    p.comments.push(newComment);
+                    await p.save();
+                    return res.json({ success: true, comments: p.comments });
+                }
+            } catch (dbErr) {}
+        }
+
+        let post = global.inMemoryPosts.find(p => (p.id == postId || p._id == postId));
+        if (!post) return res.status(404).json({ error: "Post not found" });
+
+        post.comments = post.comments || [];
+        post.comments.push(newComment);
+
+        res.json({ success: true, comments: post.comments });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// =========================================================================
 
 app.use(express.static(path.join(__dirname, 'public')));
 
