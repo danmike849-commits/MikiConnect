@@ -21,15 +21,19 @@ function getUserColor(username) {
 }
 
 function switchTab(tabId, element) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    const contents = document.querySelectorAll(".tab-content");
+    contents.forEach(c => c.classList.remove("active"));
+    
+    const tabs = document.querySelectorAll(".nav-tab");
+    tabs.forEach(t => t.classList.remove("active"));
 
-  document.getElementById(tabId).classList.add('active');
-  if (element) element.classList.add('active');
+    const targetContent = document.getElementById(tabId);
+    if (targetContent) targetContent.classList.add("active");
+    if (element) element.classList.add("active");
 
-  if (tabId === 'feed-tab') loadFeed();
-  if (tabId === 'groups-tab') loadGroups();
-  if (tabId === 'admin-tab') loadAdminUsers();
+    if (tabId === "admin-tab" && typeof loadAdminUsers === "function") {
+        loadAdminUsers();
+    }
 }
 
 function updateAuthUI() {
@@ -365,32 +369,56 @@ async function createGroup() {
 
 // Admin Panel
 async function loadAdminUsers() {
-  if (!authToken) return alert('Log in as Admin.');
+    const list = document.getElementById("admin-user-list");
+    if (!list) return;
 
-  const res = await fetch('/api/admin/users', {
-    headers: { 'Authorization': `Bearer ${authToken}` }
-  });
-  const data = await res.json();
-  const list = document.getElementById('admin-user-list');
-  list.innerHTML = '';
+    list.innerHTML = "<li style='padding: 10px; color: #aaa;'>Loading users from server...</li>";
 
-  if (!data.success) {
-    list.innerHTML = `<li>${data.error || 'Access denied'}</li>`;
-    return;
-  }
+    try {
+        const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+        const res = await fetch("/api/admin/users", {
+            headers: {
+                "Content-Type": "application/json",
+                "x-user-role": localStorage.getItem("role") || "",
+                "x-username": localStorage.getItem("username") || ""
+            }
+        });
 
-  data.users.forEach(u => {
-    const li = document.createElement('li');
-    li.style.display = 'flex';
-    li.style.justifyContent = 'space-between';
-    li.style.padding = '8px 0';
-    li.style.borderBottom = '1px solid #3b424e';
-    li.innerHTML = `
-      <span><strong style="color:${getUserColor(u.username)}">@${u.username}</strong> (${u.email}) ${u.isAdmin ? '[ADMIN]' : ''}</span>
-      ${!u.isAdmin ? `<button onclick="deleteUser('${u._id}')" style="background:#c92a2a; color:#fff; width:auto; padding:3px 8px; font-size:12px;">Delete</button>` : ''}
-    `;
-    list.appendChild(li);
-  });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            list.innerHTML = `<li style="padding: 10px; color: #ff6b6b;">Error ${res.status}: ${errData.error || "Failed to load users"}</li>`;
+            return;
+        }
+
+        const data = await res.json();
+        const users = Array.isArray(data) ? data : (data.users || []);
+
+        if (users.length === 0) {
+            list.innerHTML = "<li style='padding: 10px; color: #888;'>No registered users found.</li>";
+            return;
+        }
+
+        list.innerHTML = "";
+        users.forEach(u => {
+            const li = document.createElement("li");
+            li.style.cssText = "padding: 10px; margin-bottom: 6px; background: #25282c; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;";
+            const isAdmin = u.isAdmin || u.role === "admin";
+            const color = typeof getUserColor === "function" ? getUserColor(u.username) : "#40c057";
+
+            li.innerHTML = `
+                <div>
+                    <strong style="color:${color}; font-size: 15px;">@${u.username || "User"}</strong>
+                    <div style="font-size: 12px; color: #aaa;">${u.email || "No email"}</div>
+                </div>
+                <div>
+                    ${isAdmin ? "<span style='color:#40c057; font-weight:bold; font-size:12px; margin-right:8px;'>[ADMIN]</span>" : `<button onclick="deleteUser('${u._id || u.id}')" style="background:#e74c3c; color:#fff; border:none; padding:5px 10px; border-radius:4px; font-size:12px; cursor:pointer;">Delete</button>`}
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    } catch (err) {
+        list.innerHTML = `<li style="padding: 10px; color: #ff6b6b;">Network error: ${err.message}</li>`;
+    }
 }
 
 async function deleteUser(id) {
@@ -548,3 +576,6 @@ setInterval(() => {
             loadChat();
         }
     }, 3000);
+
+window.switchTab = switchTab;
+window.loadAdminUsers = loadAdminUsers;
