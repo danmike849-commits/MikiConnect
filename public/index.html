@@ -146,31 +146,46 @@
     </div>
 
     <!-- ACCOUNT TAB -->
+    
+    <!-- AUTH TAB -->
     <div id="auth-tab" class="tab-content">
-      <div class="card" id="logged-in-profile" style="display: none;">
-        <h3>My Account</h3>
-        <p id="profile-details" style="margin: 10px 0;"></p>
-        <button class="logout-btn" style="width: 100%;" onclick="logout()">Logout Account</button>
-      </div>
+        <!-- REGISTER SECTION (DEFAULT VISIBLE) -->
+        <div id="register-section" style="display: block; background: #25282c; padding: 20px; border-radius: 8px; border: 1px solid #333;">
+            <h3 style="color: #fff; margin-top: 0; margin-bottom: 15px;">Register Account</h3>
+            <div style="margin-bottom: 10px;">
+                <input type="text" id="reg-user" placeholder="Username" style="width: 100%; padding: 10px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box;" />
+            </div>
+            <div style="margin-bottom: 10px;">
+                <input type="email" id="reg-email" placeholder="Email" style="width: 100%; padding: 10px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box;" />
+            </div>
+            <div style="margin-bottom: 15px;">
+                <input type="password" id="reg-pass" placeholder="Password" style="width: 100%; padding: 10px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box;" />
+            </div>
+            <button onclick="register()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 12px; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer;">Create Account</button>
+            <p style="text-align: center; margin-top: 15px; color: #aaa; font-size: 13px;">
+                Already have an account? <a href="#" onclick="showAuthMode('login'); return false;" style="color: #40c057; font-weight: bold; text-decoration: none;">Login here</a>
+            </p>
+        </div>
 
-      <div class="card" id="login-card">
-        <h3>Login</h3>
-        <input type="text" id="login-id" placeholder="Username or Email" />
-        <input type="password" id="login-pass" placeholder="Password" />
-        <button onclick="login()">Login</button>
-      </div>
-
-      <div class="card" id="register-card">
-        <h3>Register Account</h3>
-        <input type="text" id="reg-user" placeholder="Username" />
-        <input type="email" id="reg-email" placeholder="Email" />
-        <input type="password" id="reg-pass" placeholder="Password" />
-        <button onclick="register()">Create Account</button>
-      </div>
+        <!-- LOGIN SECTION (HIDDEN BY DEFAULT) -->
+        <div id="login-section" style="display: none; background: #25282c; padding: 20px; border-radius: 8px; border: 1px solid #333;">
+            <h3 style="color: #fff; margin-top: 0; margin-bottom: 15px;">Login</h3>
+            <div style="margin-bottom: 10px;">
+                <input type="text" id="login-id" placeholder="Username or Email" style="width: 100%; padding: 10px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box;" />
+            </div>
+            <div style="margin-bottom: 15px;">
+                <input type="password" id="login-pass" placeholder="Password" style="width: 100%; padding: 10px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box;" />
+            </div>
+            <button onclick="login()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 12px; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer;">Login</button>
+            <p style="text-align: center; margin-top: 15px; color: #aaa; font-size: 13px;">
+                Need an account? <a href="#" onclick="showAuthMode('register'); return false;" style="color: #40c057; font-weight: bold; text-decoration: none;">Register here</a>
+            </p>
+        </div>
     </div>
+
 
   </div>
 
-  <script src="app.js?v=1786467659763"></script>
+  <script src="app.js?v=1786468904514"></script>
 </body>
 </html>

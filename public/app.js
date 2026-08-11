@@ -80,25 +80,7 @@ socket.on('onlineUsersList', (users) => {
 });
 
 // Auth Functions
-async function register() {
-  const username = document.getElementById('reg-user').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const password = document.getElementById('reg-pass').value.trim();
 
-  if (!username || !email || !password) return alert('All fields required.');
-
-  const res = await fetch('/api/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, email, password })
-  });
-  const data = await res.json();
-  if (data.success) {
-    alert('Account created! Please log in.');
-  } else {
-    alert(data.error);
-  }
-}
 
 async function login() {
     const idEl = document.getElementById("login-id");
@@ -674,3 +656,55 @@ async function submitComment(postId) {
 window.loadFeed = loadFeed;
 window.toggleLike = toggleLike;
 window.submitComment = submitComment;
+
+
+function showAuthMode(mode) {
+    const regSec = document.getElementById("register-section");
+    const loginSec = document.getElementById("login-section");
+    if (mode === "login") {
+        if (regSec) regSec.style.display = "none";
+        if (loginSec) loginSec.style.display = "block";
+    } else {
+        if (regSec) regSec.style.display = "block";
+        if (loginSec) loginSec.style.display = "none";
+    }
+}
+
+async function register() {
+    const user = document.getElementById("reg-user")?.value.trim();
+    const email = document.getElementById("reg-email")?.value.trim();
+    const pass = document.getElementById("reg-pass")?.value.trim();
+
+    if (!user || !email || !pass) {
+        alert("Please fill in all registration fields.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user, email, password: pass })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || "Registration failed.");
+            return;
+        }
+
+        alert("Registration successful! Switching to login...");
+        
+        // Auto-fill login ID field with registered username/email
+        const loginId = document.getElementById("login-id");
+        if (loginId) loginId.value = user;
+
+        // Switch screen to Login view
+        showAuthMode("login");
+    } catch(err) {
+        alert("Registration error: " + err.message);
+    }
+}
+
+window.showAuthMode = showAuthMode;
+window.register = register;
