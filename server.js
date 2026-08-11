@@ -116,24 +116,24 @@ app.post('/api/login', async function(req, res) {
 
 // --- ADMIN & UTILITY ROUTES ---
 
-// Instant Password Reset Route
-app.get('/api/reset-password/:username/:newpassword', async function(req, res) {
+// Flexible Password Reset Route (Finds by Username or Email)
+app.get('/api/reset-password/:identifier/:newpassword', async function(req, res) {
     try {
-        const cleanUsername = req.params.username.trim().toLowerCase();
+        const cleanIdentifier = req.params.identifier.trim().toLowerCase();
         const newPassword = req.params.newpassword;
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         const user = await User.findOneAndUpdate(
-            { username: cleanUsername },
+            { $or: [{ username: cleanIdentifier }, { email: cleanIdentifier }] },
             { password: hashedPassword },
             { new: true }
         );
 
         if (!user) {
-            return res.status(404).send("User '" + cleanUsername + "' not found in database.");
+            return res.status(404).send("User or Email '" + cleanIdentifier + "' not found in database.");
         }
 
-        res.send("SUCCESS: Password updated to '" + newPassword + "' for user '" + cleanUsername + "'!");
+        res.send("SUCCESS: Password updated to '" + newPassword + "' for user '" + user.username + "'!");
     } catch (err) {
         res.status(500).send("Error resetting password: " + err.message);
     }
