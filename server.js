@@ -6,7 +6,6 @@ const path = require('path');
 
 const app = express();
 
-// Parse both JSON and standard HTML form data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
@@ -82,7 +81,6 @@ app.post('/api/register', async function(req, res) {
 
 app.post('/api/login', async function(req, res) {
     try {
-        // Accepts any field name sent by the frontend HTML
         const usernameInput = req.body.username || req.body.email || req.body.loginUsername || req.body.loginEmail || req.body.identifier || req.body.user;
         const passwordInput = req.body.password || req.body.pass || req.body.loginPassword;
 
@@ -104,8 +102,12 @@ app.post('/api/login', async function(req, res) {
             return res.status(400).json({ error: 'Invalid username/email or password' });
         }
 
+        // Returns both nested and flat responses so all HTML formats work seamlessly
         res.json({
             message: 'Login successful',
+            username: user.username,
+            email: user.email,
+            isAdmin: user.isAdmin,
             user: {
                 username: user.username,
                 email: user.email,
@@ -146,7 +148,7 @@ app.get('/api/make-me-admin/:username', async function(req, res) {
     try {
         const cleanUsername = req.params.username.trim().toLowerCase();
         const user = await User.findOneAndUpdate(
-            { username: cleanUsername },
+            { $or: [{ username: cleanUsername }, { email: cleanUsername }] },
             { isAdmin: true },
             { new: true }
         );
