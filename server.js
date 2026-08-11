@@ -5,7 +5,10 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
+
+// Parse both JSON and standard HTML form data
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -47,9 +50,9 @@ const Post = mongoose.model('Post', PostSchema);
 
 app.post('/api/register', async function(req, res) {
     try {
-        const username = req.body.username;
-        const email = req.body.email;
-        const password = req.body.password;
+        const username = req.body.username || req.body.regUsername || req.body.user;
+        const email = req.body.email || req.body.regEmail;
+        const password = req.body.password || req.body.regPassword || req.body.pass;
 
         if (!username || !email || !password) {
             return res.status(400).json({ error: 'All fields are required' });
@@ -79,14 +82,15 @@ app.post('/api/register', async function(req, res) {
 
 app.post('/api/login', async function(req, res) {
     try {
-        const username = req.body.username;
-        const password = req.body.password;
+        // Accepts any field name sent by the frontend HTML
+        const usernameInput = req.body.username || req.body.email || req.body.loginUsername || req.body.loginEmail || req.body.identifier || req.body.user;
+        const passwordInput = req.body.password || req.body.pass || req.body.loginPassword;
 
-        if (!username || !password) {
+        if (!usernameInput || !passwordInput) {
             return res.status(400).json({ error: 'Username and password required' });
         }
 
-        const cleanUsername = username.trim().toLowerCase();
+        const cleanUsername = usernameInput.trim().toLowerCase();
         const user = await User.findOne({ 
             $or: [{ username: cleanUsername }, { email: cleanUsername }] 
         });
@@ -95,7 +99,7 @@ app.post('/api/login', async function(req, res) {
             return res.status(400).json({ error: 'Invalid username/email or password' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(passwordInput, user.password);
         if (!isMatch) {
             return res.status(400).json({ error: 'Invalid username/email or password' });
         }
@@ -114,9 +118,8 @@ app.post('/api/login', async function(req, res) {
     }
 });
 
-// --- ADMIN & UTILITY ROUTES ---
+// --- UTILITY ROUTES ---
 
-// Flexible Password Reset Route (Finds by Username or Email)
 app.get('/api/reset-password/:identifier/:newpassword', async function(req, res) {
     try {
         const cleanIdentifier = req.params.identifier.trim().toLowerCase();
