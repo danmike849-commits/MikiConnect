@@ -131,17 +131,14 @@ async function login() {
 
         alert("Login successful! Welcome " + username);
 
-        // Redirect or load admin panel if user is admin
+        const adminBtn = document.getElementById("admin-tab-btn");
         if (role === "admin" || username.toLowerCase() === "admin") {
-            if (typeof loadAdminDashboard === "function") {
-                loadAdminDashboard();
-            } else if (document.getElementById("admin-dashboard")) {
-                document.getElementById("login-screen").style.display = "none";
-                document.getElementById("admin-dashboard").style.display = "block";
-            } else {
-                window.location.href = "/admin.html"; // Adjust if you have a separate admin page
+            if (adminBtn) adminBtn.style.display = "inline-block";
+            if (typeof switchTab === "function") {
+                switchTab("admin-tab", adminBtn);
             }
         } else {
+            if (adminBtn) adminBtn.style.display = "none";
             location.reload();
         }
     } catch (e) {
