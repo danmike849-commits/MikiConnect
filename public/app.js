@@ -96,7 +96,7 @@ async function register() {
   }
 }
 
-async async async function login() {
+async function login() {
     const idEl = document.getElementById("login-id");
     const passEl = document.getElementById("login-pass");
     const identifier = idEl ? idEl.value.trim() : "";
