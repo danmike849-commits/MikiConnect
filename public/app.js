@@ -31,6 +31,7 @@ function switchTab(tabName) {
 
 // AUTH FUNCTIONS
 
+
 function checkAuthState() {
     const user = localStorage.getItem("username");
     const profileCard = document.getElementById("user-profile-card");
@@ -44,7 +45,7 @@ function checkAuthState() {
         adminBtn.style.display = isCreator ? "inline-block" : "none";
     }
 
-    if (user) {
+    if (user && user !== "null" && user !== "undefined") {
         if (profileCard) profileCard.style.display = "block";
         if (authContainer) authContainer.style.display = "none";
         if (nameDisplay) nameDisplay.innerText = "@" + user;
@@ -53,6 +54,14 @@ function checkAuthState() {
         if (authContainer) authContainer.style.display = "block";
     }
 }
+
+function logoutUser() {
+    localStorage.removeItem("username");
+    alert("You have logged out.");
+    checkAuthState();
+}
+window.logoutUser = logoutUser;
+
 
 
 function showAuthMode(mode) {
