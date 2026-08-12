@@ -4,57 +4,76 @@ let lastChatCount = 0;
 
 // TAB NAVIGATION
 
+
 function switchTab(tabName) {
     const user = localStorage.getItem("username");
-    const isCreator = user && (user.toLowerCase() === "admin" || user.toLowerCase() === "mikedan849@gmail.com");
+    const isAuthenticated = user && user !== "null" && user !== "undefined" && user.trim() !== "";
 
-    if (tabName === "admin" && !isCreator) {
-        alert("Access Denied: Only the creator of MikiConnect can access the Admin Dashboard.");
-        tabName = "feed";
+    // Force redirect to account tab if user is not logged in
+    if (!isAuthenticated && tabName !== "account") {
+        tabName = "account";
+        const banner = document.getElementById("auth-notice-banner");
+        if (banner) {
+            banner.style.display = "block";
+            banner.innerText = "🔒 Access Denied: Please log in or register to view MikiConnect.";
+        }
     }
 
-    document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-    document.querySelectorAll(".nav-bar button").forEach(btn => btn.classList.remove("active"));
+    // Hide all tab contents
+    const tabs = document.querySelectorAll('.tab-content');
+    tabs.forEach(t => t.style.display = 'none');
 
-    const targetTab = document.getElementById(tabName + "-tab");
-    const targetNav = document.getElementById("nav-" + tabName);
+    // Remove active class from nav items
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(n => n.classList.remove('active'));
 
-    if (targetTab) targetTab.classList.add("active");
-    if (targetNav) targetNav.classList.add("active");
+    // Display selected tab
+    const selectedTab = document.getElementById(tabName + '-tab');
+    if (selectedTab) selectedTab.style.display = 'block';
 
-    if (tabName === "feed") loadFeed();
-    if (tabName === "chat") loadChat();
-    if (tabName === "admin") loadAdminData();
-    if (tabName === "account") checkAuthState();
+    const selectedNav = document.getElementById('nav-' + tabName);
+    if (selectedNav) selectedNav.classList.add('active');
 }
+window.switchTab = switchTab;
+
 
 
 // AUTH FUNCTIONS
 
 
 
+
 function checkAuthState() {
     const user = localStorage.getItem("username");
+    const isAuthenticated = user && user !== "null" && user !== "undefined" && user.trim() !== "";
+    
     const profileCard = document.getElementById("user-profile-card");
     const authContainer = document.getElementById("auth-container");
     const nameDisplay = document.getElementById("user-display-name");
     const adminBtn = document.getElementById("nav-admin");
+    const accountNavBtn = document.getElementById("nav-account");
 
-    const isCreator = user && (user.toLowerCase() === "admin" || user.toLowerCase() === "mikedan849@gmail.com");
+    const isCreator = isAuthenticated && (user.toLowerCase() === "admin" || user.toLowerCase() === "mikedan849@gmail.com");
 
     if (adminBtn) {
         adminBtn.style.display = isCreator ? "inline-block" : "none";
     }
 
-    if (user && user !== "null" && user !== "undefined" && user.trim() !== "") {
+    if (isAuthenticated) {
         if (profileCard) profileCard.style.display = "block";
         if (authContainer) authContainer.style.display = "none";
         if (nameDisplay) nameDisplay.innerText = "@" + user;
+        if (accountNavBtn) accountNavBtn.innerText = "@" + user;
     } else {
         if (profileCard) profileCard.style.display = "none";
         if (authContainer) authContainer.style.display = "block";
+        if (accountNavBtn) accountNavBtn.innerText = "Account (Login)";
+        
+        // Immediately kick user to the Account screen if they are not logged in
+        switchTab("account");
     }
 }
+
 
 function logoutUser() {
     localStorage.removeItem("username");
