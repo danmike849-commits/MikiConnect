@@ -75,6 +75,24 @@ app.get('/api/admin/users', (req, res) => {
     }
 });
 
+
+// Delete user endpoint (Admin)
+app.delete('/api/admin/users/:id', (req, res) => {
+    try {
+        const userId = req.params.id;
+        const initialLength = global.inMemoryUsers.length;
+        global.inMemoryUsers = global.inMemoryUsers.filter(u => u.id !== userId && u._id !== userId);
+
+        if (global.inMemoryUsers.length === initialLength) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        res.json({ success: true, message: "User deleted successfully." });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==================== FEED, LIKES & COMMENTS ENDPOINTS ====================
 app.get('/api/posts', (req, res) => {
     res.json(global.inMemoryPosts);

@@ -137,13 +137,21 @@
     </div>
 
     <!-- ADMIN TAB -->
-    <div id="admin-tab" class="tab-content">
-      <div class="card">
-        <h3>Admin Dashboard</h3>
-        <button onclick="loadAdminUsers()">Load Users List</button>
-        <ul id="admin-user-list" style="margin-top: 10px; list-style: none;"></ul>
-      </div>
+    
+    <!-- ADMIN TAB -->
+    <div id="admin-tab" class="tab-content" style="display: none; padding: 15px;">
+        <div style="background: #25282c; border-radius: 8px; padding: 20px; border: 1px solid #333;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #fff; margin: 0;">Admin Dashboard</h3>
+                <span id="admin-total-users" style="background: #2b5235; color: #40c057; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold;">0 Users</span>
+            </div>
+            <button onclick="loadUsersList()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 15px;">
+                Refresh Users List
+            </button>
+            <div id="admin-users-display" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
     </div>
+
 
     <!-- ACCOUNT TAB -->
     
@@ -186,6 +194,6 @@
 
   </div>
 
-  <script src="app.js?v=1786469207033"></script>
+  <script src="app.js?v=1786520924478"></script>
 </body>
 </html>

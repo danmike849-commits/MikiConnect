@@ -82,55 +82,7 @@ socket.on('onlineUsersList', (users) => {
 // Auth Functions
 
 
-async function login() {
-    const idEl = document.getElementById("login-id");
-    const passEl = document.getElementById("login-pass");
-    const identifier = idEl ? idEl.value.trim() : "";
-    const password = passEl ? passEl.value.trim() : "";
 
-    if (!identifier || !password) {
-        alert("Please enter both username/email and password.");
-        return;
-    }
-
-    try {
-        const res = await fetch("/api/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: identifier, password: password })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            alert(data.error || "Login failed");
-            return;
-        }
-
-        const userObj = data.user || data;
-        const username = userObj.username || data.username || "User";
-        const role = userObj.role || data.role || "";
-
-        localStorage.setItem("currentUser", JSON.stringify(userObj));
-        localStorage.setItem("username", username);
-        localStorage.setItem("role", role);
-
-        alert("Login successful! Welcome " + username);
-
-        const adminBtn = document.getElementById("admin-tab-btn");
-        if (role === "admin" || username.toLowerCase() === "admin") {
-            if (adminBtn) adminBtn.style.display = "inline-block";
-            if (typeof switchTab === "function") {
-                switchTab("admin-tab", adminBtn);
-            }
-        } else {
-            if (adminBtn) adminBtn.style.display = "none";
-            location.reload();
-        }
-    } catch (e) {
-        alert("Login error: " + e.message);
-    }
-}
 
 function logout() {
   localStorage.removeItem('currentUser');
@@ -710,55 +662,156 @@ window.showAuthMode = showAuthMode;
 window.register = register;
 
 
-async function loadUsersList() {
-    const adminContainer = document.getElementById("admin-user-list") || document.getElementById("admin-container") || document.querySelector("#admin-tab .card") || document.querySelector("#admin-tab");
-    
-    // Find or create result container
-    let displayBox = document.getElementById("admin-users-display");
-    if (!displayBox && adminContainer) {
-        displayBox = document.createElement("div");
-        displayBox.id = "admin-users-display";
-        displayBox.style.marginTop = "15px";
-        adminContainer.appendChild(displayBox);
-    }
 
-    if (displayBox) {
-        displayBox.innerHTML = '<div style="color:#aaa; text-align:center; padding:10px;">Loading users...</div>';
+
+window.loadUsersList = loadUsersList;
+window.loadUsers = loadUsersList;
+
+
+function checkAdminAccess() {
+    const currentUser = (localStorage.getItem("username") || "").trim().toLowerCase();
+    const adminBtn = document.getElementById("nav-admin");
+    
+    if (adminBtn) {
+        if (currentUser === "admin") {
+            adminBtn.style.display = "block";
+        } else {
+            adminBtn.style.display = "none";
+            const adminTab = document.getElementById("admin-tab");
+            if (adminTab && adminTab.style.display !== "none") {
+                if (typeof switchTab === "function") switchTab("feed");
+            }
+        }
+    }
+}
+
+
+
+
+
+document.addEventListener("DOMContentLoaded", checkAdminAccess);
+window.checkAdminAccess = checkAdminAccess;
+window.login = login;
+window.loadUsersList = loadUsersList;
+
+
+function checkAdminAccess() {
+    const currentUser = (localStorage.getItem("username") || "").trim().toLowerCase();
+    const adminBtn = document.getElementById("nav-admin");
+    
+    if (adminBtn) {
+        if (currentUser === "admin") {
+            adminBtn.style.display = "block";
+        } else {
+            adminBtn.style.display = "none";
+            const adminTab = document.getElementById("admin-tab");
+            if (adminTab && adminTab.style.display !== "none") {
+                if (typeof switchTab === "function") switchTab("feed");
+            }
+        }
+    }
+}
+
+async function login() {
+    const loginId = document.getElementById("login-id")?.value.trim();
+    const pass = document.getElementById("login-pass")?.value.trim();
+
+    if (!loginId || !pass) {
+        alert("Please enter both username/email and password.");
+        return;
     }
 
     try {
-        const res = await fetch("/api/admin/users?v=" + Date.now());
+        const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: loginId, password: pass })
+        });
+
+        const data = await res.json();
         if (!res.ok) {
-            if (displayBox) displayBox.innerHTML = `<div style="color:#ff6b6b; padding:10px; text-align:center;">Error ${res.status}: Failed to fetch users</div>`;
+            alert(data.error || "Login failed.");
             return;
         }
 
-        const users = await res.json();
-        if (!Array.isArray(users)) {
-            if (displayBox) displayBox.innerHTML = '<div style="color:#ff6b6b; padding:10px; text-align:center;">Invalid response format from server.</div>';
-            return;
+        const authenticatedUsername = data.user?.username || loginId;
+        localStorage.setItem("username", authenticatedUsername);
+        alert("Logged in successfully as @" + authenticatedUsername);
+
+        checkAdminAccess();
+        if (typeof switchTab === "function") {
+            switchTab(authenticatedUsername.toLowerCase() === "admin" ? "admin" : "feed");
         }
-
-        if (users.length === 0) {
-            if (displayBox) displayBox.innerHTML = '<div style="color:#888; padding:10px; text-align:center;">No users registered yet.</div>';
-            return;
-        }
-
-        const userCards = users.map(u => `
-            <div style="background:#181a1d; border:1px solid #333; border-radius:6px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <strong style="color:#40c057;">@${u.username || 'User'}</strong>
-                    <div style="color:#888; font-size:12px;">${u.email || 'No email registered'}</div>
-                </div>
-                <span style="background:#2b5235; color:#40c057; font-size:11px; padding:3px 8px; border-radius:12px;">Active</span>
-            </div>
-        `).join("");
-
-        if (displayBox) displayBox.innerHTML = userCards;
     } catch(err) {
-        if (displayBox) displayBox.innerHTML = `<div style="color:#ff6b6b; padding:10px; text-align:center;">Network error: ${err.message}</div>`;
+        alert("Login error: " + err.message);
+    }
+}
+
+
+
+document.addEventListener("DOMContentLoaded", checkAdminAccess);
+window.checkAdminAccess = checkAdminAccess;
+window.login = login;
+window.loadUsersList = loadUsersList;
+
+
+async function loadUsersList() {
+    const display = document.getElementById("admin-users-display");
+    const countBadge = document.getElementById("admin-total-users");
+    if (!display) return;
+
+    display.innerHTML = "<p style='color: #aaa; text-align: center;'>Loading users...</p>";
+
+    try {
+        const res = await fetch("/api/admin/users");
+        const users = await res.json();
+
+        if (!Array.isArray(users) || users.length === 0) {
+            display.innerHTML = "<p style='color: #aaa; text-align: center;'>No registered users found.</p>";
+            if (countBadge) countBadge.innerText = "0 Users";
+            return;
+        }
+
+        if (countBadge) countBadge.innerText = users.length + " Users";
+
+        display.innerHTML = users.map(u => {
+            const uid = u._id || u.id;
+            const regDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "N/A";
+            return `
+                <div style="background: #181a1d; padding: 12px; border-radius: 6px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="color: #fff; font-weight: bold;">@${u.username}</div>
+                        <div style="color: #888; font-size: 12px;">${u.email} • Registered: ${regDate}</div>
+                    </div>
+                    ${uid !== "1" ? `<button onclick="deleteUser('${uid}')" style="background: #e03131; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer;">Delete</button>` : '<span style="color: #40c057; font-size: 12px;">System</span>'}
+                </div>
+            `;
+        }).join("");
+    } catch (err) {
+        display.innerHTML = "<p style='color: #ff6b6b;'>Failed to load users: " + err.message + "</p>";
+    }
+}
+
+async function deleteUser(userId) {
+    if (!confirm("Are you sure you want to delete this user account?")) return;
+
+    try {
+        const res = await fetch("/api/admin/users/" + userId, {
+            method: "DELETE"
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.error || "Failed to delete user.");
+            return;
+        }
+
+        alert("User deleted successfully.");
+        loadUsersList();
+    } catch (err) {
+        alert("Delete error: " + err.message);
     }
 }
 
 window.loadUsersList = loadUsersList;
-window.loadUsers = loadUsersList;
+window.deleteUser = deleteUser;
