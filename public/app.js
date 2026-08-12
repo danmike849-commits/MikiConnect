@@ -131,7 +131,7 @@ async function loadFeed() {
 
         container.innerHTML = posts.map(p => `
             <div class="card">
-                <div style="color:#40c057; font-weight:bold; margin-bottom:5px;">@${p.username}</div>
+                <div onclick="requestPrivateChat('${p.username}')" style="color:#40c057; font-weight:bold; margin-bottom:5px; cursor:pointer;">@${p.username} <span style="font-size:11px; color:#339af0;">(Tap to DM)</span></div>
                 <div style="color:#fff; font-size:14px;">${p.content}</div>
             </div>
         `).join("");
@@ -330,3 +330,314 @@ setInterval(() => {
 // Init on load
 loadFeed();
 checkAuthState();
+
+
+// 1-ON-1 DM SYSTEM VARIABLES
+let activeConvId = null;
+let activePartner = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+// Request Private Chat from Feed / User Click
+async function requestPrivateChat(targetUser) {
+    const currentUser = localStorage.getItem("username");
+    if (!currentUser) return alert("Please login first to chat!");
+    if (currentUser.toLowerCase() === targetUser.toLowerCase()) return alert("You cannot chat with yourself.");
+
+    if (!confirm("Send a 1-on-1 Private Chat request to @" + targetUser + "?")) return;
+
+    try {
+        const res = await fetch("/api/private/request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sender: currentUser, recipient: targetUser })
+        });
+        const data = await res.json();
+        if (data.status === "accepted") {
+            alert("Chat already accepted! Opening conversation...");
+            switchTab("dm");
+            openDMChat(data.conversationId, targetUser);
+        } else {
+            alert(data.message || "Chat request sent!");
+        }
+    } catch(err) {
+        alert("Error sending request: " + err.message);
+    }
+}
+
+// Load Conversations & Pending Requests
+async function loadDMTab() {
+    const user = localStorage.getItem("username");
+    if (!user) return;
+
+    // Load Requests
+    try {
+        const reqRes = await fetch("/api/private/requests/" + user);
+        const reqs = await reqRes.json();
+
+        const reqContainer = document.getElementById("dm-requests-container");
+        const reqList = document.getElementById("dm-requests-list");
+
+        if (reqs.length > 0) {
+            reqContainer.style.display = "block";
+            reqList.innerHTML = reqs.map(r => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#25282c; padding:8px; border-radius:4px; margin-bottom:6px;">
+                    <span style="color:#fff; font-size:13px;">@${r.sender} wants to chat</span>
+                    <div style="display:flex; gap:6px;">
+                        <button onclick="respondChatRequest('${r.id}', 'accept')" style="background:#40c057; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Accept</button>
+                        <button onclick="respondChatRequest('${r.id}', 'reject')" style="background:#e03131; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Reject</button>
+                    </div>
+                </div>
+            `).join("");
+        } else {
+            reqContainer.style.display = "none";
+        }
+    } catch(e) {}
+
+    // Load Active Conversations
+    try {
+        const convRes = await fetch("/api/private/conversations/" + user);
+        const convs = await convRes.json();
+        const convList = document.getElementById("dm-conv-list");
+
+        if (convs.length === 0) {
+            convList.innerHTML = "<p style='color:#888; text-align:center;'>No 1-on-1 private chats yet. Tap any @username in the feed to request a chat!</p>";
+            return;
+        }
+
+        convList.innerHTML = convs.map(c => {
+            const partner = c.u1.toLowerCase() === user.toLowerCase() ? c.u2 : c.u1;
+            return `
+                <div onclick="openDMChat('${c.id}', '${partner}')" style="background:#25282c; padding:12px; border-radius:6px; border:1px solid #333; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                    <span style="color:#40c057; font-weight:bold;">@${partner}</span>
+                    <span style="color:#888; font-size:12px;">Open Chat →</span>
+                </div>
+            `;
+        }).join("");
+    } catch(e) {}
+}
+
+async function respondChatRequest(reqId, action) {
+    try {
+        const res = await fetch("/api/private/request/" + reqId + "/respond", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(action === 'accept' ? "Request accepted!" : "Request rejected.");
+            loadDMTab();
+        }
+    } catch(err) {
+        alert("Error responding: " + err.message);
+    }
+}
+
+// Open Private DM Room
+function openDMChat(convId, partner) {
+    activeConvId = convId;
+    activePartner = partner;
+    document.getElementById("dm-partner-name").innerText = "@" + partner;
+    document.getElementById("dm-chat-room").style.display = "block";
+    loadPrivateMessages();
+}
+
+function closeDMChat() {
+    activeConvId = null;
+    activePartner = null;
+    document.getElementById("dm-chat-room").style.display = "none";
+}
+
+// Load Private Messages
+async function loadPrivateMessages() {
+    if (!activeConvId) return;
+    const container = document.getElementById("dm-messages-display");
+    const user = localStorage.getItem("username");
+
+    try {
+        const res = await fetch("/api/private/messages/" + activeConvId);
+        const msgs = await res.json();
+
+        if (msgs.length === 0) {
+            container.innerHTML = "<p style='color:#888; text-align:center;'>Start your private conversation!</p>";
+            return;
+        }
+
+        container.innerHTML = msgs.map(m => {
+            const isMe = m.sender.toLowerCase() === user.toLowerCase();
+            return `
+                <div style="background:${isMe ? '#1e3a24' : '#25282c'}; padding:8px 12px; border-radius:6px; align-self:${isMe ? 'flex-end' : 'flex-start'}; max-width:82%; border:1px solid ${isMe ? '#2b5235' : '#333'};">
+                    <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:4px;">
+                        <strong style="color:${isMe ? '#40c057' : '#339af0'}; font-size:11px;">@${m.sender} ${m.edited ? '<i style="color:#aaa;">(edited)</i>' : ''}</strong>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="copyMsgText('${encodeURIComponent(m.text)}')" style="background:none; border:none; color:#aaa; font-size:10px; cursor:pointer;">Copy</button>
+                            ${isMe ? `<button onclick="editPrivateMsg('${m.id}', '${encodeURIComponent(m.text)}')" style="background:none; border:none; color:#40c057; font-size:10px; cursor:pointer;">Edit</button>` : ''}
+                        </div>
+                    </div>
+                    ${m.text ? `<div style="color:#fff; font-size:13px; word-break:break-word;">${m.text}</div>` : ''}
+                    ${m.mediaType === 'image' ? `<img src="${m.media}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; display:block;" />` : ''}
+                    ${m.mediaType === 'video' ? `<video src="${m.media}" controls style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; display:block;"></video>` : ''}
+                    ${m.mediaType === 'audio' ? `<audio src="${m.media}" controls style="width:100%; margin-top:6px;"></audio>` : ''}
+                </div>
+            `;
+        }).join("");
+
+        container.scrollTop = container.scrollHeight;
+    } catch(e) {}
+}
+
+// Send Text Message
+async function sendPrivateMessage() {
+    const input = document.getElementById("dm-msg-input");
+    const text = input.value.trim();
+    const sender = localStorage.getItem("username");
+
+    if (!text || !activeConvId) return;
+
+    try {
+        const res = await fetch("/api/private/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ convId: activeConvId, sender, text, mediaType: "none" })
+        });
+        if (res.ok) {
+            input.value = "";
+            loadPrivateMessages();
+        }
+    } catch(err) {
+        alert("Send error: " + err.message);
+    }
+}
+
+// Media File Upload Handler (Photo / Video)
+function handleMediaUpload(input) {
+    const file = input.files[0];
+    if (!file || !activeConvId) return;
+
+    const sender = localStorage.getItem("username");
+    const isVideo = file.type.startsWith("video");
+    const isImage = file.type.startsWith("image");
+
+    if (!isImage && !isVideo) return alert("Please select an image or video file.");
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const base64Data = e.target.result;
+        try {
+            const res = await fetch("/api/private/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    convId: activeConvId,
+                    sender,
+                    media: base64Data,
+                    mediaType: isVideo ? "video" : "image"
+                })
+            });
+            if (res.ok) {
+                input.value = "";
+                loadPrivateMessages();
+            }
+        } catch(err) {
+            alert("Upload error: " + err.message);
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// Voice Recorder (Voice Notes)
+async function toggleVoiceRecording() {
+    const btn = document.getElementById("dm-mic-btn");
+    const sender = localStorage.getItem("username");
+
+    if (!isRecording) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result;
+                    await fetch("/api/private/messages", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            convId: activeConvId,
+                            sender,
+                            media: base64Audio,
+                            mediaType: "audio"
+                        })
+                    });
+                    loadPrivateMessages();
+                };
+                reader.readAsDataURL(audioBlob);
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            btn.innerText = "🛑 Stop & Send Voice";
+            btn.style.background = "#e03131";
+        } catch(err) {
+            alert("Microphone access required: " + err.message);
+        }
+    } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        btn.innerText = "🎤 Record Voice";
+        btn.style.background = "#1e3a24";
+    }
+}
+
+// Edit Message
+async function editPrivateMsg(msgId, encodedOldText) {
+    const oldText = decodeURIComponent(encodedOldText);
+    const newText = prompt("Edit your message:", oldText);
+    if (!newText || newText === oldText) return;
+
+    try {
+        const res = await fetch("/api/private/messages/" + msgId, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: newText })
+        });
+        if (res.ok) loadPrivateMessages();
+    } catch(err) {
+        alert("Edit error: " + err.message);
+    }
+}
+
+// Copy Message
+function copyMsgText(encodedText) {
+    const text = decodeURIComponent(encodedText);
+    navigator.clipboard.writeText(text);
+    alert("Message copied to clipboard!");
+}
+
+// Attach DM hook into switchTab
+const origSwitchTab = window.switchTab;
+window.switchTab = function(tabName) {
+    if (typeof origSwitchTab === "function") origSwitchTab(tabName);
+    if (tabName === "dm") loadDMTab();
+};
+
+// Global exports
+window.requestPrivateChat = requestPrivateChat;
+window.respondChatRequest = respondChatRequest;
+window.openDMChat = openDMChat;
+window.closeDMChat = closeDMChat;
+window.sendPrivateMessage = sendPrivateMessage;
+window.handleMediaUpload = handleMediaUpload;
+window.toggleVoiceRecording = toggleVoiceRecording;
+window.editPrivateMsg = editPrivateMsg;
+window.copyMsgText = copyMsgText;
+
+// Auto-poll DM messages every 3s
+setInterval(() => {
+    if (activeConvId) loadPrivateMessages();
+}, 3000);

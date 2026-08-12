@@ -121,6 +121,123 @@ app.post('/api/posts', (req, res) => {
     }
 });
 
+
+// Global Stores for DM System
+global.inMemoryChatRequests = global.inMemoryChatRequests || [];
+global.inMemoryPrivateConvs = global.inMemoryPrivateConvs || [];
+global.inMemoryPrivateMsgs  = global.inMemoryPrivateMsgs || [];
+
+// Send Chat Request
+app.post('/api/private/request', (req, res) => {
+    try {
+        const { sender, recipient } = req.body || {};
+        if (!sender || !recipient) return res.status(400).json({ error: "Sender and recipient required." });
+        if (sender.toLowerCase() === recipient.toLowerCase()) return res.status(400).json({ error: "Cannot request yourself." });
+
+        // Check if existing request or accepted conv
+        const existingConv = global.inMemoryPrivateConvs.find(c => 
+            (c.u1 === sender && c.u2 === recipient) || (c.u1 === recipient && c.u2 === sender)
+        );
+        if (existingConv) return res.json({ success: true, conversationId: existingConv.id, status: "accepted" });
+
+        const existingReq = global.inMemoryChatRequests.find(r => 
+            (r.sender === sender && r.recipient === recipient) && r.status === 'pending'
+        );
+        if (existingReq) return res.json({ success: true, message: "Request already pending." });
+
+        const reqObj = { id: Date.now().toString(), sender, recipient, status: "pending", createdAt: new Date() };
+        global.inMemoryChatRequests.push(reqObj);
+        res.json({ success: true, message: "Chat request sent!" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Fetch pending requests for a user
+app.get('/api/private/requests/:username', (req, res) => {
+    const username = req.params.username;
+    const reqs = global.inMemoryChatRequests.filter(r => r.recipient.toLowerCase() === username.toLowerCase() && r.status === 'pending');
+    res.json(reqs);
+});
+
+// Accept or Reject Request
+app.post('/api/private/request/:id/respond', (req, res) => {
+    try {
+        const reqId = req.params.id;
+        const { action } = req.body || {}; // 'accept' or 'reject'
+        const chatReq = global.inMemoryChatRequests.find(r => r.id === reqId);
+
+        if (!chatReq) return res.status(404).json({ error: "Request not found." });
+
+        chatReq.status = action === 'accept' ? 'accepted' : 'rejected';
+
+        if (action === 'accept') {
+            const convId = "conv_" + Date.now();
+            const newConv = { id: convId, u1: chatReq.sender, u2: chatReq.recipient, createdAt: new Date() };
+            global.inMemoryPrivateConvs.push(newConv);
+            return res.json({ success: true, conversationId: convId });
+        }
+
+        res.json({ success: true, message: "Request rejected." });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Fetch active 1-on-1 conversations for user
+app.get('/api/private/conversations/:username', (req, res) => {
+    const user = req.params.username.toLowerCase();
+    const convs = global.inMemoryPrivateConvs.filter(c => c.u1.toLowerCase() === user || c.u2.toLowerCase() === user);
+    res.json(convs);
+});
+
+// Fetch 1-on-1 Messages
+app.get('/api/private/messages/:convId', (req, res) => {
+    const convId = req.params.convId;
+    const msgs = global.inMemoryPrivateMsgs.filter(m => m.convId === convId);
+    res.json(msgs);
+});
+
+// Send Private Message (Text, Voice, Image, Video)
+app.post('/api/private/messages', (req, res) => {
+    try {
+        const { convId, sender, text, media, mediaType } = req.body || {};
+        if (!convId || !sender) return res.status(400).json({ error: "Missing required fields." });
+
+        const msgObj = {
+            id: Date.now().toString(),
+            convId,
+            sender,
+            text: text || "",
+            media: media || "", // Base64 or URL
+            mediaType: mediaType || "none", // 'image', 'video', 'audio'
+            edited: false,
+            createdAt: new Date().toISOString()
+        };
+
+        global.inMemoryPrivateMsgs.push(msgObj);
+        res.json({ success: true, message: msgObj });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Private Message
+app.put('/api/private/messages/:id', (req, res) => {
+    try {
+        const msgId = req.params.id;
+        const { text } = req.body || {};
+        const msg = global.inMemoryPrivateMsgs.find(m => m.id === msgId);
+        if (!msg) return res.status(404).json({ error: "Message not found." });
+
+        msg.text = text;
+        msg.edited = true;
+        res.json({ success: true, message: msg });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==================== CHAT ENDPOINTS ====================
 app.get('/api/chat', (req, res) => {
     res.json({ success: true, messages: global.inMemoryChat });

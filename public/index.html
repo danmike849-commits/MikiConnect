@@ -26,6 +26,7 @@
 
     <div class="nav-bar">
         <button id="nav-feed" class="active" onclick="switchTab('feed')">Feed</button>
+        <button id="nav-dm" onclick="switchTab('dm')">1-on-1 Chat</button>
         <button id="nav-chat" onclick="switchTab('chat')">Live Chat</button>
         <button id="nav-groups" onclick="switchTab('groups')">Groups</button>
         <button id="nav-admin" style="display: none;" onclick="switchTab('admin')">Admin</button>
@@ -40,6 +41,48 @@
             <button onclick="createPost()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 10px; border-radius: 4px; font-weight: bold; margin-top: 8px; cursor: pointer;">Post</button>
         </div>
         <div id="feed-posts"></div>
+    </div>
+
+    
+    <!-- 1-ON-1 PRIVATE CHAT TAB -->
+    <div id="dm-tab" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0; color:#40c057;">1-on-1 Direct Messages</h3>
+            
+            <!-- PENDING REQUESTS CONTAINER -->
+            <div id="dm-requests-container" style="display:none; background:#181a1d; padding:10px; border-radius:6px; border:1px solid #339af0; margin-bottom:12px;">
+                <h4 style="margin:0 0 8px 0; color:#339af0; font-size:13px;">Pending Chat Requests</h4>
+                <div id="dm-requests-list"></div>
+            </div>
+
+            <!-- CONVERSATIONS LIST -->
+            <div id="dm-conv-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
+        </div>
+
+        <!-- PRIVATE MESSAGING ROOM (HIDDEN UNTIL CONVERSATION OPENED) -->
+        <div id="dm-chat-room" class="card" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:8px; margin-bottom:10px;">
+                <button onclick="closeDMChat()" style="background:#333; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">← Back</button>
+                <span id="dm-partner-name" style="font-weight:bold; color:#40c057;">@User</span>
+            </div>
+
+            <!-- MESSAGES CONTAINER -->
+            <div id="dm-messages-display" style="height:280px; overflow-y:auto; background:#181a1d; padding:10px; border-radius:6px; border:1px solid #333; display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
+
+            <!-- MEDIA & VOICE CONTROLS -->
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <input type="file" id="dm-file-input" accept="image/*,video/*" style="display:none;" onchange="handleMediaUpload(this)" />
+                <button onclick="document.getElementById('dm-file-input').click()" style="background:#2b5235; color:#40c057; border:1px solid #40c057; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">📁 Photo/Video</button>
+                
+                <button id="dm-mic-btn" onclick="toggleVoiceRecording()" style="background:#1e3a24; color:#40c057; border:1px solid #40c057; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">🎤 Record Voice</button>
+            </div>
+
+            <!-- TEXT INPUT & SEND -->
+            <div style="display:flex; gap:6px;">
+                <input type="text" id="dm-msg-input" placeholder="Type a private message..." style="flex:1; padding:10px; background:#181a1d; border:1px solid #444; color:#fff; border-radius:4px; box-sizing:border-box;" />
+                <button onclick="sendPrivateMessage()" style="background:#40c057; color:#fff; border:none; padding:10px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">Send</button>
+            </div>
+        </div>
     </div>
 
     <!-- CHAT TAB -->
@@ -107,6 +150,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=1786533692396"></script>
+    <script src="app.js?v=1786538937077"></script>
 </body>
 </html>
