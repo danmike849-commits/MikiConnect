@@ -174,27 +174,57 @@ app.post('/api/posts/:id/comment', (req, res) => {
     }
 });
 
+
+// Admin Stats Endpoint
+app.get('/api/admin/stats', (req, res) => {
+    try {
+        res.json({
+            users: global.inMemoryUsers ? global.inMemoryUsers.length : 1,
+            posts: global.inMemoryPosts ? global.inMemoryPosts.length : 0,
+            chats: global.inMemoryChat ? global.inMemoryChat.length : 0
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Chat Message Endpoint
+app.delete('/api/chat/:id', (req, res) => {
+    try {
+        const msgId = req.params.id;
+        global.inMemoryChat = (global.inMemoryChat || []).filter(m => m.id !== msgId);
+        res.json({ success: true, message: "Message deleted." });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==================== CHAT ENDPOINTS ====================
 app.get('/api/chat', (req, res) => {
     res.json({ success: true, messages: global.inMemoryChat });
 });
 
+
 app.post('/api/chat', (req, res) => {
     try {
-        const { username, message } = req.body || {};
-        if (!message) return res.status(400).json({ error: "Message is required." });
+        const { username, message, imageUrl } = req.body || {};
+        if (!message && !imageUrl) return res.status(400).json({ error: "Message or image is required." });
 
         const msgObj = {
+            id: Date.now().toString(),
             username: username || "Anonymous",
-            content: message,
-            createdAt: new Date()
+            content: message || "",
+            imageUrl: imageUrl || "",
+            createdAt: new Date().toISOString()
         };
+        global.inMemoryChat = global.inMemoryChat || [];
         global.inMemoryChat.push(msgObj);
         res.json({ success: true, message: msgObj });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 // Serve Static Frontend
 app.use(express.static(path.join(__dirname, "public")));

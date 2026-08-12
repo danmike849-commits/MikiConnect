@@ -42,6 +42,7 @@
     #user-bar { background: #0d2818; color: white; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
     .logout-btn { background: #c92a2a; color: #fff; border: none; width: auto; padding: 6px 12px; margin: 0; }
   </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -90,31 +91,21 @@
     </div>
 
     <!-- LIVE CHAT TAB -->
-    <div id="chat-tab" class="tab-content">
-      <div class="card">
-        <h3>Live Public Chat</h3>
-        <div id="public-chat-box" class="chat-box"></div>
-        
-        <div class="chat-controls">
-          <input type="text" id="chat-msg-input" placeholder="Type a message..." />
-          
-          <div class="media-btn-row">
-            <label>📷 Photo <input type="file" id="chat-img" accept="image/*" style="display:none;"></label>
-            <label>🎥 Video/Cam <input type="file" id="chat-vid" accept="video/*" capture="user" style="display:none;"></label>
-            <button type="button" onclick="toggleVoiceRecord()" id="voice-btn" style="flex:1; margin:0; padding:8px; font-size:12px;">🎙️ Record Voice</button>
-          </div>
-
-          <div style="display: flex; gap: 5px;">
-            <select id="emoji-select" style="width: auto;" onchange="addEmoji(this.value)">
-              <option value="">😃 Emojis</option>
-              <option value="❤️">❤️ Love</option>
-              <option value="👍">👍 Like</option>
-              <option value="🔥">🔥 Fire</option>
-              <option value="😂">😂 Laugh</option>
-            </select>
-            <button onclick="sendChatMessage('public')" style="flex: 1;">Send Message</button>
-          </div>
+    
+    <!-- CHAT TAB -->
+    <div id="chat-tab" class="tab-content" style="display: none; padding: 15px;">
+        <div style="background: #25282c; border-radius: 8px; padding: 15px; border: 1px solid #333;">
+            <h3 style="color: #fff; margin-top: 0; margin-bottom: 10px;">Live Community Chat</h3>
+            <div id="chat-messages" style="height: 320px; overflow-y: auto; background: #181a1d; padding: 12px; border-radius: 6px; border: 1px solid #333; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;"></div>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <input type="text" id="chat-msg-input" placeholder="Type a message..." style="width: 100%; padding: 10px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box;" />
+                <input type="text" id="chat-img-input" placeholder="Image URL (optional)" style="width: 100%; padding: 8px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box; font-size: 12px;" />
+                <button onclick="sendChatMessage()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer;">Send Message</button>
+            </div>
         </div>
+    </div>
+
       </div>
     </div>
 
@@ -139,17 +130,28 @@
     <!-- ADMIN TAB -->
     
     <!-- ADMIN TAB -->
+    
+    <!-- ADMIN TAB -->
     <div id="admin-tab" class="tab-content" style="display: none; padding: 15px;">
-        <div style="background: #25282c; border-radius: 8px; padding: 20px; border: 1px solid #333;">
+        <div style="background: #25282c; border-radius: 8px; padding: 20px; border: 1px solid #333; margin-bottom: 15px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="color: #fff; margin: 0;">Admin Dashboard</h3>
+                <h3 style="color: #fff; margin: 0;">Analytics Overview</h3>
                 <span id="admin-total-users" style="background: #2b5235; color: #40c057; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold;">0 Users</span>
             </div>
-            <button onclick="loadUsersList()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 15px;">
-                Refresh Users List
+            <!-- GRAPHIC DATA CHART CANVAS -->
+            <div style="background: #181a1d; padding: 15px; border-radius: 6px; border: 1px solid #333; margin-bottom: 15px;">
+                <canvas id="adminStatsChart" style="max-height: 220px; width: 100%;"></canvas>
+            </div>
+            <button onclick="loadUsersList()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                Refresh Dashboard & Users
             </button>
+        </div>
+        <div style="background: #25282c; border-radius: 8px; padding: 20px; border: 1px solid #333;">
+            <h4 style="color: #fff; margin-top: 0; margin-bottom: 10px;">Registered User Accounts</h4>
             <div id="admin-users-display" style="display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
+    </div>
+
     </div>
 
 
@@ -194,6 +196,6 @@
 
   </div>
 
-  <script src="app.js?v=1786520924478"></script>
+  <script src="app.js?v=1786521870243"></script>
 </body>
 </html>

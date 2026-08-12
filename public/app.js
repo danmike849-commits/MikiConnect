@@ -815,3 +815,168 @@ async function deleteUser(userId) {
 
 window.loadUsersList = loadUsersList;
 window.deleteUser = deleteUser;
+
+
+// Audio Notification Player using Web Audio API
+function playChatNotification() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5 tone
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+    } catch (e) {}
+}
+
+let adminChartInstance = null;
+
+async function renderAdminChart() {
+    const canvas = document.getElementById("adminStatsChart");
+    if (!canvas || typeof Chart === "undefined") return;
+
+    try {
+        const res = await fetch("/api/admin/stats");
+        const stats = await res.json();
+
+        if (adminChartInstance) {
+            adminChartInstance.destroy();
+        }
+
+        const ctx = canvas.getContext("2d");
+        adminChartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: ["Users", "Posts", "Chat Messages"],
+                datasets: [{
+                    label: "Activity Metrics",
+                    data: [stats.users || 0, stats.posts || 0, stats.chats || 0],
+                    backgroundColor: ["#40c057", "#339af0", "#cc5de8"],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: "#888" }, grid: { color: "#222" } },
+                    x: { ticks: { color: "#fff" }, grid: { display: false } }
+                }
+            }
+        });
+    } catch (err) {
+        console.error("Failed to render chart:", err);
+    }
+}
+
+let lastChatCount = 0;
+
+async function loadChat() {
+    const chatContainer = document.getElementById("chat-messages");
+    if (!chatContainer) return;
+
+    try {
+        const res = await fetch("/api/chat");
+        const data = await res.json();
+        const messages = data.messages || [];
+
+        // Play audio alert if new message received
+        if (messages.length > lastChatCount && lastChatCount !== 0) {
+            playChatNotification();
+        }
+        lastChatCount = messages.length;
+
+        if (messages.length === 0) {
+            chatContainer.innerHTML = "<p style='color:#888; text-align:center;'>No chat messages yet. Start the conversation!</p>";
+            return;
+        }
+
+        const currentUser = localStorage.getItem("username") || "Anonymous";
+
+        chatContainer.innerHTML = messages.map(m => {
+            const isMe = m.username === currentUser;
+            const msgId = m.id || "";
+            return `
+                <div style="background: ${isMe ? '#1e3a24' : '#25282c'}; border: 1px solid ${isMe ? '#2b5235' : '#333'}; padding: 10px; border-radius: 6px; width: 85%; align-self: ${isMe ? 'flex-end' : 'flex-start'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: ${isMe ? '#40c057' : '#339af0'}; font-size: 13px;">@${m.username}</strong>
+                        ${msgId ? `<button onclick="deleteChatMessage('${msgId}')" style="background: none; border: none; color: #ff6b6b; font-size: 11px; cursor: pointer;">Delete</button>` : ''}
+                    </div>
+                    ${m.content ? `<div style="color: #fff; font-size: 14px; word-break: break-word;">${m.content}</div>` : ''}
+                    ${m.imageUrl ? `<img src="${m.imageUrl}" style="max-width: 100%; max-height: 180px; border-radius: 6px; margin-top: 6px; display: block;" onerror="this.style.display='none'" />` : ''}
+                </div>
+            `;
+        }).join("");
+
+        // Auto-scroll to bottom
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    } catch (err) {
+        console.error("Chat fetch error:", err);
+    }
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById("chat-msg-input");
+    const imgInput = document.getElementById("chat-img-input");
+    const msg = input?.value.trim();
+    const imgUrl = imgInput?.value.trim();
+    const username = localStorage.getItem("username") || "Anonymous";
+
+    if (!msg && !imgUrl) return;
+
+    try {
+        const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, message: msg, imageUrl: imgUrl })
+        });
+
+        if (res.ok) {
+            if (input) input.value = "";
+            if (imgInput) imgInput.value = "";
+            loadChat();
+        }
+    } catch (err) {
+        alert("Failed to send message: " + err.message);
+    }
+}
+
+async function deleteChatMessage(id) {
+    if (!confirm("Delete this chat message?")) return;
+    try {
+        const res = await fetch("/api/chat/" + id, { method: "DELETE" });
+        if (res.ok) {
+            loadChat();
+        }
+    } catch (err) {
+        alert("Error deleting message: " + err.message);
+    }
+}
+
+// Global Exports
+window.renderAdminChart = renderAdminChart;
+window.loadChat = loadChat;
+window.sendChatMessage = sendChatMessage;
+window.deleteChatMessage = deleteChatMessage;
+
+// Auto-poll chat every 3 seconds
+setInterval(() => {
+    const chatTab = document.getElementById("chat-tab");
+    if (chatTab && chatTab.style.display !== "none") {
+        loadChat();
+    }
+}, 3000);
+
+// Hook chart render into Admin load
+const originalLoadUsersList = window.loadUsersList;
+window.loadUsersList = function() {
+    if (typeof originalLoadUsersList === "function") originalLoadUsersList();
+    renderAdminChart();
+};
