@@ -44,6 +44,7 @@ window.switchTab = switchTab;
 
 
 
+
 function checkAuthState() {
     const user = localStorage.getItem("username");
     const isAuthenticated = user && user !== "null" && user !== "undefined" && user.trim() !== "";
@@ -53,7 +54,6 @@ function checkAuthState() {
     const nameDisplay = document.getElementById("user-display-name");
     const adminBtn = document.getElementById("nav-admin");
     const accountNavBtn = document.getElementById("nav-account");
-    const topNav = document.querySelector(".nav-tabs") || document.querySelector("nav") || document.getElementById("main-nav");
 
     const isCreator = isAuthenticated && (user.toLowerCase() === "admin" || user.toLowerCase() === "mikedan849@gmail.com");
 
@@ -62,20 +62,23 @@ function checkAuthState() {
     }
 
     if (isAuthenticated) {
+        // LOGGED IN: Show app navigation bar and profile
+        document.body.classList.remove("logged-out");
         if (profileCard) profileCard.style.display = "block";
         if (authContainer) authContainer.style.display = "none";
         if (nameDisplay) nameDisplay.innerText = "@" + user;
         if (accountNavBtn) accountNavBtn.innerText = "@" + user;
-        if (topNav) topNav.classList.remove("hide-nav-bar");
     } else {
+        // LOGGED OUT: Hide top navbar completely, enforce clean gateway screen
+        document.body.classList.add("logged-out");
         if (profileCard) profileCard.style.display = "none";
         if (authContainer) authContainer.style.display = "block";
         if (accountNavBtn) accountNavBtn.innerText = "Account (Login)";
-        if (topNav) topNav.classList.add("hide-nav-bar");
         
         switchTab("account");
     }
 }
+
 
 
 
