@@ -43,6 +43,7 @@ window.switchTab = switchTab;
 
 
 
+
 function checkAuthState() {
     const user = localStorage.getItem("username");
     const isAuthenticated = user && user !== "null" && user !== "undefined" && user.trim() !== "";
@@ -52,6 +53,7 @@ function checkAuthState() {
     const nameDisplay = document.getElementById("user-display-name");
     const adminBtn = document.getElementById("nav-admin");
     const accountNavBtn = document.getElementById("nav-account");
+    const topNav = document.querySelector(".nav-tabs") || document.querySelector("nav") || document.getElementById("main-nav");
 
     const isCreator = isAuthenticated && (user.toLowerCase() === "admin" || user.toLowerCase() === "mikedan849@gmail.com");
 
@@ -64,15 +66,17 @@ function checkAuthState() {
         if (authContainer) authContainer.style.display = "none";
         if (nameDisplay) nameDisplay.innerText = "@" + user;
         if (accountNavBtn) accountNavBtn.innerText = "@" + user;
+        if (topNav) topNav.classList.remove("hide-nav-bar");
     } else {
         if (profileCard) profileCard.style.display = "none";
         if (authContainer) authContainer.style.display = "block";
         if (accountNavBtn) accountNavBtn.innerText = "Account (Login)";
+        if (topNav) topNav.classList.add("hide-nav-bar");
         
-        // Immediately kick user to the Account screen if they are not logged in
         switchTab("account");
     }
 }
+
 
 
 function logoutUser() {
@@ -685,3 +689,68 @@ window.copyMsgText = copyMsgText;
 setInterval(() => {
     if (activeConvId) loadPrivateMessages();
 }, 3000);
+
+
+let isRegisterMode = false;
+
+function switchToRegisterMode() {
+    isRegisterMode = true;
+    document.getElementById("gateway-welcome-title").innerText = "Join MikiConnect";
+    document.getElementById("auth-submit-btn").innerText = "Create Account";
+    document.getElementById("auth-submit-btn").style.background = "#20c997";
+    document.getElementById("auth-toggle-link").innerText = "Already have an account? Log in";
+}
+
+function toggleAuthMode() {
+    isRegisterMode = !isRegisterMode;
+    const title = document.getElementById("gateway-welcome-title");
+    const btn = document.getElementById("auth-submit-btn");
+    const link = document.getElementById("auth-toggle-link");
+
+    if (isRegisterMode) {
+        if (title) title.innerText = "Join MikiConnect";
+        if (btn) { btn.innerText = "Create Account"; btn.style.background = "#20c997"; }
+        if (link) link.innerText = "Already have an account? Log in";
+    } else {
+        if (title) title.innerText = "MikiConnect";
+        if (btn) { btn.innerText = "Log In"; btn.style.background = "#2b8a3e"; }
+        if (link) link.innerText = "Log into another account";
+    }
+}
+
+async function handleAuthSubmit() {
+    const usernameInput = document.getElementById("auth-username").value.trim();
+    const passwordInput = document.getElementById("auth-password").value.trim();
+
+    if (!usernameInput || !passwordInput) {
+        alert("Please enter both username/email and password.");
+        return;
+    }
+
+    const endpoint = isRegisterMode ? "/api/register" : "/api/login";
+
+    try {
+        const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: usernameInput, password: passwordInput })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            localStorage.setItem("username", data.username || usernameInput);
+            alert(isRegisterMode ? "Account created successfully!" : "Logged in successfully!");
+            checkAuthState();
+            switchTab("feed");
+        } else {
+            alert(data.message || "Authentication failed. Please check your details.");
+        }
+    } catch(err) {
+        alert("Server error: " + err.message);
+    }
+}
+
+window.switchToRegisterMode = switchToRegisterMode;
+window.toggleAuthMode = toggleAuthMode;
+window.handleAuthSubmit = handleAuthSubmit;

@@ -17,6 +17,11 @@
         .card { background: #25282c; border-radius: 8px; padding: 15px; border: 1px solid #333; margin-bottom: 15px; }
         input, button { font-family: inherit; }
     </style>
+
+    <style id="dynamic-nav-style">
+        .hide-nav-bar { display: none !important; }
+    </style>
+    
 </head>
 <body>
 
@@ -127,32 +132,65 @@
     <!-- ACCOUNT TAB -->
     
     <!-- ACCOUNT TAB -->
-    <div id="account-tab" class="tab-content">
-        <!-- LOGGED IN USER PROFILE CARD -->
-        <div id="user-profile-card" class="card" style="display:none; text-align:center; padding:20px;">
-            <div style="font-size:50px; margin-bottom:10px;">👤</div>
-            <h3 id="user-display-name" style="margin:5px 0; color:#40c057;">@User</h3>
-            <p style="color:#888; font-size:12px; margin-bottom:20px;">Logged in to MikiConnect</p>
-            <button onclick="logoutUser()" style="background:#e03131; color:#fff; border:none; padding:12px 20px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%;">Log Out</button>
+    
+    <!-- ACCOUNT / GATEWAY TAB -->
+    <div id="account-tab" class="tab-content" style="display:block;">
+        
+        <!-- LOGGED OUT: FACEBOOK-STYLE GATEWAY -->
+        <div id="auth-container" style="display:block; max-width:420px; margin:20px auto; background:#1e2228; border:1px solid #2d3239; border-radius:16px; padding:28px 20px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            
+            <!-- App Branding Logo Header -->
+            <div style="width:90px; height:90px; margin:0 auto 15px; background:#40c05722; border:2px solid #40c057; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:42px; color:#40c057; font-weight:bold;">
+                MC
+            </div>
+
+            <h2 id="gateway-welcome-title" style="margin:0 0 5px; color:#ffffff; font-size:22px; font-weight:700;">MikiConnect</h2>
+            <p style="color:#8b949e; font-size:13px; margin:0 0 20px;">Connect, share, and chat in real-time</p>
+
+            <hr style="border:none; border-top:1px solid #2d3239; margin:20px 0;">
+
+            <p style="font-size:12px; color:#8b949e; line-height:1.5; margin-bottom:20px;">
+                By proceeding, you agree to <span style="color:#40c057; font-weight:bold;">MikiConnect's Terms</span> to access private chats, feeds, and group discussions.
+            </p>
+
+            <!-- Main Interactive Form Section -->
+            <div id="auth-form-fields" style="display:flex; flex-direction:column; gap:12px; margin-bottom:15px;">
+                <input type="text" id="auth-username" placeholder="Username or Email" style="padding:14px; background:#121417; border:1px solid #363b44; color:#fff; border-radius:8px; font-size:14px; outline:none;" />
+                <input type="password" id="auth-password" placeholder="Password" style="padding:14px; background:#121417; border:1px solid #363b44; color:#fff; border-radius:8px; font-size:14px; outline:none;" />
+                
+                <button id="auth-submit-btn" onclick="handleAuthSubmit()" style="background:#2b8a3e; color:#ffffff; border:none; padding:14px; border-radius:30px; font-size:15px; font-weight:bold; cursor:pointer; width:100%; transition:0.2s; margin-top:5px;">
+                    Log In
+                </button>
+            </div>
+
+            <div style="margin:18px 0;">
+                <a href="#" onclick="toggleAuthMode(); return false;" id="auth-toggle-link" style="color:#a6e22e; font-size:14px; text-decoration:none; font-weight:600;">
+                    Log into another account
+                </a>
+            </div>
+
+            <button onclick="switchToRegisterMode()" style="background:transparent; color:#40c057; border:1.5px solid #40c057; padding:12px; border-radius:30px; font-size:14px; font-weight:bold; cursor:pointer; width:100%; margin-top:10px;">
+                Create new account
+            </button>
+
+            <div style="margin-top:25px; color:#5c6370; font-size:12px; font-weight:bold; letter-spacing:1px;">
+                ⚡ MIKICONNECT PLATFORM
+            </div>
         </div>
 
-        <!-- LOGGED OUT AUTH FORM -->
-        <div id="auth-container" class="card" style="display:block;">
-            <h3 id="auth-title" style="margin-top:0; color:#40c057;">Login</h3>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <input type="text" id="auth-username" placeholder="Username or Email" style="padding:10px; background:#181a1d; border:1px solid #444; color:#fff; border-radius:4px;" />
-                <input type="password" id="auth-password" placeholder="Password" style="padding:10px; background:#181a1d; border:1px solid #444; color:#fff; border-radius:4px;" />
-                <button id="auth-submit-btn" onclick="handleAuthSubmit()" style="background:#40c057; color:#fff; border:none; padding:12px; border-radius:4px; font-weight:bold; cursor:pointer;">Login</button>
-            </div>
-            <p style="text-align:center; font-size:12px; margin-top:15px; color:#aaa;">
-                <span id="auth-toggle-text">Need an account?</span> 
-                <a href="#" onclick="toggleAuthMode(); return false;" style="color:#40c057; text-decoration:underline;" id="auth-toggle-link">Register here</a>
-            </p>
+        <!-- LOGGED IN USER PROFILE CARD -->
+        <div id="user-profile-card" style="display:none; max-width:420px; margin:20px auto; background:#1e2228; border:1px solid #2d3239; border-radius:16px; padding:25px; text-align:center;">
+            <div style="width:80px; height:80px; margin:0 auto 15px; background:#40c05722; border:2px solid #40c057; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:38px;">👤</div>
+            <h3 id="user-display-name" style="margin:5px 0; color:#40c057; font-size:20px;">@User</h3>
+            <p style="color:#8b949e; font-size:13px; margin-bottom:25px;">Logged in and active on MikiConnect</p>
+            <button onclick="logoutUser()" style="background:#e03131; color:#fff; border:none; padding:12px 20px; border-radius:30px; font-weight:bold; cursor:pointer; width:100%; font-size:14px;">Log Out</button>
         </div>
+
     </div>
 
 
 
-    <script src="app.js?v=1786547175556"></script>
+
+    <script src="app.js?v=1786552106211"></script>
 </body>
 </html>
