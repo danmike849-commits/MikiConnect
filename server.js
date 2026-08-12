@@ -5,12 +5,11 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Global Data Stores
+// Global Memory Stores
 global.inMemoryUsers = global.inMemoryUsers || [];
 global.inMemoryPosts = global.inMemoryPosts || [];
 global.inMemoryChat = global.inMemoryChat || [];
@@ -30,7 +29,6 @@ app.post('/api/register', (req, res) => {
 
         const newUser = { id: Date.now().toString(), username, email, password, createdAt: new Date() };
         global.inMemoryUsers.push(newUser);
-
         res.json({ success: true, message: "User registered successfully!" });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -53,7 +51,15 @@ app.post('/api/login', (req, res) => {
     }
 });
 
-// ==================== ADMIN ENDPOINT ====================
+// ==================== ADMIN ENDPOINTS ====================
+app.get('/api/admin/stats', (req, res) => {
+    res.json({
+        users: global.inMemoryUsers.length,
+        posts: global.inMemoryPosts.length,
+        chats: global.inMemoryChat.length
+    });
+});
+
 app.get('/api/admin/users', (req, res) => {
     try {
         const safeUsers = global.inMemoryUsers.map(u => ({
@@ -68,132 +74,42 @@ app.get('/api/admin/users', (req, res) => {
                 { _id: "1", username: "Admin", email: "admin@mikiconnect.com", createdAt: new Date() }
             ]);
         }
-
         res.json(safeUsers);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-
-// Delete user endpoint (Admin)
 app.delete('/api/admin/users/:id', (req, res) => {
     try {
         const userId = req.params.id;
-        const initialLength = global.inMemoryUsers.length;
         global.inMemoryUsers = global.inMemoryUsers.filter(u => u.id !== userId && u._id !== userId);
-
-        if (global.inMemoryUsers.length === initialLength) {
-            return res.status(404).json({ error: "User not found." });
-        }
-
         res.json({ success: true, message: "User deleted successfully." });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// ==================== FEED, LIKES & COMMENTS ENDPOINTS ====================
+// ==================== FEED ENDPOINTS ====================
 app.get('/api/posts', (req, res) => {
     res.json(global.inMemoryPosts);
 });
 
 app.post('/api/posts', (req, res) => {
     try {
-        const { username, content, text } = req.body || {};
-        const postContent = content || text;
-
-        if (!postContent || !postContent.trim()) {
-            return res.status(400).json({ error: "Post content cannot be empty." });
-        }
+        const { username, content } = req.body || {};
+        if (!content || !content.trim()) return res.status(400).json({ error: "Post content required." });
 
         const newPost = {
             id: Date.now().toString(),
             username: username || "Anonymous",
-            content: postContent.trim(),
+            content: content.trim(),
             likes: [],
             comments: [],
             createdAt: new Date().toISOString()
         };
-
         global.inMemoryPosts.unshift(newPost);
         res.json({ success: true, post: newPost });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post('/api/posts/:id/like', (req, res) => {
-    try {
-        const postId = req.params.id;
-        const { username } = req.body || {};
-        const user = username || "Anonymous";
-
-        let post = global.inMemoryPosts.find(p => p.id == postId);
-        if (!post) return res.status(404).json({ error: "Post not found" });
-
-        post.likes = post.likes || [];
-        const index = post.likes.indexOf(user);
-        if (index === -1) {
-            post.likes.push(user);
-        } else {
-            post.likes.splice(index, 1);
-        }
-
-        res.json({ success: true, likes: post.likes });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post('/api/posts/:id/comment', (req, res) => {
-    try {
-        const postId = req.params.id;
-        const { username, text } = req.body || {};
-
-        if (!text || !text.trim()) {
-            return res.status(400).json({ error: "Comment text cannot be empty." });
-        }
-
-        let post = global.inMemoryPosts.find(p => p.id == postId);
-        if (!post) return res.status(404).json({ error: "Post not found" });
-
-        const newComment = {
-            id: Date.now().toString(),
-            username: username || "Anonymous",
-            text: text.trim(),
-            createdAt: new Date().toISOString()
-        };
-
-        post.comments = post.comments || [];
-        post.comments.push(newComment);
-
-        res.json({ success: true, comments: post.comments });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-
-// Admin Stats Endpoint
-app.get('/api/admin/stats', (req, res) => {
-    try {
-        res.json({
-            users: global.inMemoryUsers ? global.inMemoryUsers.length : 1,
-            posts: global.inMemoryPosts ? global.inMemoryPosts.length : 0,
-            chats: global.inMemoryChat ? global.inMemoryChat.length : 0
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Delete Chat Message Endpoint
-app.delete('/api/chat/:id', (req, res) => {
-    try {
-        const msgId = req.params.id;
-        global.inMemoryChat = (global.inMemoryChat || []).filter(m => m.id !== msgId);
-        res.json({ success: true, message: "Message deleted." });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -204,11 +120,10 @@ app.get('/api/chat', (req, res) => {
     res.json({ success: true, messages: global.inMemoryChat });
 });
 
-
 app.post('/api/chat', (req, res) => {
     try {
         const { username, message, imageUrl } = req.body || {};
-        if (!message && !imageUrl) return res.status(400).json({ error: "Message or image is required." });
+        if (!message && !imageUrl) return res.status(400).json({ error: "Message required." });
 
         const msgObj = {
             id: Date.now().toString(),
@@ -217,7 +132,6 @@ app.post('/api/chat', (req, res) => {
             imageUrl: imageUrl || "",
             createdAt: new Date().toISOString()
         };
-        global.inMemoryChat = global.inMemoryChat || [];
         global.inMemoryChat.push(msgObj);
         res.json({ success: true, message: msgObj });
     } catch (err) {
@@ -225,11 +139,19 @@ app.post('/api/chat', (req, res) => {
     }
 });
 
+app.delete('/api/chat/:id', (req, res) => {
+    try {
+        const msgId = req.params.id;
+        global.inMemoryChat = global.inMemoryChat.filter(m => m.id !== msgId);
+        res.json({ success: true, message: "Message deleted." });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Serve Static Frontend
 app.use(express.static(path.join(__dirname, "public")));
 
-// SPA Catch-All
 app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
