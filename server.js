@@ -1,14 +1,17 @@
 const express = require("express");
 
 // Health Check / Keep-Alive Endpoint
-app.get('/ping', (req, res) => {
-    res.status(200).send("PONG");
-});
 
 const path = require("path");
 const cors = require("cors");
 
 const app = express();
+
+// Keep-Alive Endpoint
+app.get('/ping', (req, res) => {
+    res.status(200).send("PONG");
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
