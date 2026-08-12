@@ -3,7 +3,16 @@ let adminChartInstance = null;
 let lastChatCount = 0;
 
 // TAB NAVIGATION
+
 function switchTab(tabName) {
+    const user = localStorage.getItem("username");
+    const isCreator = user && (user.toLowerCase() === "admin" || user.toLowerCase() === "mikedan849@gmail.com");
+
+    if (tabName === "admin" && !isCreator) {
+        alert("Access Denied: Only the creator of MikiConnect can access the Admin Dashboard.");
+        tabName = "feed";
+    }
+
     document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".nav-bar button").forEach(btn => btn.classList.remove("active"));
 
@@ -19,12 +28,21 @@ function switchTab(tabName) {
     if (tabName === "account") checkAuthState();
 }
 
+
 // AUTH FUNCTIONS
+
 function checkAuthState() {
     const user = localStorage.getItem("username");
     const profileCard = document.getElementById("user-profile-card");
     const authContainer = document.getElementById("auth-container");
     const nameDisplay = document.getElementById("user-display-name");
+    const adminBtn = document.getElementById("nav-admin");
+
+    const isCreator = user && (user.toLowerCase() === "admin" || user.toLowerCase() === "mikedan849@gmail.com");
+
+    if (adminBtn) {
+        adminBtn.style.display = isCreator ? "inline-block" : "none";
+    }
 
     if (user) {
         if (profileCard) profileCard.style.display = "block";
@@ -35,6 +53,7 @@ function checkAuthState() {
         if (authContainer) authContainer.style.display = "block";
     }
 }
+
 
 function showAuthMode(mode) {
     document.getElementById("register-section").style.display = mode === "register" ? "block" : "none";

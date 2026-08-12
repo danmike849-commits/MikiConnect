@@ -52,13 +52,19 @@ app.post('/api/login', (req, res) => {
 });
 
 // ==================== ADMIN ENDPOINTS ====================
+
 app.get('/api/admin/stats', (req, res) => {
+    const requester = req.headers['x-admin-user'];
+    if (!requester || (requester.toLowerCase() !== 'admin' && requester.toLowerCase() !== 'mikedan849@gmail.com')) {
+        return res.status(403).json({ error: "Access denied. Creator only." });
+    }
     res.json({
-        users: global.inMemoryUsers.length,
-        posts: global.inMemoryPosts.length,
-        chats: global.inMemoryChat.length
+        users: global.inMemoryUsers ? global.inMemoryUsers.length : 1,
+        posts: global.inMemoryPosts ? global.inMemoryPosts.length : 0,
+        chats: global.inMemoryChat ? global.inMemoryChat.length : 0
     });
 });
+
 
 app.get('/api/admin/users', (req, res) => {
     try {
