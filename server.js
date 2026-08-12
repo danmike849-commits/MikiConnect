@@ -1,4 +1,10 @@
 const express = require("express");
+
+// Health Check / Keep-Alive Endpoint
+app.get('/ping', (req, res) => {
+    res.status(200).send("PONG");
+});
+
 const path = require("path");
 const cors = require("cors");
 
