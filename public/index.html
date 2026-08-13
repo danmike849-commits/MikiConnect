@@ -36,6 +36,28 @@
 </head>
 <body>
 
+<!-- Instant Loading Screen Overlay -->
+<div id="app-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; font-family: sans-serif;">
+  <div class="spinner"></div>
+  <p style="margin-top: 18px; color: #333333; font-weight: 600; font-size: 16px;">Connecting to MikiConnect...</p>
+  <small style="color: #777; margin-top: 5px;">Waking up server (takes a few seconds)</small>
+</div>
+
+<style>
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border: 5px solid #e0e0e0;
+    border-top: 5px solid #4CAF50;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
+
     <div class="header">
         <h1>MikiConnect</h1>
     </div>
@@ -205,3 +227,13 @@
     <script src="app.js?v=1786553835316"></script>
 </body>
 </html>
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('app-loader');
+    if (loader) {
+      loader.style.opacity = '0';
+      loader.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => loader.style.display = 'none', 300);
+    }
+  });
+</script>
