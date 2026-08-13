@@ -503,40 +503,52 @@ function closeDMChat() {
 
 // Load Private Messages
 async function loadPrivateMessages() {
-    if (!activeConvId) return;
-    const container = document.getElementById("dm-messages-display");
-    const user = localStorage.getItem("username");
+  if (!activeConvId) return;
 
-    try {
-        const res = await fetch("/api/private/messages/" + activeConvId);
-        const msgs = await res.json();
+  try {
+    const res = await fetch(`/api/dm/messages/${activeConvId}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    const messages = await res.json();
+    const container = document.getElementById("dm-messages-container");
+    container.innerHTML = "";
 
-        if (msgs.length === 0) {
-            container.innerHTML = "<p style='color:#888; text-align:center;'>Start your private conversation!</p>";
-            return;
-        }
+    messages.forEach(m => {
+      const isMe = m.sender === currentUser.username;
+      const timeStr = new Date(m.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        container.innerHTML = msgs.map(m => {
-            const isMe = m.sender.toLowerCase() === user.toLowerCase();
-            return `
-                <div style="background:${isMe ? '#1e3a24' : '#25282c'}; padding:8px 12px; border-radius:6px; align-self:${isMe ? 'flex-end' : 'flex-start'}; max-width:82%; border:1px solid ${isMe ? '#2b5235' : '#333'};">
-                    <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:4px;">
-                        <strong style="color:${isMe ? '#40c057' : '#339af0'}; font-size:11px;">@${m.sender} ${m.edited ? '<i style="color:#aaa;">(edited)</i>' : ''}</strong>
-                        <div style="display:flex; gap:6px;">
-                            <button onclick="copyMsgText('${encodeURIComponent(m.text)}')" style="background:none; border:none; color:#aaa; font-size:10px; cursor:pointer;">Copy</button>
-                            ${isMe ? `<button onclick="editPrivateMsg('${m.id}', '${encodeURIComponent(m.text)}')" style="background:none; border:none; color:#40c057; font-size:10px; cursor:pointer;">Edit</button>` : ''}
-                        </div>
-                    </div>
-                    ${m.text ? `<div style="color:#fff; font-size:13px; word-break:break-word;">${m.text}</div>` : ''}
-                    ${m.mediaType === 'image' ? `<img src="${m.media}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; display:block;" />` : ''}
-                    ${m.mediaType === 'video' ? `<video src="${m.media}" controls style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; display:block;"></video>` : ''}
-                    ${m.mediaType === 'audio' ? `<audio src="${m.media}" controls style="width:100%; margin-top:6px;"></audio>` : ''}
-                </div>
-            `;
-        }).join("");
+      const msgDiv = document.createElement("div");
+      msgDiv.className = isMe ? "msg-sent" : "msg-received";
 
-        container.scrollTop = container.scrollHeight;
-    } catch(e) {}
+      msgDiv.innerHTML = `
+        <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:4px;">
+          <strong style="color:${isMe ? '#a3e635' : '#339af0'}; font-size:11px;">
+            @${m.sender} ${m.edited ? '<i style="color:#aaa;">(edited)</i>' : ''}
+          </strong>
+          <div style="display:flex; gap:6px;">
+            <button onclick="copyMsgText('${encodeURIComponent(m.text || '')}')" style="background:none; border:none; color:#aaa; font-size:10px; cursor:pointer;">Copy</button>
+            ${isMe ? `<button onclick="editPrivateMsg('${m.id}', '${encodeURIComponent(m.text || '')}')" style="background:none; border:none; color:#40c057; font-size:10px; cursor:pointer;">Edit</button>` : ''}
+          </div>
+        </div>
+
+        ${m.text ? `<div style="color:#fff; font-size:13px; word-break:break-word;">${m.text}</div>` : ''}
+        ${m.mediaType === 'image' ? `<img src="${m.media}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; display:block;" />` : ''}
+        ${m.mediaType === 'video' ? `<video src="${m.media}" controls style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; display:block;"></video>` : ''}
+        ${m.mediaType === 'audio' ? `<audio src="${m.media}" controls style="width:100%; margin-top:6px;"></audio>` : ''}
+
+        <div class="msg-time">
+          ${timeStr}
+          ${isMe ? '<span class="msg-status-dot"></span>' : ''}
+        </div>
+      `;
+
+      container.appendChild(msgDiv);
+    });
+
+    container.scrollTop = container.scrollHeight;
+  } catch (err) {
+    console.error("Error loading DM messages:", err);
+  }
 }
 
 // Send Text Message
