@@ -86,7 +86,9 @@
     </style>
 
 </head>
-<body>
+<body class="logged-out">
+
+
 <!-- Light Blue In-App Pop-up Banner -->
 <div id="in-app-alert" class="in-app-alert hidden" onclick="openActiveDM()">
   <div class="alert-avatar">💬</div>
@@ -306,18 +308,18 @@
             <h3 id="user-display-name" style="margin:5px 0; color:#40c057; font-size:20px;">@User</h3>
             <p style="color:#8b949e; font-size:13px; margin-bottom:25px;">Logged in and active on MikiConnect</p>
             <button onclick="logoutUser()" style="background:#e03131; color:#fff; border:none; padding:12px 20px; border-radius:30px; font-weight:bold; cursor:pointer; width:100%; font-size:14px;">Log Out</button>
-        </div>
+<\div>    
 
-    </div>
+    <div class="card">
+  <!-- Login inputs and buttons remain here -->
+
+  <div style="text-align: center; margin-top: 15px;">
+    <a href="https://wa.me/yournumber" target="_blank" style="color: #25D366; text-decoration: none; font-size: 14px;">
+      💬 Contact Developer on WhatsApp
+    </a>
+  </div>
 
 
-<a href="https://wa.me/+2349130372258?text=Hello%20Developer,%20I%20need%20help%20with%20MikiConnect" 
-   target="_blank" 
-   style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 15px; color: #25D366; text-decoration: none; font-weight: bold; font-size: 14px;">
-  <span>💬</span> Contact Developer on WhatsApp
-</a>
-
-    <script src="app.js?v=1786553835316"></script>
 </body>
 </html>
 <script>
