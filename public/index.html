@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="style.css">
   <style>
     body.logged-out .nav-tabs, body.logged-out #chat-container, body.logged-out #admin-dashboard { display: none !important; }
+    .contact-pill { padding: 6px 14px; background: #334155; color: #f8fafc; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; border: 1px solid transparent; }
+    .contact-pill.active { background: #38bdf8; color: #0f172a; font-weight: bold; border-color: #38bdf8; }
   </style>
 </head>
 <body class="logged-out">
@@ -26,7 +28,7 @@
     </div>
   </nav>
 
-  <main style="padding: 15px; max-width: 600px; margin: 0 auto;">
+  <main style="padding: 10px; max-width: 600px; margin: 0 auto;">
 
     <!-- AUTH CARD -->
     <div class="card" id="auth-card" style="background:#1e293b; padding:25px; border-radius:12px;">
@@ -39,7 +41,23 @@
     </div>
 
     <!-- CHAT CONTAINER -->
-    <div id="chat-container" style="display:none; background:#1e293b; border-radius:12px; height:75vh; display:flex; flex-direction:column;">
+    <div id="chat-container" style="display:none; background:#1e293b; border-radius:12px; height:80vh; flex-direction:column; overflow:hidden;">
+      
+      <!-- TOP ACTIVE CHAT HEADER -->
+      <div id="active-chat-header" style="padding:12px 15px; background:#0f172a; border-bottom:1px solid #334155; display:flex; align-items:center; gap:10px;">
+        <span id="header-avatar" style="font-size:22px;">🌐</span>
+        <div>
+          <strong id="header-target-name" style="color:#38bdf8; display:block; font-size:15px;">Global Public Chat</strong>
+          <small id="header-target-sub" style="color:#94a3b8; font-size:11px;">Visible to everyone online</small>
+        </div>
+      </div>
+
+      <!-- CONTACTS HORIZONTAL SCROLL BAR -->
+      <div id="contacts-bar" style="display:flex; gap:8px; overflow-x:auto; padding:8px 12px; background:#182232; border-bottom:1px solid #334155;">
+        <button class="contact-pill active" id="pill-Global" onclick="selectChat('Global')">🌐 Global Room</button>
+      </div>
+
+      <!-- MESSAGES LIST -->
       <div id="messages-list" style="flex:1; overflow-y:auto; padding:15px;"></div>
       
       <!-- CHAT INPUT CONTROLS -->

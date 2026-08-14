@@ -19,7 +19,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Multer Setup for Audio/Image/Video
+// Multer Setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
@@ -31,14 +31,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Uptime Monitor Health Check
-app.get('/ping', (req, res) => {
-  res.status(200).send('pong');
-});
+app.get('/ping', (req, res) => res.status(200).send('pong'));
 
-// Explicit Root Route (Serves index.html directly)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// Root Route
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // Database Connection
 if (MONGODB_URI) {
@@ -56,7 +52,7 @@ const userSchema = new mongoose.Schema({
 
 const messageSchema = new mongoose.Schema({
   sender: { type: String, required: true },
-  receiver: { type: String, required: true },
+  receiver: { type: String, required: true, default: 'Global' },
   text: { type: String, default: '' },
   mediaUrl: { type: String, default: '' },
   mediaType: { type: String, enum: ['text', 'image', 'video', 'audio'], default: 'text' },
@@ -86,11 +82,42 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Upload Media
+// Get User List for Contacts
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'username isAdmin');
+    res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error fetching users' });
+  }
+});
+
+// Fetch Chat History (Global or 1-on-1 Private)
+app.get('/api/messages', async (req, res) => {
+  const { user1, user2 } = req.query;
+  try {
+    let query = {};
+    if (!user2 || user2 === 'Global') {
+      query = { receiver: 'Global' };
+    } else {
+      query = {
+        $or: [
+          { sender: user1, receiver: user2 },
+          { sender: user2, receiver: user1 }
+        ]
+      };
+    }
+    const messages = await Message.find(query).sort({ createdAt: 1 });
+    res.json({ success: true, messages });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error fetching history' });
+  }
+});
+
+// Media Upload
 app.post('/api/upload', upload.single('mediaFile'), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
-  const fileUrl = `/uploads/${req.file.filename}`;
-  res.json({ success: true, url: fileUrl });
+  res.json({ success: true, url: `/uploads/${req.file.filename}` });
 });
 
 // Edit Message (Sender Only)
@@ -99,7 +126,7 @@ app.put('/api/messages/:id', async (req, res) => {
   try {
     const msg = await Message.findById(req.params.id);
     if (!msg) return res.status(404).json({ success: false, message: 'Message not found' });
-    if (msg.sender !== sender) return res.status(403).json({ success: false, message: 'Unauthorized action' });
+    if (msg.sender !== sender) return res.status(403).json({ success: false, message: 'Unauthorized' });
 
     msg.text = text;
     msg.isEdited = true;
@@ -108,7 +135,7 @@ app.put('/api/messages/:id', async (req, res) => {
     io.emit('message_updated', msg);
     res.json({ success: true, msg });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Error updating message' });
+    res.status(500).json({ success: false, message: 'Error updating' });
   }
 });
 
@@ -118,28 +145,28 @@ app.delete('/api/messages/:id', async (req, res) => {
   try {
     const msg = await Message.findById(req.params.id);
     if (!msg) return res.status(404).json({ success: false, message: 'Message not found' });
-    if (msg.sender !== sender) return res.status(403).json({ success: false, message: 'Unauthorized action' });
+    if (msg.sender !== sender) return res.status(403).json({ success: false, message: 'Unauthorized' });
 
     await Message.findByIdAndDelete(req.params.id);
     io.emit('message_deleted', { id: req.params.id });
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Error deleting message' });
+    res.status(500).json({ success: false, message: 'Error deleting' });
   }
 });
 
-// Admin API
+// Admin Data
 app.get('/api/admin/data', async (req, res) => {
   try {
     const users = await User.find({}, '-password');
     const messages = await Message.find().sort({ createdAt: -1 }).limit(50);
     res.json({ success: true, users, messages });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Admin fetch error' });
+    res.status(500).json({ success: false, message: 'Admin error' });
   }
 });
 
-// --- SOCKET.IO REAL-TIME EVENTS ---
+// Socket.io Events
 io.on('connection', (socket) => {
   socket.on('send_message', async (data) => {
     const newMsg = await Message.create(data);
@@ -152,4 +179,4 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => console.log(`MikiConnect Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
