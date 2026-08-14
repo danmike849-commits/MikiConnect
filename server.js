@@ -26,9 +26,19 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Middleware
+// Middleware & Static Files
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Uptime Monitor Health Check
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
+// Explicit Root Route (Serves index.html directly)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Database Connection
 if (MONGODB_URI) {
@@ -76,14 +86,14 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Upload Media (Images, Videos, Voice Recordings)
+// Upload Media
 app.post('/api/upload', upload.single('mediaFile'), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
   const fileUrl = `/uploads/${req.file.filename}`;
   res.json({ success: true, url: fileUrl });
 });
 
-// Edit Message (Sender Only Enforced)
+// Edit Message (Sender Only)
 app.put('/api/messages/:id', async (req, res) => {
   const { sender, text } = req.body;
   try {
@@ -102,7 +112,7 @@ app.put('/api/messages/:id', async (req, res) => {
   }
 });
 
-// Delete Message (Sender Only Enforced)
+// Delete Message (Sender Only)
 app.delete('/api/messages/:id', async (req, res) => {
   const { sender } = req.body;
   try {
