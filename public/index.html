@@ -1,353 +1,97 @@
+cat << 'EOF' > public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MikiConnect</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style id="strict-nav-hide-style">
+    body.logged-out .nav-tabs,
+    body.logged-out nav,
+    body.logged-out .navbar,
+    body.logged-out .tabs-header,
+    body.logged-out div[class*="nav"] {
+      display: none !important;
+    }
+  </style>
+</head>
+<body class="logged-out">
+
+  <!-- Light Blue In-App Pop-up Banner -->
+  <div id="in-app-alert" class="in-app-alert hidden" onclick="openAlertMessage()">
+    <div class="alert-avatar">💬</div>
+    <div class="alert-content">
+      <strong id="alert-sender">Sender Name</strong>
+      <p id="alert-preview">Message snippet preview...</p>
+    </div>
+  </div>
+
+  <!-- Instant Loading Screen Overlay -->
+  <div id="app-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; display: flex; align-items: center; justify-content: center; z-index: 9999; color: #38bdf8; font-family: sans-serif; transition: opacity 0.3s ease;">
+    <h2>Loading MikiConnect...</h2>
+  </div>
+
+  <!-- NAVIGATION HEADER (Hidden when logged out) -->
+  <nav class="navbar nav-tabs">
+    <div class="nav-title">MikiConnect</div>
+    <div class="nav-links">
+      <a href="#" class="active">Chats</a>
+      <a href="#">Feed</a>
+      <a href="#">Profile</a>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="main-container" style="padding: 20px;">
+
     <!-- LOGIN CARD CONTAINER -->
-    <div class="card" id="auth-card">
+    <div class="card" id="auth-card" style="max-width: 400px; margin: 40px auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+      <h2 style="color: white; text-align: center; margin-bottom: 20px;">Welcome to MikiConnect</h2>
+      
       <form id="login-form" onsubmit="handleLogin(event)">
-        <input type="text" id="username" placeholder="Username or Email" required style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #333; background: #1e293b; color: white;">
-        <input type="password" id="password" placeholder="Password" required style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #333; background: #1e293b; color: white;">
+        <input type="text" id="username" placeholder="Username or Email" required style="width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box;">
+        <input type="password" id="password" placeholder="Password" required style="width: 100%; padding: 12px; margin-bottom: 18px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box;">
         
-        <button type="submit" style="width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        <button type="submit" style="width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
           Log In
         </button>
       </form>
 
       <!-- WHATSAPP DEVELOPER LINK INSIDE CARD -->
-      <div style="text-align: center; margin-top: 15px;">
+      <div style="text-align: center; margin-top: 18px;">
         <a href="https://wa.me/2349130372258?text=Hello%20Developer" target="_blank" style="color: #25D366; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; gap: 6px;">
           💬 Contact Developer on WhatsApp
         </a>
       </div>
     </div>
 
-    <!-- LOADER SCRIPT -->
-    <script>
-      window.addEventListener('DOMContentLoaded', () => {        const loader = document.getElementById('app-loader');
-        if (loader) {
-          loader.style.opacity = '0';
-          loader.style.pointerEvents = 'none';
-          setTimeout(() => {
-            loader.style.display = 'none';
-          }, 300);
-        }
-      });
-    </script>
-  </body>
+    <!-- LOGGED IN USER PROFILE CARD -->
+    <div id="user-profile-card" style="display:none; max-width: 400px; margin: 20px auto; text-align: center; background: #1e293b; padding: 20px; border-radius: 12px;">
+      <div style="width:80px; height:80px; margin:0 auto 10px; border-radius: 50%; background: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 32px;">👤</div>
+      <h3 id="user-display-name" style="margin:5px 0; color: white;">User Profile</h3>
+      <p style="color:#8b949e; font-size:13px; margin-bottom: 15px;">Connected to MikiConnect</p>
+      <button onclick="logoutUser()" style="background:#ef4444; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Log Out</button>
+    </div>
+
+  </main>
+
+  <!-- APP SCRIPTS -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const loader = document.getElementById('app-loader');
+      if (loader) {
+        loader.style.opacity = '0';
+        loader.style.pointerEvents = 'none';
+        setTimeout(() => {
+          loader.style.display = 'none';
+        }, 300);
+      }
+    });
+  </script>
+</body>
 </html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MikiConnect</title>
-<link rel="stylesheet" href="style.css">
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-     <style>
-
-    body { margin: 0; padding: 0; background: #121417; color: #fff; }
-    .header { background: #25282c; padding: 15px; text-align: center; }
-    .header h1 { margin: 0; color: #40c057; font-size: 22px; }
-    .nav-bar { display: flex; background: #1c1e22; border-bottom: 1px solid #333; }
-    .nav-bar button { flex: 1; padding: 12px; background: none; border: none; color: #aaa; cursor: pointer; }
-    .nav-bar button.active { color: #40c057; border-bottom: 2px solid #40c057; }
-    .tab-content { padding: 15px; display: none; }
-    .tab-content.active { display: block; }
-    .card { background: #25282c; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-    input, button { font-family: inherit; }
-
-    /* DM Tab & Message Bubble Styles */
-    #dm-tab {
-      background-color: #12161f;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
-    .msg-received {
-      align-self: flex-start;
-      background-color: #252f40;
-      color: #e2e8f0;
-      padding: 9px 13px;
-      border-radius: 0px 12px 12px 12px;
-      max-width: 75%;
-      font-size: 14.5px;
-      margin-bottom: 8px;
-    }
-
-    .msg-sent {
-      align-self: flex-end;
-      background-color: #2e7d32;
-      color: #ffffff;
-      padding: 9px 13px;
-      border-radius: 12px 0px 12px 12px;
-      max-width: 75%;
-      font-size: 14.5px;
-      margin-bottom: 8px;
-    }
-
-    .msg-time {
-      font-size: 10px;
-      color: #aaa;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 4px;
-      margin-top: 4px;
-    }
-
-    /* Custom Status Dot Point (Replaces Checkmarks) */
-    .msg-status-dot {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      background-color: #40c057;
-      border-radius: 50%;
-    }
-  </style>
-
-    <style id="dynamic-nav-style">
-0        .hide-nav-bar { display: none !important; }
-    </style>
-    
-
-    <style id="strict-nav-hide-style">
-        body.logged-out .nav-tabs,
-        body.logged-out nav,
-        body.logged-out .navbar,
-        body.logged-out .tabs-header,
-        body.logged-out div[class*="nav"] {
-            display: none !important;
-        }
-    </style>
-
-</head>
-<body class="logged-out">
-
-
-<!-- Light Blue In-App Pop-up Banner -->
-<div id="in-app-alert" class="in-app-alert hidden" onclick="openActiveDM()">
-  <div class="alert-avatar">💬</div>
-  <div class="alert-content">
-    <strong id="alert-sender">Sender Name</strong>
-    <p id="alert-preview">Message snippet preview...</p>
-  </div>
-</div>
-
-<!-- Instant Loading Screen Overlay -->
-<div id="app-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; font-family: sans-serif;">
-  <div class="spinner"></div>
-  <p style="margin-top: 18px; color: #333333; font-weight: 600; font-size: 16px;">Connecting to MikiConnect...</p>
-  <small style="color: #777; margin-top: 5px;">Waking up server (takes a few seconds)</small>
-</div>
-
-<style>
-  .spinner {
-    width: 48px;
-    height: 48px;
-    border: 5px solid #e0e0e0;
-    border-top: 5px solid #4CAF50;
-    border-radius: 50%;
-    animation: spin 0.9s linear infinite;
-  }
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-</style>
-
-    <div class="header">
-        <h1>MikiConnect</h1>
-    </div>
-
-    <div class="nav-bar">
-        <button id="nav-feed" class="active" onclick="switchTab('feed')">Feed</button>
-        <button id="nav-dm" onclick="switchTab('dm')">1-on-1 Chat</button>
-        <button id="nav-chat" onclick="switchTab('chat')">Live Chat</button>
-        <button id="nav-groups" onclick="switchTab('groups')">Groups</button>
-        <button id="nav-admin" style="display: none;" onclick="switchTab('admin')">Admin</button>
-        <button id="nav-account" onclick="switchTab('account')">Account</button>
-    </div>
-
-    <!-- FEED TAB -->
-    <div id="feed-tab" class="tab-content active">
-        <div class="card">
-            <h3 style="margin-top:0;">Create Post</h3>
-            <textarea id="post-input" placeholder="What's on your mind?" style="width: 100%; height: 60px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; padding: 8px; box-sizing: border-box;"></textarea>
-            <button onclick="createPost()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 10px; border-radius: 4px; font-weight: bold; margin-top: 8px; cursor: pointer;">Post</button>
-        </div>
-        <div id="feed-posts"></div>
-    </div>
-
-    
-    <!-- 1-ON-1 PRIVATE CHAT TAB -->
-    <div id="dm-tab" class="tab-content">
-        <div class="card">
-            <h3 style="margin-top:0; color:#40c057;">1-on-1 Direct Messages</h3>
-            
-            <!-- PENDING REQUESTS CONTAINER -->
-            <div id="dm-requests-container" style="display:none; background:#181a1d; padding:10px; border-radius:6px; border:1px solid #339af0; margin-bottom:12px;">
-                <h4 style="margin:0 0 8px 0; color:#339af0; font-size:13px;">Pending Chat Requests</h4>
-                <div id="dm-requests-list"></div>
-            </div>
-
-            <!-- CONVERSATIONS LIST -->
-            <div id="dm-conv-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
-        </div>
-
-        <!-- PRIVATE MESSAGING ROOM (HIDDEN UNTIL CONVERSATION OPENED) -->
-        <div id="dm-chat-room" class="card" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:8px; margin-bottom:10px;">
-                <button onclick="closeDMChat()" style="background:#333; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">← Back</button>
-                <span id="dm-partner-name" style="font-weight:bold; color:#40c057;">@User</span>
-            </div>
-
-            <!-- MESSAGES CONTAINER -->
-            <div id="dm-messages-display" style="height:280px; overflow-y:auto; background:#181a1d; padding:10px; border-radius:6px; border:1px solid #333; display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
-            <!-- MEDIA & VOICE CONTROLS -->
-            <div class="chat-input-container">
-  <!-- The Single Action Button -->
-  <button id="media-toggle-btn" type="button" class="action-btn">
-    <span class="icon">➕</span>
-  </button>
-
-  <!-- The Hidden Media Pop-up Menu -->
-  <div id="media-menu" class="media-menu hidden">
-    <label class="menu-opt">
-      📸 <span>Photo / Video</span>
-     <input type="file" id="dm-file-input" accept="image/*,video/*" hidden>
-    
-    <button type="button" id="emoji-opt-btn" class="menu-opt">
-      😀 <span>Emojis</span>
-    </button>
-    
-    <button type="button" id="voice-opt-btn" class="menu-opt">
-      🎙️ <span>Voice Note</span>
-    </button>
-  </div>
-  <!-- Text Input Field -->
-  <input type="text" id="dm-message-input" placeholder="Type a message..." style="flex:1; padding:10px; border-radius:20px; border:1px solid #334155; background:#0f172a; color:white;">
-
-  <!-- Send Button -->
-  <button id="dm-send-btn" type="button" class="send-btn" style="background:#25D366; border:none; color:white; border-radius:50%; width:38px; height:38px; cursor:pointer;">🚀</button>
-
-</div>
-
-
-  <!-- Text Input Field -->
-  <input type="text" id="chat-message-input" placeholder="Type a message..." />
-
-  <!-- Send Button -->
-  <button id="send-msg-btn" type="button" class="send-btn">🚀</button>
-</div>
-
-
-            <!-- TEXT INPUT & SEND -->
-            <div style="display:flex; gap:6px;">
-                <input type="text" id="dm-msg-input" placeholder="Type a private message..." style="flex:1; padding:10px; background:#181a1d; border:1px solid #444; color:#fff; border-radius:4px; box-sizing:border-box;" />
-                <button onclick="sendPrivateMessage()" style="background:#40c057; color:#fff; border:none; padding:10px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">Send</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- CHAT TAB -->
-    <div id="chat-tab" class="tab-content">
-        <div class="card">
-            <h3 style="margin-top: 0;">Live Community Chat</h3>
-            <div id="chat-messages" style="height: 300px; overflow-y: auto; background: #181a1d; padding: 10px; border-radius: 6px; border: 1px solid #333; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
-            <input type="text" id="chat-msg-input" placeholder="Type a message..." style="width: 100%; padding: 10px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box; margin-bottom: 6px;" />
-            <input type="text" id="chat-img-input" placeholder="Image URL (optional)" style="width: 100%; padding: 8px; background: #181a1d; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box; margin-bottom: 8px; font-size: 12px;" />
-            <button onclick="sendChatMessage()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer;">Send Message</button>
-        </div>
-    </div>
-
-    <!-- GROUPS TAB -->
-    <div id="groups-tab" class="tab-content">
-        <div class="card" style="text-align: center;">
-            <h3>Community Groups</h3>
-            <p style="color: #aaa;">Group channels coming soon!</p>
-        </div>
-    </div>
-
-    <!-- ADMIN TAB -->
-    <div id="admin-tab" class="tab-content">
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">Analytics Overview</h3>
-                <span id="admin-total-users" style="background: #2b5235; color: #40c057; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">0 Users</span>
-            </div>
-            <div style="background: #181a1d; padding: 10px; border-radius: 6px; border: 1px solid #333; margin-bottom: 15px;">
-                <canvas id="adminStatsChart" style="max-height: 200px; width: 100%;"></canvas>
-            </div>
-            <button onclick="loadAdminData()" style="width: 100%; background: #40c057; color: #fff; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer;">Refresh Dashboard</button>
-        </div>
-        <div class="card">
-            <h4 style="margin-top: 0;">Registered Accounts</h4>
-            <div id="admin-users-display" style="display: flex; flex-direction: column; gap: 8px;"></div>
-        </div>
-    </div>
-
-    <!-- ACCOUNT TAB -->
-    
-    <!-- ACCOUNT TAB -->
-    
-    <!-- ACCOUNT TAB -->
-    
-    <!-- ACCOUNT / GATEWAY TAB -->
-    <div id="account-tab" class="tab-content" style="display:block;">
-        
-        <!-- LOGGED OUT: FACEBOOK-STYLE GATEWAY -->
-        <div id="auth-container" style="display:block; max-width:420px; margin:20px auto; background:#1e2228; border:1px solid #2d3239; border-radius:16px; padding:28px 20px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
-            
-            <!-- App Branding Logo Header -->
-            <div style="width:90px; height:90px; margin:0 auto 15px; background:#40c05722; border:2px solid #40c057; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:42px; color:#40c057; font-weight:bold;">
-                M
-            </div>
-
-            <h2 id="gateway-welcome-title" style="margin:0 0 5px; color:#ffffff; font-size:22px; font-weight:700;">MikiConnect</h2>
-            <p style="color:#8b949e; font-size:13px; margin:0 0 20px;">Connect, share, and chat in real-time</p>
-
-            <hr style="border:none; border-top:1px solid #2d3239; margin:20px 0;">
-
-            <p style="font-size:12px; color:#8b949e; line-height:1.5; margin-bottom:20px;">
-                By proceeding, you agree to <span style="color:#40c057; font-weight:bold;">MikiConnect's Terms</span> to access private chats, feeds, and group discussions.
-            </p>
-
-            <!-- Main Interactive Form Section -->
-            <div id="auth-form-fields" style="display:flex; flex-direction:column; gap:12px; margin-bottom:15px;">
-                <input type="text" id="auth-username" placeholder="Username or Email" style="padding:14px; background:#121417; border:1px solid #363b44; color:#fff; border-radius:8px; font-size:14px; outline:none;" />
-                <input type="password" id="auth-password" placeholder="Password" style="padding:14px; background:#121417; border:1px solid #363b44; color:#fff; border-radius:8px; font-size:14px; outline:none;" />
-                
-                <button id="auth-submit-btn" onclick="handleAuthSubmit()" style="background:#2b8a3e; color:#ffffff; border:none; padding:14px; border-radius:30px; font-size:15px; font-weight:bold; cursor:pointer; width:100%; transition:0.2s; margin-top:5px;">
-                    Log In
-                </button>
-            </div>
-
-            <div style="margin:18px 0;">
-                <a href="#" onclick="toggleAuthMode(); return false;" id="auth-toggle-link" style="color:#a6e22e; font-size:14px; text-decoration:none; font-weight:600;">
-                    Log into another account
-                </a>
-            </div>
-
-            <button onclick="switchToRegisterMode()" style="background:transparent; color:#40c057; border:1.5px solid #40c057; padding:12px; border-radius:30px; font-size:14px; font-weight:bold; cursor:pointer; width:100%; margin-top:10px;">
-                Create new account
-            </button>
-
-            <div style="margin-top:25px; color:#5c6370; font-size:12px; font-weight:bold; letter-spacing:1px;">
-                ⚡ MIKICONNECT PLATFORM
-            </div>
-        </div>
-
-        <!-- LOGGED IN USER PROFILE CARD -->
-        <div id="user-profile-card" style="display:none; max-width:420px; margin:20px auto; background:#1e2228; border:1px solid #2d3239; border-radius:16px; padding:25px; text-align:center;">
-            <div style="width:80px; height:80px; margin:0 auto 15px; background:#40c05722; border:2px solid #40c057; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:38px;">👤</div>
-            <h3 id="user-display-name" style="margin:5px 0; color:#40c057; font-size:20px;">@User</h3>
-            <p style="color:#8b949e; font-size:13px; margin-bottom:25px;">Logged in and active on MikiConnect</p>
-            <button onclick="logoutUser()" style="background:#e03131; color:#fff; border:none; padding:12px 20px; border-radius:30px; font-weight:bold; cursor:pointer; width:100%; font-size:14px;">Log Out</button>
-<\div>    
-
-    <div class="card">
-  <!-- Login inputs and buttons remain here -->
-
-  <div style="text-align: center; margin-top: 15px;">
-    <a href="https://wa.me/yournumber" target="_blank" style="color: #25D366; text-decoration: none; font-size: 14px;">
-      💬 Contact Developer on WhatsApp
-    </a>
-  </div>
-
+EOF
