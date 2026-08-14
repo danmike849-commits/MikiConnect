@@ -6,136 +6,151 @@
   <title>MikiConnect</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .navbar { background: #15803d; color: white; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; flex-shrink: 0; }
+    .nav-title { font-weight: bold; font-size: 18px; white-space: nowrap; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+    .nav-links { display: flex; gap: 12px; font-size: 13px; font-weight: 600; }
+    .nav-links a { color: rgba(255, 255, 255, 0.85); text-decoration: none; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; white-space: nowrap; }
+    .nav-links a.active, .nav-links a:hover { color: white; background: rgba(255, 255, 255, 0.2); }
+
     body.logged-out .nav-tabs, body.logged-out #chat-container, body.logged-out #admin-dashboard { display: none !important; }
-    .contact-pill { padding: 6px 14px; background: #334155; color: #f8fafc; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; border: 1px solid transparent; flex-shrink: 0; }
-    .contact-pill.active { background: #38bdf8; color: #0f172a; font-weight: bold; border-color: #38bdf8; }
+
+    .auth-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+    .auth-card { background: #1e293b; padding: 28px 22px; border-radius: 16px; width: 100%; max-width: 380px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); text-align: center; border: 1px solid #334155; }
     
-    /* INPUT BAR STYLING */
-    .chat-input-bar {
-      padding: 8px 10px;
-      background: #0f172a;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      width: 100%;
-    }
-    .icon-btn {
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-      padding: 6px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .send-circle-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: #38bdf8;
-      color: #0f172a;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      cursor: pointer;
-      flex-shrink: 0;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    }
-    .send-circle-btn:active { transform: scale(0.95); }
-    .rec-indicator {
-      display: none;
-      color: #ef4444;
-      font-size: 12px;
-      font-weight: bold;
-      padding: 4px 8px;
-      background: rgba(239, 68, 68, 0.15);
-      border-radius: 12px;
-      animation: blink 1s infinite;
-    }
-    @keyframes blink { 50% { opacity: 0.5; } }
+    .input-field { width: 100%; padding: 12px 14px; background: #0f172a; color: white; border: 1px solid #334155; border-radius: 10px; font-size: 14px; outline: none; }
+    .submit-btn { width: 100%; padding: 13px; background: #22c55e; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; }
+
+    /* ADMIN STYLING */
+    .stat-card { background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid #334155; text-align: center; flex: 1; }
+    .stat-num { font-size: 20px; font-weight: bold; color: #38bdf8; }
+    .stat-label { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    
+    .admin-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    .admin-table th, .admin-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #334155; }
+    .admin-table th { background: #0f172a; color: #38bdf8; }
+
+    .action-btn { padding: 4px 8px; border-radius: 6px; border: none; font-size: 11px; font-weight: bold; cursor: pointer; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-role { background: #eab308; color: #0f172a; }
+
+    /* CHAT COMPONENTS */
+    .contact-pill { padding: 6px 14px; background: #334155; color: #f8fafc; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; border: 1px solid transparent; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+    .contact-pill.active { background: #38bdf8; color: #0f172a; font-weight: bold; border-color: #38bdf8; }
+    .online-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; }
+    .offline-dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; display: inline-block; }
+    
+    .chat-input-bar { padding: 8px 10px; background: #0f172a; display: flex; align-items: center; gap: 6px; width: 100%; border-top: 1px solid #334155; }
+    .send-circle-btn { width: 40px; height: 40px; border-radius: 50%; background: #38bdf8; color: #0f172a; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; flex-shrink: 0; font-weight: bold; }
   </style>
 </head>
 <body class="logged-out">
 
-  <!-- APP LOADER -->
   <div id="app-loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:9999;color:#38bdf8;">
     <h2>Loading MikiConnect...</h2>
   </div>
 
-  <!-- NAVIGATION -->
   <nav class="navbar nav-tabs">
-    <div class="nav-title">MikiConnect</div>
+    <div class="nav-title">❤️ MIKICONNECT</div>
     <div class="nav-links">
-      <a href="#" onclick="switchTab('chat')" class="active">Chats</a>
+      <a href="#" onclick="switchTab('chat')" id="tab-chats" class="active">Chats</a>
       <a href="#" id="admin-tab-link" style="display:none;" onclick="switchTab('admin')">Admin Panel</a>
       <a href="#" onclick="logoutUser()">Log Out</a>
     </div>
   </nav>
 
-  <main style="padding: 5px; max-width: 600px; margin: 0 auto;">
-
-    <!-- AUTH CARD -->
-    <div class="card" id="auth-card" style="background:#1e293b; padding:25px; border-radius:12px;">
-      <h2 style="text-align:center; margin-bottom:20px;">Welcome to MikiConnect</h2>
+  <!-- AUTH -->
+  <div class="auth-wrapper" id="auth-wrapper">
+    <div class="auth-card" id="auth-card">
+      <h2 style="margin-bottom:6px; color:#f8fafc; font-size:22px;">Welcome to MikiConnect</h2>
+      <p style="color:#94a3b8; font-size:13px; margin-bottom:20px;">Log in or create an account</p>
       <form onsubmit="handleLogin(event)">
-        <input type="text" id="username" placeholder="Username" required style="width:100%; padding:12px; margin-bottom:10px; background:#0f172a; color:white; border:1px solid #334155; border-radius:8px;">
-        <input type="password" id="password" placeholder="Password" required style="width:100%; padding:12px; margin-bottom:15px; background:#0f172a; color:white; border:1px solid #334155; border-radius:8px;">
-        <button type="submit" style="width:100%; padding:12px; background:#22c55e; color:white; border:none; border-radius:8px; font-weight:bold;">Log In</button>
+        <input type="text" id="username" class="input-field" placeholder="Username" required style="margin-bottom:12px;">
+        <input type="password" id="password" class="input-field" placeholder="Password" required style="margin-bottom:18px;">
+        <button type="submit" class="submit-btn">Log In / Sign Up</button>
       </form>
     </div>
+  </div>
 
-    <!-- CHAT CONTAINER -->
-    <div id="chat-container" style="display:none; background:#1e293b; border-radius:12px; height:82vh; flex-direction:column; overflow:hidden;">
-      
-      <!-- TOP ACTIVE CHAT HEADER -->
-      <div id="active-chat-header" style="padding:10px 12px; background:#0f172a; border-bottom:1px solid #334155; display:flex; align-items:center; gap:10px;">
-        <span id="header-avatar" style="font-size:22px;">🌐</span>
-        <div>
-          <strong id="header-target-name" style="color:#38bdf8; display:block; font-size:14px;">Global Public Chat</strong>
-          <small id="header-target-sub" style="color:#94a3b8; font-size:11px;">Visible to everyone online</small>
-        </div>
-      </div>
-
-      <!-- CONTACTS HORIZONTAL SCROLL BAR -->
-      <div id="contacts-bar" style="display:flex; gap:8px; overflow-x:auto; padding:8px 12px; background:#182232; border-bottom:1px solid #334155;">
-        <button class="contact-pill active" id="pill-Global" onclick="selectChat('Global')">🌐 Global Room</button>
-      </div>
-
-      <!-- MESSAGES LIST -->
-      <div id="messages-list" style="flex:1; overflow-y:auto; padding:12px;"></div>
-      
-      <!-- RECORDING STATUS BANNER -->
-      <div id="recording-banner" style="display:none; padding:4px 12px; background:#0f172a; align-items:center; justify-content:space-between;">
-        <span class="rec-indicator" id="rec-indicator" style="display:inline-block;">🔴 Recording Voice Note...</span>
-        <small style="color:#cbd5e1; font-size:11px;">Tap mic again to send</small>
-      </div>
-
-      <!-- CHAT INPUT CONTROLS -->
-      <div class="chat-input-bar">
-        <input type="file" id="media-input" accept="image/*,video/*" style="display:none;" onchange="uploadMediaFile(event)">
-        <button class="icon-btn" onclick="document.getElementById('media-input').click()">📎</button>
-        <button class="icon-btn" id="voice-btn" onclick="toggleVoiceRecord()">🎙️</button>
-        
-        <input type="text" id="chat-text" placeholder="Type a message..." style="flex:1; min-width:0; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:20px; outline:none;" onkeypress="if(event.key==='Enter') sendTextMessage()">
-        <button class="send-circle-btn" onclick="sendTextMessage()">➤</button>
+  <!-- CHAT CONTAINER -->
+  <div id="chat-container" style="display:none; background:#1e293b; flex:1; flex-direction:column; overflow:hidden; max-width:600px; margin:0 auto; width:100%;">
+    <div id="active-chat-header" style="padding:10px 14px; background:#0f172a; border-bottom:1px solid #334155; display:flex; align-items:center; gap:10px;">
+      <span id="header-avatar" style="font-size:22px;">🌐</span>
+      <div>
+        <strong id="header-target-name" style="color:#38bdf8; display:block; font-size:14px;">Global Public Chat</strong>
+        <small id="header-target-sub" style="color:#94a3b8; font-size:11px;">Visible to everyone online</small>
       </div>
     </div>
 
-    <!-- ADMIN DASHBOARD -->
-    <div id="admin-dashboard" style="display:none; background:#1e293b; padding:20px; border-radius:12px;">
-      <h2 style="color:#38bdf8; margin-bottom:15px;">Admin Control Dashboard</h2>
-      <h3>Registered Users</h3>
-      <ul id="admin-users-list" style="margin-bottom:20px; color:#cbd5e1;"></ul>
-      <h3>Recent Message Log</h3>
-      <div id="admin-messages-log" style="max-height:200px; overflow-y:auto; font-size:12px; color:#cbd5e1;"></div>
+    <div id="contacts-bar" style="display:flex; gap:8px; overflow-x:auto; padding:8px 12px; background:#182232; border-bottom:1px solid #334155;">
+      <button class="contact-pill active" id="pill-Global" onclick="selectChat('Global')">🌐 Global Room</button>
     </div>
 
-  </main>
+    <div id="messages-list" style="flex:1; overflow-y:auto; padding:12px;"></div>
+    
+    <div class="typing-status-bar" id="typing-status-bar" style="display:none; padding:4px 12px; color:#38bdf8; font-size:11px;">💬 Someone is typing...</div>
+
+    <div class="chat-input-bar">
+      <input type="text" id="chat-text" placeholder="Type a message..." style="flex:1; padding:10px 14px; background:#1e293b; color:white; border:1px solid #334155; border-radius:20px; outline:none;" oninput="handleTypingInput()" onkeypress="if(event.key==='Enter') sendTextMessage()">
+      <button class="send-circle-btn" onclick="sendTextMessage()">➤</button>
+    </div>
+  </div>
+
+  <!-- FULL-CONTROL ADMIN DASHBOARD -->
+  <div id="admin-dashboard" style="display:none; background:#1e293b; padding:18px; border-radius:12px; margin:10px auto; max-width:600px; flex:1; overflow-y:auto; width:95%;">
+    <h2 style="color:#38bdf8; margin-bottom:12px; font-size:20px;">⚡ Admin Control Center</h2>
+    
+    <!-- STATS ROW -->
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-total-users">0</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-online-users">0</div>
+        <div class="stat-label">Online Now</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-total-msgs">0</div>
+        <div class="stat-label">Messages</div>
+      </div>
+    </div>
+
+    <!-- SYSTEM BROADCAST TOOL -->
+    <div style="background:#0f172a; padding:12px; border-radius:10px; margin-bottom:16px; border:1px solid #334155;">
+      <h4 style="color:#f8fafc; font-size:13px; margin-bottom:8px;">📢 Broadcast Announcement</h4>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="admin-broadcast-input" placeholder="Post official system message..." style="flex:1; padding:8px 12px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px; font-size:12px;">
+        <button onclick="sendAdminBroadcast()" style="padding:8px 12px; background:#22c55e; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer;">Send</button>
+      </div>
+    </div>
+
+    <!-- USER MANAGEMENT -->
+    <div style="margin-bottom:20px;">
+      <h3 style="color:#cbd5e1; font-size:15px; margin-bottom:8px;">User Accounts & Moderation</h3>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="admin-users-table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- MESSAGE AUDIT LOG & PURGE -->
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3 style="color:#cbd5e1; font-size:15px;">Message Logs</h3>
+        <button onclick="clearGlobalChatHistory()" class="action-btn btn-danger">Purge Global Chat</button>
+      </div>
+      <div id="admin-messages-log" style="max-height:220px; overflow-y:auto; font-size:12px; background:#0f172a; padding:10px; border-radius:8px; border:1px solid #334155;"></div>
+    </div>
+  </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>

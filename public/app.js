@@ -2,12 +2,18 @@ let socket = typeof io !== 'undefined' ? io() : null;
 let currentUser = localStorage.getItem('miki_user') || '';
 let currentTarget = 'Global';
 let isAdminUser = false;
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
-let audioStream = null;
+let onlineUsersList = [];
 
 if (socket) {
+  socket.on('connect', () => {
+    if (currentUser) socket.emit('register_user', currentUser);
+  });
+
+  socket.on('user_status_change', (onlineUsers) => {
+    onlineUsersList = onlineUsers;
+    loadContacts();
+  });
+
   socket.on('new_message', (msg) => {
     const isGlobalMatch = currentTarget === 'Global' && msg.receiver === 'Global';
     const isPrivateMatch = (msg.sender === currentTarget && msg.receiver === currentUser) || 
@@ -15,20 +21,13 @@ if (socket) {
 
     if (isGlobalMatch || isPrivateMatch) {
       appendMessageUI(msg);
-      if (msg.receiver === currentUser && !msg.isRead) {
-        socket.emit('mark_read', { messageId: msg._id });
-      }
     }
   });
 
-  socket.on('message_read_update', ({ id, isRead }) => {
-    const elem = document.getElementById(`read-${id}`);
-    if (elem) elem.innerHTML = ' ✓✓';
-  });
-
-  socket.on('message_updated', (msg) => {
-    const textElem = document.getElementById(`text-${msg._id}`);
-    if (textElem) textElem.innerHTML = `${msg.text} <small style="color:#94a3b8;">(edited)</small>`;
+  socket.on('global_chat_cleared', () => {
+    if (currentTarget === 'Global') {
+      document.getElementById('messages-list').innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:12px; padding:20px;">Global chat cleared by Admin</div>';
+    }
   });
 
   socket.on('message_deleted', ({ id }) => {
@@ -54,13 +53,13 @@ async function handleLogin(e) {
     currentUser = data.username;
     isAdminUser = data.isAdmin;
     localStorage.setItem('miki_user', currentUser);
+    if (socket) socket.emit('register_user', currentUser);
+    
     document.body.classList.remove('logged-out');
-    document.getElementById('auth-card').style.display = 'none';
+    document.getElementById('auth-wrapper').style.display = 'none';
     document.getElementById('chat-container').style.display = 'flex';
 
-    if (isAdminUser) {
-      document.getElementById('admin-tab-link').style.display = 'inline';
-    }
+    if (isAdminUser) document.getElementById('admin-tab-link').style.display = 'inline';
 
     loadContacts();
     selectChat('Global');
@@ -69,7 +68,7 @@ async function handleLogin(e) {
   }
 }
 
-// LOAD CONTACTS LIST
+// CONTACTS
 async function loadContacts() {
   const res = await fetch('/api/users');
   const data = await res.json();
@@ -79,52 +78,33 @@ async function loadContacts() {
 
     data.users.forEach(u => {
       if (u.username !== currentUser) {
-        bar.innerHTML += `<button class="contact-pill ${currentTarget === u.username ? 'active' : ''}" id="pill-${u.username}" onclick="selectChat('${u.username}')">👤 ${u.username}</button>`;
+        const isOnline = onlineUsersList.includes(u.username);
+        const dot = isOnline ? '<span class="online-dot"></span>' : '<span class="offline-dot"></span>';
+        bar.innerHTML += `<button class="contact-pill ${currentTarget === u.username ? 'active' : ''}" id="pill-${u.username}" onclick="selectChat('${u.username}')">${dot} @${u.username}</button>`;
       }
     });
   }
 }
 
-// SWITCH ACTIVE CHAT ROOM
+// SWITCH CHATS
 async function selectChat(target) {
   currentTarget = target;
-
   document.querySelectorAll('.contact-pill').forEach(btn => btn.classList.remove('active'));
   const activePill = document.getElementById(`pill-${target}`);
   if (activePill) activePill.classList.add('active');
 
-  const avatar = document.getElementById('header-avatar');
   const name = document.getElementById('header-target-name');
-  const sub = document.getElementById('header-target-sub');
-
-  if (target === 'Global') {
-    avatar.textContent = '🌐';
-    name.textContent = 'Global Public Chat';
-    sub.textContent = 'Visible to everyone online';
-  } else {
-    avatar.textContent = '👤';
-    name.textContent = `@${target}`;
-    sub.textContent = 'Private 1-on-1 Direct Message';
-  }
+  name.textContent = target === 'Global' ? 'Global Public Chat' : `@${target}`;
 
   const list = document.getElementById('messages-list');
   list.innerHTML = '';
   
   const res = await fetch(`/api/messages?user1=${currentUser}&user2=${target}`);
   const data = await res.json();
-
-  if (data.success) {
-    data.messages.forEach(msg => appendMessageUI(msg));
-  }
+  if (data.success) data.messages.forEach(msg => appendMessageUI(msg));
 }
 
-// LOGOUT
-function logoutUser() {
-  localStorage.removeItem('miki_user');
-  location.reload();
-}
-
-// SEND TEXT MESSAGE
+// SEND TEXT
 function sendTextMessage() {
   const input = document.getElementById('chat-text');
   if (!input.value.trim()) return;
@@ -135,206 +115,134 @@ function sendTextMessage() {
     text: input.value,
     mediaType: 'text'
   });
+
   input.value = '';
 }
 
-// UPLOAD MEDIA
-async function uploadMediaFile(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const formData = new FormData();
-  formData.append('mediaFile', file);
-
-  const res = await fetch('/api/upload', { method: 'POST', body: formData });
-  const data = await res.json();
-
-  if (data.success) {
-    const type = file.type.startsWith('video') ? 'video' : 'image';
-    socket.emit('send_message', {
-      sender: currentUser,
-      receiver: currentTarget,
-      mediaUrl: data.url,
-      mediaType: type
-    });
-  }
-}
-
-// VOICE RECORDING FIX
-async function toggleVoiceRecord() {
-  const btn = document.getElementById('voice-btn');
-  const banner = document.getElementById('recording-banner');
-
-  if (!isRecording) {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("Microphone access is not supported on this browser context.");
-        return;
-      }
-
-      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioChunks = [];
-
-      // Detect supported MIME type for Android/Webviews
-      let options = {};
-      if (MediaRecorder.isTypeSupported('audio/webm')) {
-        options = { mimeType: 'audio/webm' };
-      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        options = { mimeType: 'audio/mp4' };
-      } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
-        options = { mimeType: 'audio/ogg' };
-      }
-
-      mediaRecorder = new MediaRecorder(audioStream, options);
-
-      mediaRecorder.ondataavailable = e => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        const mime = options.mimeType || 'audio/webm';
-        const ext = mime.includes('mp4') ? 'mp4' : mime.includes('ogg') ? 'ogg' : 'webm';
-        const audioBlob = new Blob(audioChunks, { type: mime });
-        
-        const formData = new FormData();
-        formData.append('mediaFile', audioBlob, `voice-note.${ext}`);
-
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          socket.emit('send_message', {
-            sender: currentUser,
-            receiver: currentTarget,
-            mediaUrl: data.url,
-            mediaType: 'audio'
-          });
-        }
-
-        // Stop all audio tracks
-        if (audioStream) {
-          audioStream.getTracks().forEach(track => track.stop());
-        }
-      };
-
-      mediaRecorder.start();
-      isRecording = true;
-      btn.textContent = '⏹️';
-      if (banner) banner.style.display = 'flex';
-
-    } catch (err) {
-      console.error("Mic access error:", err);
-      alert("Microphone permission denied or unavailable: " + err.message);
-    }
-  } else {
-    // Stop recording and send
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-    }
-    isRecording = false;
-    btn.textContent = '🎙️';
-    if (banner) banner.style.display = 'none';
-  }
-}
-
-// RENDER MESSAGE IN UI
+// RENDER MESSAGE
 function appendMessageUI(msg) {
   const list = document.getElementById('messages-list');
   const isMine = msg.sender === currentUser;
+  const isSys = msg.sender === 'SYSTEM';
 
   const div = document.createElement('div');
   div.id = `msg-${msg._id}`;
-  div.style.cssText = `margin-bottom:10px; text-align:${isMine ? 'right' : 'left'};`;
+  div.style.cssText = `margin-bottom:10px; text-align:${isSys ? 'center' : (isMine ? 'right' : 'left')};`;
 
-  const senderBadge = `<small style="display:block; color:${isMine ? '#bae6fd' : '#38bdf8'}; font-weight:bold; font-size:11px; margin-bottom:4px;">${msg.sender}</small>`;
-
-  let mediaContent = '';
-  if (msg.mediaType === 'image') {
-    mediaContent = `<img src="${msg.mediaUrl}" style="max-width:200px; border-radius:8px; display:block; margin-top:4px;">`;
-  } else if (msg.mediaType === 'video') {
-    mediaContent = `<video src="${msg.mediaUrl}" controls style="max-width:200px; border-radius:8px; display:block; margin-top:4px;"></video>`;
-  } else if (msg.mediaType === 'audio') {
-    mediaContent = `<audio src="${msg.mediaUrl}" controls style="max-width:200px; margin-top:4px;"></audio>`;
+  if (isSys) {
+    div.innerHTML = `<span style="background:#0284c7; color:white; padding:4px 12px; border-radius:12px; font-size:11px; font-weight:bold;">📢 ${msg.text}</span>`;
   } else {
-    mediaContent = `<span id="text-${msg._id}">${msg.text}${msg.isEdited ? ' <small style="color:#94a3b8;">(edited)</small>' : ''}</span>`;
-  }
-
-  const readMark = isMine ? `<span id="read-${msg._id}">${msg.isRead ? ' ✓✓' : ' ✓'}</span>` : '';
-
-  div.innerHTML = `
-    <div onclick="handleMessageClick('${msg._id}', '${msg.sender}', '${msg.text}')" style="display:inline-block; background:${isMine ? '#0284c7' : '#334155'}; padding:8px 12px; border-radius:12px; cursor:pointer; text-align:left; max-width:85%;">
-      ${senderBadge}
-      ${mediaContent}
-      <div style="text-align:right; margin-top:2px;">
-        <small style="font-size:10px; color:#cbd5e1;">${readMark}</small>
+    div.innerHTML = `
+      <div style="display:inline-block; background:${isMine ? '#0284c7' : '#334155'}; padding:8px 12px; border-radius:12px; text-align:left; max-width:85%;">
+        <small style="display:block; color:#bae6fd; font-weight:bold; font-size:11px; margin-bottom:2px;">${msg.sender}</small>
+        <span>${msg.text}</span>
       </div>
-    </div>
-  `;
+    `;
+  }
 
   list.appendChild(div);
   list.scrollTop = list.scrollHeight;
 }
 
-// SENDER MENU
-function handleMessageClick(msgId, sender, text) {
-  if (sender !== currentUser) {
-    if (text) {
-      navigator.clipboard.writeText(text);
-      alert('Copied message text!');
-    }
-    return;
-  }
-
-  const action = prompt("Sender Options:\n1. Copy\n2. Edit\n3. Delete", "1");
-  if (action === "1") {
-    if (text) navigator.clipboard.writeText(text);
-    alert('Copied!');
-  } else if (action === "2") {
-    const newText = prompt("Edit message:", text);
-    if (newText) {
-      fetch(`/api/messages/${msgId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: currentUser, text: newText })
-      });
-    }
-  } else if (action === "3") {
-    if (confirm("Delete this message?")) {
-      fetch(`/api/messages/${msgId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: currentUser })
-      });
-    }
-  }
-}
-
-// SWITCH TABS
+// TAB SWITCHER & ADMIN DATA LOAD
 function switchTab(tab) {
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
   if (tab === 'admin') {
+    document.getElementById('admin-tab-link').classList.add('active');
     document.getElementById('chat-container').style.display = 'none';
-    document.getElementById('admin-dashboard').style.display = 'block';
+    document.getElementById('admin-dashboard').style.display = 'flex';
     loadAdminData();
   } else {
+    document.getElementById('tab-chats').classList.add('active');
     document.getElementById('admin-dashboard').style.display = 'none';
     document.getElementById('chat-container').style.display = 'flex';
   }
 }
 
+// FETCH FULL ADMIN DATA
 async function loadAdminData() {
   const res = await fetch('/api/admin/data');
   const data = await res.json();
   if (data.success) {
-    document.getElementById('admin-users-list').innerHTML = data.users.map(u => `<li>${u.username} ${u.isAdmin ? '(Admin)' : ''}</li>`).join('');
-    document.getElementById('admin-messages-log').innerHTML = data.messages.map(m => `<div>[${m.sender} ➔ ${m.receiver}]: ${m.text || m.mediaType}</div>`).join('');
+    document.getElementById('stat-total-users').textContent = data.stats.totalUsers;
+    document.getElementById('stat-online-users').textContent = data.stats.onlineUsers;
+    document.getElementById('stat-total-msgs').textContent = data.stats.totalMessages;
+
+    const tableBody = document.getElementById('admin-users-table-body');
+    tableBody.innerHTML = data.users.map(u => `
+      <tr>
+        <td><strong>@${u.username}</strong></td>
+        <td><span style="color:${u.isAdmin ? '#38bdf8' : '#94a3b8'}; font-weight:bold;">${u.isAdmin ? 'Admin' : 'User'}</span></td>
+        <td>
+          <button onclick="toggleUserRole('${u.username}')" class="action-btn btn-role">Role</button>
+          <button onclick="deleteUserAccount('${u.username}')" class="action-btn btn-danger">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+
+    const msgLog = document.getElementById('admin-messages-log');
+    msgLog.innerHTML = data.messages.map(m => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #1e293b;">
+        <span><strong>[${m.sender} ➔ ${m.receiver}]:</strong> ${m.text || m.mediaType}</span>
+        <button onclick="deleteSingleMessage('${m._id}')" class="action-btn btn-danger" style="padding:2px 6px;">🗑️</button>
+      </div>
+    `).join('');
   }
 }
 
-// Restore session
+// ADMIN ACTIONS
+async function toggleUserRole(username) {
+  if (confirm(`Toggle admin role for @${username}?`)) {
+    await fetch(`/api/admin/users/${username}/role`, { method: 'PUT' });
+    loadAdminData();
+  }
+}
+
+async function deleteUserAccount(username) {
+  if (confirm(`PERMANENTLY delete @${username} and all their messages?`)) {
+    await fetch(`/api/admin/users/${username}`, { method: 'DELETE' });
+    loadAdminData();
+  }
+}
+
+async function deleteSingleMessage(msgId) {
+  await fetch(`/api/admin/messages/${msgId}`, { method: 'DELETE' });
+  loadAdminData();
+}
+
+async function clearGlobalChatHistory() {
+  if (confirm("Purge ALL messages in Global Chat?")) {
+    await fetch('/api/admin/clear-global', { method: 'POST' });
+    loadAdminData();
+  }
+}
+
+function sendAdminBroadcast() {
+  const input = document.getElementById('admin-broadcast-input');
+  if (!input.value.trim()) return;
+
+  socket.emit('send_message', {
+    sender: 'SYSTEM',
+    receiver: 'Global',
+    text: input.value,
+    mediaType: 'text'
+  });
+
+  input.value = '';
+  alert('Broadcast sent to Global Chat!');
+}
+
+function logoutUser() {
+  localStorage.removeItem('miki_user');
+  location.reload();
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   if (currentUser) {
     document.body.classList.remove('logged-out');
-    document.getElementById('auth-card').style.display = 'none';
+    document.getElementById('auth-wrapper').style.display = 'none';
     document.getElementById('chat-container').style.display = 'flex';
+    if (socket) socket.emit('register_user', currentUser);
     loadContacts();
     selectChat('Global');
   }
