@@ -2,13 +2,13 @@ let socket = typeof io !== 'undefined' ? io() : null;
 let currentUser = localStorage.getItem('miki_user') || '';
 let currentTarget = 'Global';
 let isAdminUser = false;
-let mediaRecorder;
+let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
+let audioStream = null;
 
 if (socket) {
   socket.on('new_message', (msg) => {
-    // Check if message belongs to current open room
     const isGlobalMatch = currentTarget === 'Global' && msg.receiver === 'Global';
     const isPrivateMatch = (msg.sender === currentTarget && msg.receiver === currentUser) || 
                            (msg.sender === currentUser && msg.receiver === currentTarget);
@@ -89,12 +89,10 @@ async function loadContacts() {
 async function selectChat(target) {
   currentTarget = target;
 
-  // Update Pills Active State
   document.querySelectorAll('.contact-pill').forEach(btn => btn.classList.remove('active'));
   const activePill = document.getElementById(`pill-${target}`);
   if (activePill) activePill.classList.add('active');
 
-  // Update Header Bar
   const avatar = document.getElementById('header-avatar');
   const name = document.getElementById('header-target-name');
   const sub = document.getElementById('header-target-sub');
@@ -109,7 +107,6 @@ async function selectChat(target) {
     sub.textContent = 'Private 1-on-1 Direct Message';
   }
 
-  // Load Message History
   const list = document.getElementById('messages-list');
   list.innerHTML = '';
   
@@ -163,61 +160,100 @@ async function uploadMediaFile(e) {
   }
 }
 
-// VOICE RECORDING
+// VOICE RECORDING FIX
 async function toggleVoiceRecord() {
   const btn = document.getElementById('voice-btn');
+  const banner = document.getElementById('recording-banner');
+
   if (!isRecording) {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-    mediaRecorder.onstop = async () => {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      const formData = new FormData();
-      formData.append('mediaFile', audioBlob, 'voice-note.webm');
-
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.success) {
-        socket.emit('send_message', {
-          sender: currentUser,
-          receiver: currentTarget,
-          mediaUrl: data.url,
-          mediaType: 'audio'
-        });
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Microphone access is not supported on this browser context.");
+        return;
       }
-    };
 
-    mediaRecorder.start();
-    isRecording = true;
-    btn.style.color = '#ef4444';
+      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+
+      // Detect supported MIME type for Android/Webviews
+      let options = {};
+      if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options = { mimeType: 'audio/webm' };
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options = { mimeType: 'audio/mp4' };
+      } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+        options = { mimeType: 'audio/ogg' };
+      }
+
+      mediaRecorder = new MediaRecorder(audioStream, options);
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const mime = options.mimeType || 'audio/webm';
+        const ext = mime.includes('mp4') ? 'mp4' : mime.includes('ogg') ? 'ogg' : 'webm';
+        const audioBlob = new Blob(audioChunks, { type: mime });
+        
+        const formData = new FormData();
+        formData.append('mediaFile', audioBlob, `voice-note.${ext}`);
+
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          socket.emit('send_message', {
+            sender: currentUser,
+            receiver: currentTarget,
+            mediaUrl: data.url,
+            mediaType: 'audio'
+          });
+        }
+
+        // Stop all audio tracks
+        if (audioStream) {
+          audioStream.getTracks().forEach(track => track.stop());
+        }
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      btn.textContent = '⏹️';
+      if (banner) banner.style.display = 'flex';
+
+    } catch (err) {
+      console.error("Mic access error:", err);
+      alert("Microphone permission denied or unavailable: " + err.message);
+    }
   } else {
-    mediaRecorder.stop();
+    // Stop recording and send
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
     isRecording = false;
-    btn.style.color = 'white';
+    btn.textContent = '🎙️';
+    if (banner) banner.style.display = 'none';
   }
 }
 
-// RENDER MESSAGE IN UI WITH SENDER BADGES
+// RENDER MESSAGE IN UI
 function appendMessageUI(msg) {
   const list = document.getElementById('messages-list');
   const isMine = msg.sender === currentUser;
 
   const div = document.createElement('div');
   div.id = `msg-${msg._id}`;
-  div.style.cssText = `margin-bottom:12px; text-align:${isMine ? 'right' : 'left'};`;
+  div.style.cssText = `margin-bottom:10px; text-align:${isMine ? 'right' : 'left'};`;
 
-  // Always show Sender Badge on top of bubble (Media & Text)
   const senderBadge = `<small style="display:block; color:${isMine ? '#bae6fd' : '#38bdf8'}; font-weight:bold; font-size:11px; margin-bottom:4px;">${msg.sender}</small>`;
 
   let mediaContent = '';
   if (msg.mediaType === 'image') {
-    mediaContent = `<img src="${msg.mediaUrl}" style="max-width:220px; border-radius:8px; display:block; margin-top:4px;">`;
+    mediaContent = `<img src="${msg.mediaUrl}" style="max-width:200px; border-radius:8px; display:block; margin-top:4px;">`;
   } else if (msg.mediaType === 'video') {
-    mediaContent = `<video src="${msg.mediaUrl}" controls style="max-width:220px; border-radius:8px; display:block; margin-top:4px;"></video>`;
+    mediaContent = `<video src="${msg.mediaUrl}" controls style="max-width:200px; border-radius:8px; display:block; margin-top:4px;"></video>`;
   } else if (msg.mediaType === 'audio') {
-    mediaContent = `<audio src="${msg.mediaUrl}" controls style="max-width:220px; margin-top:4px;"></audio>`;
+    mediaContent = `<audio src="${msg.mediaUrl}" controls style="max-width:200px; margin-top:4px;"></audio>`;
   } else {
     mediaContent = `<span id="text-${msg._id}">${msg.text}${msg.isEdited ? ' <small style="color:#94a3b8;">(edited)</small>' : ''}</span>`;
   }
@@ -225,10 +261,10 @@ function appendMessageUI(msg) {
   const readMark = isMine ? `<span id="read-${msg._id}">${msg.isRead ? ' ✓✓' : ' ✓'}</span>` : '';
 
   div.innerHTML = `
-    <div onclick="handleMessageClick('${msg._id}', '${msg.sender}', '${msg.text}')" style="display:inline-block; background:${isMine ? '#0284c7' : '#334155'}; padding:10px 14px; border-radius:12px; cursor:pointer; text-align:left;">
+    <div onclick="handleMessageClick('${msg._id}', '${msg.sender}', '${msg.text}')" style="display:inline-block; background:${isMine ? '#0284c7' : '#334155'}; padding:8px 12px; border-radius:12px; cursor:pointer; text-align:left; max-width:85%;">
       ${senderBadge}
       ${mediaContent}
-      <div style="text-align:right; margin-top:4px;">
+      <div style="text-align:right; margin-top:2px;">
         <small style="font-size:10px; color:#cbd5e1;">${readMark}</small>
       </div>
     </div>
@@ -293,7 +329,7 @@ async function loadAdminData() {
   }
 }
 
-// Auto restore login session
+// Restore session
 window.addEventListener('DOMContentLoaded', () => {
   if (currentUser) {
     document.body.classList.remove('logged-out');

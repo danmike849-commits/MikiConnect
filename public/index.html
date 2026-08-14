@@ -6,9 +6,58 @@
   <title>MikiConnect</title>
   <link rel="stylesheet" href="style.css">
   <style>
+    * { box-sizing: border-box; }
     body.logged-out .nav-tabs, body.logged-out #chat-container, body.logged-out #admin-dashboard { display: none !important; }
-    .contact-pill { padding: 6px 14px; background: #334155; color: #f8fafc; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; border: 1px solid transparent; }
+    .contact-pill { padding: 6px 14px; background: #334155; color: #f8fafc; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; border: 1px solid transparent; flex-shrink: 0; }
     .contact-pill.active { background: #38bdf8; color: #0f172a; font-weight: bold; border-color: #38bdf8; }
+    
+    /* INPUT BAR STYLING */
+    .chat-input-bar {
+      padding: 8px 10px;
+      background: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .send-circle-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    .send-circle-btn:active { transform: scale(0.95); }
+    .rec-indicator {
+      display: none;
+      color: #ef4444;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 4px 8px;
+      background: rgba(239, 68, 68, 0.15);
+      border-radius: 12px;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink { 50% { opacity: 0.5; } }
   </style>
 </head>
 <body class="logged-out">
@@ -28,7 +77,7 @@
     </div>
   </nav>
 
-  <main style="padding: 10px; max-width: 600px; margin: 0 auto;">
+  <main style="padding: 5px; max-width: 600px; margin: 0 auto;">
 
     <!-- AUTH CARD -->
     <div class="card" id="auth-card" style="background:#1e293b; padding:25px; border-radius:12px;">
@@ -41,13 +90,13 @@
     </div>
 
     <!-- CHAT CONTAINER -->
-    <div id="chat-container" style="display:none; background:#1e293b; border-radius:12px; height:80vh; flex-direction:column; overflow:hidden;">
+    <div id="chat-container" style="display:none; background:#1e293b; border-radius:12px; height:82vh; flex-direction:column; overflow:hidden;">
       
       <!-- TOP ACTIVE CHAT HEADER -->
-      <div id="active-chat-header" style="padding:12px 15px; background:#0f172a; border-bottom:1px solid #334155; display:flex; align-items:center; gap:10px;">
+      <div id="active-chat-header" style="padding:10px 12px; background:#0f172a; border-bottom:1px solid #334155; display:flex; align-items:center; gap:10px;">
         <span id="header-avatar" style="font-size:22px;">🌐</span>
         <div>
-          <strong id="header-target-name" style="color:#38bdf8; display:block; font-size:15px;">Global Public Chat</strong>
+          <strong id="header-target-name" style="color:#38bdf8; display:block; font-size:14px;">Global Public Chat</strong>
           <small id="header-target-sub" style="color:#94a3b8; font-size:11px;">Visible to everyone online</small>
         </div>
       </div>
@@ -58,16 +107,22 @@
       </div>
 
       <!-- MESSAGES LIST -->
-      <div id="messages-list" style="flex:1; overflow-y:auto; padding:15px;"></div>
+      <div id="messages-list" style="flex:1; overflow-y:auto; padding:12px;"></div>
       
+      <!-- RECORDING STATUS BANNER -->
+      <div id="recording-banner" style="display:none; padding:4px 12px; background:#0f172a; align-items:center; justify-content:space-between;">
+        <span class="rec-indicator" id="rec-indicator" style="display:inline-block;">🔴 Recording Voice Note...</span>
+        <small style="color:#cbd5e1; font-size:11px;">Tap mic again to send</small>
+      </div>
+
       <!-- CHAT INPUT CONTROLS -->
-      <div style="padding:10px; background:#0f172a; display:flex; align-items:center; gap:8px;">
+      <div class="chat-input-bar">
         <input type="file" id="media-input" accept="image/*,video/*" style="display:none;" onchange="uploadMediaFile(event)">
-        <button onclick="document.getElementById('media-input').click()" style="background:none; border:none; font-size:20px; cursor:pointer;">📎</button>
-        <button id="voice-btn" onclick="toggleVoiceRecord()" style="background:none; border:none; font-size:20px; cursor:pointer;">🎙️</button>
+        <button class="icon-btn" onclick="document.getElementById('media-input').click()">📎</button>
+        <button class="icon-btn" id="voice-btn" onclick="toggleVoiceRecord()">🎙️</button>
         
-        <input type="text" id="chat-text" placeholder="Type a message..." style="flex:1; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px;">
-        <button onclick="sendTextMessage()" style="padding:10px 15px; background:#38bdf8; color:#0f172a; border:none; border-radius:8px; font-weight:bold;">Send</button>
+        <input type="text" id="chat-text" placeholder="Type a message..." style="flex:1; min-width:0; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:20px; outline:none;" onkeypress="if(event.key==='Enter') sendTextMessage()">
+        <button class="send-circle-btn" onclick="sendTextMessage()">➤</button>
       </div>
     </div>
 
