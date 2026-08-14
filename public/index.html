@@ -1,4 +1,3 @@
-cat << 'EOF' > public/index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,78 +5,65 @@ cat << 'EOF' > public/index.html
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MikiConnect</title>
   <link rel="stylesheet" href="style.css">
-
-  <style id="strict-nav-hide-style">
-    body.logged-out .nav-tabs,
-    body.logged-out nav,
-    body.logged-out .navbar,
-    body.logged-out .tabs-header,
-    body.logged-out div[class*="nav"] {
-      display: none !important;
-    }
+  <style>
+    body.logged-out .nav-tabs, body.logged-out #chat-container, body.logged-out #admin-dashboard { display: none !important; }
   </style>
 </head>
 <body class="logged-out">
 
-  <!-- Light Blue In-App Pop-up Banner -->
-  <div id="in-app-alert" class="in-app-alert hidden" onclick="openAlertMessage()">
-    <div class="alert-avatar">💬</div>
-    <div class="alert-content">
-      <strong id="alert-sender">Sender Name</strong>
-      <p id="alert-preview">Message snippet preview...</p>
-    </div>
-  </div>
-
-  <!-- Instant Loading Screen Overlay -->
-  <div id="app-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; display: flex; align-items: center; justify-content: center; z-index: 9999; color: #38bdf8; font-family: sans-serif; transition: opacity 0.3s ease;">
+  <!-- APP LOADER -->
+  <div id="app-loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:9999;color:#38bdf8;">
     <h2>Loading MikiConnect...</h2>
   </div>
 
-  <!-- NAVIGATION HEADER (Hidden when logged out) -->
+  <!-- NAVIGATION -->
   <nav class="navbar nav-tabs">
     <div class="nav-title">MikiConnect</div>
     <div class="nav-links">
-      <a href="#" class="active">Chats</a>
-      <a href="#">Feed</a>
-      <a href="#">Profile</a>
+      <a href="#" onclick="switchTab('chat')" class="active">Chats</a>
+      <a href="#" id="admin-tab-link" style="display:none;" onclick="switchTab('admin')">Admin Panel</a>
+      <a href="#" onclick="logoutUser()">Log Out</a>
     </div>
   </nav>
 
-  <!-- MAIN CONTENT CONTAINER -->
-  <main class="main-container" style="padding: 20px;">
+  <main style="padding: 15px; max-width: 600px; margin: 0 auto;">
 
-    <!-- LOGIN CARD CONTAINER -->
-    <div class="card" id="auth-card" style="max-width: 400px; margin: 40px auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-      <h2 style="color: white; text-align: center; margin-bottom: 20px;">Welcome to MikiConnect</h2>
-      
-      <form id="login-form" onsubmit="handleLogin(event)">
-        <input type="text" id="username" placeholder="Username or Email" required style="width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box;">
-        <input type="password" id="password" placeholder="Password" required style="width: 100%; padding: 12px; margin-bottom: 18px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box;">
-        
-        <button type="submit" style="width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
-          Log In
-        </button>
+    <!-- AUTH CARD -->
+    <div class="card" id="auth-card" style="background:#1e293b; padding:25px; border-radius:12px;">
+      <h2 style="text-align:center; margin-bottom:20px;">Welcome to MikiConnect</h2>
+      <form onsubmit="handleLogin(event)">
+        <input type="text" id="username" placeholder="Username" required style="width:100%; padding:12px; margin-bottom:10px; background:#0f172a; color:white; border:1px solid #334155; border-radius:8px;">
+        <input type="password" id="password" placeholder="Password" required style="width:100%; padding:12px; margin-bottom:15px; background:#0f172a; color:white; border:1px solid #334155; border-radius:8px;">
+        <button type="submit" style="width:100%; padding:12px; background:#22c55e; color:white; border:none; border-radius:8px; font-weight:bold;">Log In</button>
       </form>
+    </div>
 
-      <!-- WHATSAPP DEVELOPER LINK INSIDE CARD -->
-      <div style="text-align: center; margin-top: 18px;">
-        <a href="https://wa.me/2349130372258?text=Hello%20Developer" target="_blank" style="color: #25D366; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; gap: 6px;">
-          💬 Contact Developer on WhatsApp
-        </a>
+    <!-- CHAT CONTAINER -->
+    <div id="chat-container" style="display:none; background:#1e293b; border-radius:12px; height:75vh; display:flex; flex-direction:column;">
+      <div id="messages-list" style="flex:1; overflow-y:auto; padding:15px;"></div>
+      
+      <!-- CHAT INPUT CONTROLS -->
+      <div style="padding:10px; background:#0f172a; display:flex; align-items:center; gap:8px;">
+        <input type="file" id="media-input" accept="image/*,video/*" style="display:none;" onchange="uploadMediaFile(event)">
+        <button onclick="document.getElementById('media-input').click()" style="background:none; border:none; font-size:20px; cursor:pointer;">📎</button>
+        <button id="voice-btn" onclick="toggleVoiceRecord()" style="background:none; border:none; font-size:20px; cursor:pointer;">🎙️</button>
+        
+        <input type="text" id="chat-text" placeholder="Type a message..." style="flex:1; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px;">
+        <button onclick="sendTextMessage()" style="padding:10px 15px; background:#38bdf8; color:#0f172a; border:none; border-radius:8px; font-weight:bold;">Send</button>
       </div>
     </div>
 
-    <!-- LOGGED IN USER PROFILE CARD -->
-    <div id="user-profile-card" style="display:none; max-width: 400px; margin: 20px auto; text-align: center; background: #1e293b; padding: 20px; border-radius: 12px;">
-      <div style="width:80px; height:80px; margin:0 auto 10px; border-radius: 50%; background: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 32px;">👤</div>
-      <h3 id="user-display-name" style="margin:5px 0; color: white;">User Profile</h3>
-      <p style="color:#8b949e; font-size:13px; margin-bottom: 15px;">Connected to MikiConnect</p>
-      <button onclick="logoutUser()" style="background:#ef4444; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Log Out</button>
+    <!-- ADMIN DASHBOARD -->
+    <div id="admin-dashboard" style="display:none; background:#1e293b; padding:20px; border-radius:12px;">
+      <h2 style="color:#38bdf8; margin-bottom:15px;">Admin Control Dashboard</h2>
+      <h3>Registered Users</h3>
+      <ul id="admin-users-list" style="margin-bottom:20px; color:#cbd5e1;"></ul>
+      <h3>Recent Message Log</h3>
+      <div id="admin-messages-log" style="max-height:200px; overflow-y:auto; font-size:12px; color:#cbd5e1;"></div>
     </div>
 
   </main>
 
-  <!-- APP SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
   <script>
@@ -85,13 +71,9 @@ cat << 'EOF' > public/index.html
       const loader = document.getElementById('app-loader');
       if (loader) {
         loader.style.opacity = '0';
-        loader.style.pointerEvents = 'none';
-        setTimeout(() => {
-          loader.style.display = 'none';
-        }, 300);
+        setTimeout(() => loader.style.display = 'none', 300);
       }
     });
   </script>
 </body>
 </html>
-EOF
