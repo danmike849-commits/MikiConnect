@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 // Put your MongoDB URI here or pull from environment
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
 if (!MONGO_URI) {
     console.error("Please set MONGO_URI or run with MONGO_URI='your_connection_string' node reset_password.js");

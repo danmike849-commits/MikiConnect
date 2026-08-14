@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 // Connect to MongoDB Atlas
-const MONGO_URI = process.env.MONGODB_URI || "mongodb+srv://danmike849:Urcnmx442@admin442.5kdrg1k.mongodb.net/mikiconnect?retryWrites=true&w=majority";
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb+srv://mikidan442:mxboi442@admin442.5kdrg1k.mongodb.net/mikiconnect?retryWrites=true&w=majority";
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ Connected permanently to MongoDB Atlas!'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));

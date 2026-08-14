@@ -5,9 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikiConnect</title>
+<link rel="stylesheet" href="style.css">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
      <style>
+
     body { margin: 0; padding: 0; background: #121417; color: #fff; }
     .header { background: #25282c; padding: 15px; text-align: center; }
     .header h1 { margin: 0; color: #40c057; font-size: 22px; }
@@ -84,6 +87,14 @@
 
 </head>
 <body>
+<!-- Light Blue In-App Pop-up Banner -->
+<div id="in-app-alert" class="in-app-alert hidden" onclick="openActiveDM()">
+  <div class="alert-avatar">💬</div>
+  <div class="alert-content">
+    <strong id="alert-sender">Sender Name</strong>
+    <p id="alert-preview">Message snippet preview...</p>
+  </div>
+</div>
 
 <!-- Instant Loading Screen Overlay -->
 <div id="app-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; font-family: sans-serif;">
@@ -155,14 +166,43 @@
 
             <!-- MESSAGES CONTAINER -->
             <div id="dm-messages-display" style="height:280px; overflow-y:auto; background:#181a1d; padding:10px; border-radius:6px; border:1px solid #333; display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
-
             <!-- MEDIA & VOICE CONTROLS -->
-            <div style="display:flex; gap:6px; margin-bottom:8px;">
-                <input type="file" id="dm-file-input" accept="image/*,video/*" style="display:none;" onchange="handleMediaUpload(this)" />
-                <button onclick="document.getElementById('dm-file-input').click()" style="background:#2b5235; color:#40c057; border:1px solid #40c057; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">📁 Photo/Video</button>
-                
-                <button id="dm-mic-btn" onclick="toggleVoiceRecording()" style="background:#1e3a24; color:#40c057; border:1px solid #40c057; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">🎤 Record Voice</button>
-            </div>
+            <div class="chat-input-container">
+  <!-- The Single Action Button -->
+  <button id="media-toggle-btn" type="button" class="action-btn">
+    <span class="icon">➕</span>
+  </button>
+
+  <!-- The Hidden Media Pop-up Menu -->
+  <div id="media-menu" class="media-menu hidden">
+    <label class="menu-opt">
+      📸 <span>Photo / Video</span>
+     <input type="file" id="dm-file-input" accept="image/*,video/*" hidden>
+    
+    <button type="button" id="emoji-opt-btn" class="menu-opt">
+      😀 <span>Emojis</span>
+    </button>
+    
+    <button type="button" id="voice-opt-btn" class="menu-opt">
+      🎙️ <span>Voice Note</span>
+    </button>
+  </div>
+  <!-- Text Input Field -->
+  <input type="text" id="dm-message-input" placeholder="Type a message..." style="flex:1; padding:10px; border-radius:20px; border:1px solid #334155; background:#0f172a; color:white;">
+
+  <!-- Send Button -->
+  <button id="dm-send-btn" type="button" class="send-btn" style="background:#25D366; border:none; color:white; border-radius:50%; width:38px; height:38px; cursor:pointer;">🚀</button>
+
+</div>
+
+
+  <!-- Text Input Field -->
+  <input type="text" id="chat-message-input" placeholder="Type a message..." />
+
+  <!-- Send Button -->
+  <button id="send-msg-btn" type="button" class="send-btn">🚀</button>
+</div>
+
 
             <!-- TEXT INPUT & SEND -->
             <div style="display:flex; gap:6px;">
@@ -223,7 +263,7 @@
             
             <!-- App Branding Logo Header -->
             <div style="width:90px; height:90px; margin:0 auto 15px; background:#40c05722; border:2px solid #40c057; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:42px; color:#40c057; font-weight:bold;">
-                MC
+                M
             </div>
 
             <h2 id="gateway-welcome-title" style="margin:0 0 5px; color:#ffffff; font-size:22px; font-weight:700;">MikiConnect</h2>
@@ -271,7 +311,11 @@
     </div>
 
 
-
+<a href="https://wa.me/+2349130372258?text=Hello%20Developer,%20I%20need%20help%20with%20MikiConnect" 
+   target="_blank" 
+   style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 15px; color: #25D366; text-decoration: none; font-weight: bold; font-size: 14px;">
+  <span>💬</span> Contact Developer on WhatsApp
+</a>
 
     <script src="app.js?v=1786553835316"></script>
 </body>

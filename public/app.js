@@ -383,7 +383,7 @@ loadFeed();
 checkAuthState();
 
 
-// 1-ON-1 DM SYSTEM VARIABLES
+// chart SYSTEM VARIABLES
 let activeConvId = null;
 let activePartner = null;
 let mediaRecorder = null;
@@ -769,3 +769,38 @@ async function handleAuthSubmit() {
 window.switchToRegisterMode = switchToRegisterMode;
 window.toggleAuthMode = toggleAuthMode;
 window.handleAuthSubmit = handleAuthSubmit;
+// --- Light Blue In-App Alert Banner & Badge Handler ---
+function showInAppAlert(senderName, text) {
+  const alertBox = document.getElementById('in-app-alert');
+  const senderElem = document.getElementById('alert-sender');
+  const previewElem = document.getElementById('alert-preview');
+
+  if (alertBox && senderElem && previewElem) {
+    senderElem.innerText = senderName || "New Message";
+    previewElem.innerText = text || "Sent a message";
+
+    // Slide down light blue banner
+    alertBox.classList.remove('hidden');
+
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+      alertBox.classList.add('hidden');
+    }, 4000);
+  }
+
+  // Increment unread badge count
+  const badge = document.getElementById('dm-unread-badge');
+  if (badge) {
+    let count = parseInt(badge.innerText) || 0;
+    count += 1;
+    badge.innerText = count > 99 ? '99+' : count;
+    badge.classList.remove('hidden');
+  }
+}
+
+function openActiveDM() {
+  const alertBox = document.getElementById('in-app-alert');
+  if (alertBox) {
+    alertBox.classList.add('hidden');
+  }
+}
