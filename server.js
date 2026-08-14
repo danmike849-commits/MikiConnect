@@ -12,12 +12,16 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MONGO DB CONNECTION
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://mikedan849:mike1234@cluster0.0yq4c.mongodb.net/mikiconnect?retryWrites=true&w=majority";
+// SAFE MONGO DB CONNECTION (Environment Variable)
+const MONGO_URI = process.env.MONGO_URI;
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ Connected to MongoDB Atlas'))
-  .catch(err => console.error('❌ MongoDB Connection Error:', err));
+if (!MONGO_URI) {
+  console.error('❌ MONGO_URI environment variable is missing!');
+} else {
+  mongoose.connect(MONGO_URI)
+    .then(() => console.log('✅ Connected to MongoDB Atlas'))
+    .catch(err => console.error('❌ MongoDB Connection Error:', err));
+}
 
 // SCHEMAS
 const UserSchema = new mongoose.Schema({
