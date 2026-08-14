@@ -12,8 +12,13 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// UPTIME MONITOR HEALTH CHECK ROUTE
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
 // MONGO CONNECTION WITH FALLBACK
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://mikedan849:mike1234@cluster0.0yq4c.mongodb.net/mikiconnect?retryWrites=true&w=majority";
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb+srv://mikedan849:mike1234@cluster0.0yq4c.mongodb.net/mikiconnect?retryWrites=true&w=majority";
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB Atlas'))
