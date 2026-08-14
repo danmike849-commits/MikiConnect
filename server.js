@@ -26,7 +26,7 @@ mongoose.connect(MONGO_URI)
 
 // SCHEMAS
 const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
+  username: { type: String, required: true, unique: true, trim: true },
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false }
 });
@@ -49,26 +49,46 @@ const Message = mongoose.model('Message', MessageSchema);
 
 let onlineUsers = new Map();
 
-// AUTH ROUTES
+// AUTH ROUTES (Handles both Login and Registration cleanly)
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.json({ success: false, message: 'Missing username or password' });
-
   try {
-    let user = await User.findOne({ username });
-    if (!user) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      user = new User({ username, password: hashedPassword, isAdmin: username.toLowerCase() === 'admin' });
-      await user.save();
-      return res.json({ success: true, username: user.username, isAdmin: user.isAdmin });
+    let { username, password } = req.body;
+    if (!username || !password) {
+      return res.json({ success: false, message: 'Missing username or password' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.json({ success: false, message: 'Invalid credentials' });
+    username = username.trim();
 
-    res.json({ success: true, username: user.username, isAdmin: user.isAdmin });
+    // Check if user exists (case-insensitive search for username)
+    let user = await User.findOne({ username: new RegExp(`^${username}$`, 'i') });
+
+    if (!user) {
+      // NEW USER REGISTRATION
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      const isFirstAdmin = username.toLowerCase() === 'admin';
+
+      user = new User({
+        username: username,
+        password: hashedPassword,
+        isAdmin: isFirstAdmin
+      });
+
+      await user.save();
+      console.log(`👤 New user created: ${user.username} (Admin: ${user.isAdmin})`);
+      return res.json({ success: true, username: user.username, isAdmin: user.isAdmin, isNewUser: true });
+    }
+
+    // EXISTING USER LOGIN
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.json({ success: false, message: 'Invalid credentials. Wrong password.' });
+    }
+
+    return res.json({ success: true, username: user.username, isAdmin: user.isAdmin });
   } catch (err) {
-    res.json({ success: false, message: 'Server authentication error' });
+    console.error('❌ Auth Error:', err);
+    return res.json({ success: false, message: 'Server authentication error: ' + (err.message || 'Database issue') });
   }
 });
 
