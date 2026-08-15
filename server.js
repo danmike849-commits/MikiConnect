@@ -11,20 +11,41 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MongoDB Connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mikiconnect';
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('MongoDB Connected Successfully'))
-  .catch(err => console.error('MongoDB Connection Error:', err));
+// Accept either MONGO_URI or MONGODB_URI, and fix lowercase scheme automatically
+let rawUri = process.env.MONGO_URI || process.env.MONGODB_URI || '';
+if (rawUri.startsWith('Mongodb+srv://')) {
+  rawUri = 'mongodb+srv://' + rawUri.substring(14);
+}
 
-// UptimeRobot Health Check (Always returns HTTP 200 to keep Render awake)
+const MONGO_URI = rawUri;
+
+if (!MONGO_URI) {
+  console.error('CRITICAL: Neither MONGO_URI nor MONGODB_URI environment variable is set!');
+} else {
+  mongoose.connect(MONGO_URI)
+    .then(() => console.log('MongoDB Connected Successfully'))
+    .catch(err => console.error('MongoDB Connection Error:', err.message));
+}
+
+// UptimeRobot Health Check
 app.get('/ping', (req, res) => {
   const isConnected = mongoose.connection.readyState === 1;
   res.status(200).json({ 
     status: 'online', 
-    database: isConnected ? 'connected' : 'connecting/disconnected' 
+    database: isConnected ? 'connected' : 'disconnected' 
   });
 });
+
+// Middleware to prevent 10s buffering timeouts when DB is disconnected
+const checkDbConnection = (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ 
+      success: false, 
+      message: 'Database connection offline. Check MONGO_URI setting in Render.' 
+    });
+  }
+  next();
+};
 
 // Schemas
 const userSchema = new mongoose.Schema({
@@ -43,11 +64,10 @@ const messageSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 const Message = mongoose.model('Message', messageSchema);
 
-// Store active online users
 const onlineUsers = new Set();
 
 // API Routes
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', checkDbConnection, async (req, res) => {
   const { username, password } = req.body;
   try {
     if (!username || !password) {
@@ -70,7 +90,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', checkDbConnection, async (req, res) => {
   try {
     const users = await User.find({}, 'username isAdmin');
     res.json({ success: true, users });
@@ -79,20 +99,13 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-app.get('/api/messages', async (req, res) => {
+app.get('/api/messages', checkDbConnection, async (req, res) => {
   const { user1, user2 } = req.query;
   try {
-    let query;
-    if (user2 === 'Global') {
-      query = { receiver: 'Global' };
-    } else {
-      query = {
-        $or: [
-          { sender: user1, receiver: user2 },
-          { sender: user2, receiver: user1 }
-        ]
-      };
-    }
+    let query = user2 === 'Global' 
+      ? { receiver: 'Global' } 
+      : { $or: [{ sender: user1, receiver: user2 }, { sender: user2, receiver: user1 }] };
+
     const messages = await Message.find(query).sort({ timestamp: 1 });
     res.json({ success: true, messages });
   } catch (err) {
@@ -101,7 +114,7 @@ app.get('/api/messages', async (req, res) => {
 });
 
 // Admin Routes
-app.get('/api/admin/data', async (req, res) => {
+app.get('/api/admin/data', checkDbConnection, async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
     const totalMessages = await Message.countDocuments();
@@ -119,7 +132,7 @@ app.get('/api/admin/data', async (req, res) => {
   }
 });
 
-app.put('/api/admin/users/:username/role', async (req, res) => {
+app.put('/api/admin/users/:username/role', checkDbConnection, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username });
     if (user) {
@@ -132,7 +145,7 @@ app.put('/api/admin/users/:username/role', async (req, res) => {
   }
 });
 
-app.delete('/api/admin/users/:username', async (req, res) => {
+app.delete('/api/admin/users/:username', checkDbConnection, async (req, res) => {
   try {
     await User.deleteOne({ username: req.params.username });
     await Message.deleteMany({ $or: [{ sender: req.params.username }, { receiver: req.params.username }] });
@@ -142,7 +155,7 @@ app.delete('/api/admin/users/:username', async (req, res) => {
   }
 });
 
-app.delete('/api/admin/messages/:id', async (req, res) => {
+app.delete('/api/admin/messages/:id', checkDbConnection, async (req, res) => {
   try {
     await Message.findByIdAndDelete(req.params.id);
     res.json({ success: true });
@@ -151,7 +164,7 @@ app.delete('/api/admin/messages/:id', async (req, res) => {
   }
 });
 
-app.post('/api/admin/clear-global', async (req, res) => {
+app.post('/api/admin/clear-global', checkDbConnection, async (req, res) => {
   try {
     await Message.deleteMany({ receiver: 'Global' });
     io.emit('global_chat_cleared');
