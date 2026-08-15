@@ -11,6 +11,11 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Health check endpoint for monitoring tools
+app.get('/ping', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mikiconnect';
 mongoose.connect(MONGO_URI)
@@ -43,7 +48,6 @@ app.post('/api/login', async (req, res) => {
   try {
     let user = await User.findOne({ username });
     if (!user) {
-      // Auto-register first user as Admin if no users exist
       const count = await User.countDocuments();
       user = new User({ username, password, isAdmin: count === 0 });
       await user.save();
@@ -161,7 +165,6 @@ io.on('connection', (socket) => {
     try {
       const newMsg = new Message(data);
       await newMsg.save();
-      // Broadcast to ALL connected clients so unread counters trigger everywhere
       io.emit('new_message', newMsg);
     } catch (err) {
       console.error('Save message error:', err);
