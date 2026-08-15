@@ -17,14 +17,13 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('MongoDB Connected Successfully'))
   .catch(err => console.error('MongoDB Connection Error:', err));
 
-// Health check endpoint with DB status
+// UptimeRobot Health Check (Always returns HTTP 200 to keep Render awake)
 app.get('/ping', (req, res) => {
   const isConnected = mongoose.connection.readyState === 1;
-  if (isConnected) {
-    res.status(200).send('MongoDB connected successfully');
-  } else {
-    res.status(500).send('MongoDB connection error');
-  }
+  res.status(200).json({ 
+    status: 'online', 
+    database: isConnected ? 'connected' : 'connecting/disconnected' 
+  });
 });
 
 // Schemas
