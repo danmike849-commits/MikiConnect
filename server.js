@@ -11,16 +11,21 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Health check endpoint for UptimeRobot
-app.get('/ping', (req, res) => {
-  res.status(200).send('OK');
-});
-
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mikiconnect';
 mongoose.connect(MONGO_URI)
   .then(() => console.log('MongoDB Connected Successfully'))
   .catch(err => console.error('MongoDB Connection Error:', err));
+
+// Health check endpoint with DB status
+app.get('/ping', (req, res) => {
+  const isConnected = mongoose.connection.readyState === 1;
+  if (isConnected) {
+    res.status(200).send('MongoDB connected successfully');
+  } else {
+    res.status(500).send('MongoDB connection error');
+  }
+});
 
 // Schemas
 const userSchema = new mongoose.Schema({
