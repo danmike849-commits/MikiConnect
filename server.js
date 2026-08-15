@@ -21,7 +21,16 @@ app.get('/ping', (req, res) => {
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb+srv://mikedan849:mike1234@cluster0.0yq4c.mongodb.net/mikiconnect?retryWrites=true&w=majority";
 
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ Connected to MongoDB Atlas'))
+  .then(async () => {
+    console.log('✅ Connected to MongoDB Atlas');
+    // Drop the problematic email_1 index if it exists in the database
+    try {
+      await mongoose.connection.collection('users').dropIndex('email_1');
+      console.log('🧹 Successfully dropped outdated email index!');
+    } catch (e) {
+      // Index might already be dropped or not exist, which is fine
+    }
+  })
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // SCHEMAS
@@ -49,7 +58,7 @@ const Message = mongoose.model('Message', MessageSchema);
 
 let onlineUsers = new Map();
 
-// AUTH ROUTES (Handles both Login and Registration cleanly)
+// AUTH ROUTES
 app.post('/api/login', async (req, res) => {
   try {
     let { username, password } = req.body;
@@ -59,7 +68,6 @@ app.post('/api/login', async (req, res) => {
 
     username = username.trim();
 
-    // Check if user exists (case-insensitive search for username)
     let user = await User.findOne({ username: new RegExp(`^${username}$`, 'i') });
 
     if (!user) {
