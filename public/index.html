@@ -14,13 +14,13 @@
     .btn-action { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
     .btn-admin { background: #d97706; color: #fff; border: none; font-weight: bold; display: none; }
     
-    /* Dedicated Chat Header Bar */
     .chat-header { background: #161b22; padding: 8px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #30363d; }
     .chat-header .avatar { width: 36px; height: 36px; background: #1f6feb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
     .chat-header .user-info { display: flex; flex-direction: column; }
     .chat-header .username { font-size: 0.95rem; font-weight: bold; color: #fff; }
     .chat-header .status { font-size: 0.75rem; color: #8b949e; }
     .chat-header .status.online { color: #2ea44f; }
+    .chat-header .status.typing { color: #58a6ff; font-style: italic; }
 
     .room-bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 12px; background-color: #0d1117; border-bottom: 1px solid #30363d; }
     .room-tab { background: #161b22; border: 1px solid #30363d; color: #8b949e; padding: 6px 12px; border-radius: 18px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
@@ -30,23 +30,32 @@
     .badge.show { display: inline-block; }
 
     #chat-box { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-    .message { max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 0.9rem; line-height: 1.4; word-break: break-word; position: relative; }
+    .message { max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 0.9rem; line-height: 1.4; word-break: break-word; position: relative; cursor: pointer; }
     .message.received { background: #21262d; align-self: flex-start; border-bottom-left-radius: 2px; }
     .message.sent { background: #0b84ff; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
-    
+    .message img { max-width: 100%; border-radius: 8px; margin-top: 4px; display: block; }
+
     .quoted-box { background: rgba(0, 0, 0, 0.25); border-left: 3px solid #2ea44f; padding: 4px 8px; border-radius: 4px; margin-bottom: 4px; font-size: 0.8rem; opacity: 0.9; }
     .message .time-container { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 2px; }
     .message .time { font-size: 0.65rem; opacity: 0.75; }
     .message .ticks { font-size: 0.75rem; font-weight: bold; }
     .message .ticks.read { color: #58a6ff; }
     .message .ticks.unread { color: #8b949e; }
+    .edited-label { font-size: 0.65rem; opacity: 0.7; font-style: italic; margin-right: 4px; }
 
-    /* Reply Banner */
-    #reply-banner { background: #161b22; padding: 6px 12px; border-top: 1px solid #30363d; display: none; justify-content: space-between; align-items: center; font-size: 0.8rem; }
+    /* Action Modal / Menu */
+    #action-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 200; }
+    .action-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 80%; max-width: 280px; overflow: hidden; }
+    .action-item { padding: 12px 16px; border-bottom: 1px solid #21262d; color: #c9d1d9; cursor: pointer; font-size: 0.95rem; }
+    .action-item:hover { background: #21262d; }
+    .action-item.danger { color: #da3633; }
+
+    #reply-banner { background: #161b22; padding: 6px 12px; border-top: 1px solid #30363d; display: none; justify-space-between; align-items: center; font-size: 0.8rem; }
     #reply-banner button { background: none; border: none; color: #da3633; cursor: pointer; font-size: 1rem; }
 
-    footer { padding: 10px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 8px; }
+    footer { padding: 10px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 8px; align-items: center; }
     input[type="text"] { flex: 1; background: #0d1117; border: 1px solid #30363d; color: #fff; padding: 10px 14px; border-radius: 20px; outline: none; }
+    .file-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 8px; border-radius: 50%; cursor: pointer; }
     button.send-btn { background: #0b84ff; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
     #auth-screen { position: fixed; inset: 0; background: #0d1117; display: flex; justify-content: center; align-items: center; z-index: 100; }
@@ -77,7 +86,7 @@
 
   <div class="room-bar" id="room-bar">
     <div class="room-tab active" onclick="switchRoom('Global')" id="tab-Global">
-      🌐 Global Room <span class="badge" id="badge-Global">0</span>
+      🌐 Global <span class="badge" id="badge-Global">0</span>
     </div>
   </div>
 
@@ -92,14 +101,25 @@
   <div id="chat-box"></div>
 
   <div id="reply-banner">
-    <div>Replying to: <strong id="reply-user"></strong> - <span id="reply-text"></span></div>
+    <div><span id="banner-action-type">Replying to</span>: <strong id="reply-user"></strong> - <span id="reply-text"></span></div>
     <button onclick="cancelReply()">✕</button>
   </div>
 
   <footer>
-    <input type="text" id="msg-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+    <label class="file-btn" for="img-input">📷</label>
+    <input type="file" id="img-input" accept="image/*" style="display:none" onchange="handleImageSelect(event)">
+    <input type="text" id="msg-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()" oninput="notifyTyping()">
     <button class="send-btn" onclick="sendMessage()">➤</button>
   </footer>
+
+  <div id="action-modal" onclick="closeActionModal()">
+    <div class="action-card" onclick="event.stopPropagation()">
+      <div class="action-item" onclick="copyMessage()">📋 Copy Text</div>
+      <div class="action-item" onclick="triggerReplySelected()">💬 Reply</div>
+      <div class="action-item" id="edit-opt" onclick="startEditMessage()">✏️ Edit Message</div>
+      <div class="action-item danger" id="delete-opt" onclick="deleteSelectedMessage()">🗑️ Delete</div>
+    </div>
+  </div>
 
   <script>
     const socket = io();
@@ -107,8 +127,29 @@
     let isUserAdmin = false;
     let activeRoom = 'Global';
     let replyTarget = null;
+    let selectedMsg = null;
+    let editingMsgId = null;
+    let selectedImageData = null;
     let usersList = [];
-    const unreadCounts = {};
+    let typingTimeout = null;
+
+    // JWT Persistent Auth
+    window.onload = async () => {
+      const token = localStorage.getItem('mikiconnect_token');
+      if (token) {
+        const res = await fetch('/api/verify', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (data.success) {
+          currentUser = data.user.username;
+          isUserAdmin = data.user.isAdmin;
+          document.getElementById('auth-screen').style.display = 'none';
+          if (isUserAdmin) document.getElementById('admin-btn').style.display = 'inline-block';
+          socket.emit('register_user', currentUser);
+          loadUsers();
+          loadMessages();
+        }
+      }
+    };
 
     async function login() {
       const username = document.getElementById('username').value.trim();
@@ -123,6 +164,7 @@
       const data = await res.json();
 
       if (data.success) {
+        localStorage.setItem('mikiconnect_token', data.token);
         currentUser = data.username;
         isUserAdmin = data.isAdmin;
         document.getElementById('auth-screen').style.display = 'none';
@@ -137,10 +179,13 @@
       }
     }
 
-    function logout() { location.reload(); }
+    function logout() { 
+      localStorage.removeItem('mikiconnect_token');
+      location.reload(); 
+    }
 
     async function loadUsers() {
-      const res = await fetch('/api/users');
+      const res = await fetch(`/api/users?currentUser=${currentUser}`);
       const data = await res.json();
       if (!data.success) return;
 
@@ -148,7 +193,7 @@
       const roomBar = document.getElementById('room-bar');
       roomBar.innerHTML = `
         <div class="room-tab ${activeRoom === 'Global' ? 'active' : ''}" onclick="switchRoom('Global')" id="tab-Global">
-          🌐 Global <span class="badge ${unreadCounts['Global'] ? 'show' : ''}" id="badge-Global">${unreadCounts['Global'] || 0}</span>
+          🌐 Global
         </div>
       `;
 
@@ -158,7 +203,7 @@
           tab.className = `room-tab ${activeRoom === u.username ? 'active' : ''}`;
           tab.id = `tab-${u.username}`;
           tab.onclick = () => switchRoom(u.username);
-          tab.innerHTML = `👤 ${u.username} <span class="badge ${unreadCounts[u.username] ? 'show' : ''}" id="badge-${u.username}">${unreadCounts[u.username] || 0}</span>`;
+          tab.innerHTML = `👤 ${u.username} <span class="badge ${u.unreadCount > 0 ? 'show' : ''}" id="badge-${u.username}">${u.unreadCount}</span>`;
           roomBar.appendChild(tab);
         }
       });
@@ -166,19 +211,22 @@
       updateHeaderStatus();
     }
 
-    function updateHeaderStatus() {
+    function updateHeaderStatus(isTyping = false) {
+      const statusEl = document.getElementById('header-status');
       if (activeRoom === 'Global') {
         document.getElementById('header-avatar').innerText = '🌐';
         document.getElementById('header-title').innerText = 'Global Public Chat';
-        document.getElementById('header-status').className = 'status';
-        document.getElementById('header-status').innerText = 'Visible to everyone online';
+        statusEl.className = 'status';
+        statusEl.innerText = isTyping ? 'someone is typing...' : 'Visible to everyone online';
       } else {
         const u = usersList.find(x => x.username === activeRoom);
         document.getElementById('header-avatar').innerText = activeRoom[0].toUpperCase();
         document.getElementById('header-title').innerText = activeRoom;
         
-        const statusEl = document.getElementById('header-status');
-        if (u && u.isOnline) {
+        if (isTyping) {
+          statusEl.className = 'status typing';
+          statusEl.innerText = 'typing...';
+        } else if (u && u.isOnline) {
           statusEl.className = 'status online';
           statusEl.innerText = 'online';
         } else if (u && u.lastSeen) {
@@ -194,29 +242,16 @@
 
     function switchRoom(room) {
       activeRoom = room;
-      unreadCounts[room] = 0;
-      updateBadges();
       
       document.querySelectorAll('.room-tab').forEach(t => t.classList.remove('active'));
       const activeTab = document.getElementById(`tab-${room}`);
       if (activeTab) activeTab.classList.add('active');
+
+      const badge = document.getElementById(`badge-${room}`);
+      if (badge) badge.classList.remove('show');
       
       updateHeaderStatus();
       loadMessages();
-    }
-
-    function updateBadges() {
-      Object.keys(unreadCounts).forEach(room => {
-        const badgeEl = document.getElementById(`badge-${room}`);
-        if (badgeEl) {
-          if (unreadCounts[room] > 0) {
-            badgeEl.innerText = unreadCounts[room];
-            badgeEl.classList.add('show');
-          } else {
-            badgeEl.classList.remove('show');
-          }
-        }
-      });
     }
 
     async function loadMessages() {
@@ -237,16 +272,19 @@
       
       const div = document.createElement('div');
       div.className = `message ${isSent ? 'sent' : 'received'}`;
-      div.ondblclick = () => triggerReply(msg);
+      div.id = `msg-${msg._id}`;
+      div.onclick = () => openActionModal(msg);
 
       let replyHtml = '';
       if (msg.replyTo) {
         replyHtml = `
           <div class="quoted-box">
-            <strong>${msg.replyTo.sender}</strong>: ${msg.replyTo.text}
+            <strong>${msg.replyTo.sender}</strong>: ${msg.replyTo.text || '[Image]'}
           </div>
         `;
       }
+
+      let imageHtml = msg.image ? `<img src="${msg.image}" />` : '';
 
       const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const ticksHtml = isSent 
@@ -256,8 +294,10 @@
       div.innerHTML = `
         ${replyHtml}
         ${!isSent && activeRoom === 'Global' ? `<div style="font-size:0.75rem; font-weight:bold; color:#58a6ff; margin-bottom:2px;">${msg.sender}</div>` : ''}
+        ${imageHtml}
         <div>${msg.text}</div>
         <div class="time-container">
+          ${msg.isEdited ? `<span class="edited-label">edited</span>` : ''}
           <span class="time">${timeStr}</span>
           ${ticksHtml}
         </div>
@@ -267,35 +307,113 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function triggerReply(msg) {
-      replyTarget = { sender: msg.sender, text: msg.text };
-      document.getElementById('reply-user').innerText = msg.sender;
-      document.getElementById('reply-text').innerText = msg.text.substring(0, 30);
+    // Action Modal Logic (Copy, Edit, Delete)
+    function openActionModal(msg) {
+      selectedMsg = msg;
+      const isSent = msg.sender === currentUser;
+      
+      document.getElementById('edit-opt').style.display = isSent ? 'block' : 'none';
+      document.getElementById('delete-opt').style.display = (isSent || isUserAdmin) ? 'block' : 'none';
+      document.getElementById('action-modal').style.display = 'flex';
+    }
+
+    function closeActionModal() {
+      document.getElementById('action-modal').style.display = 'none';
+    }
+
+    function copyMessage() {
+      if (selectedMsg && selectedMsg.text) {
+        navigator.clipboard.writeText(selectedMsg.text);
+        alert('Message copied to clipboard');
+      }
+      closeActionModal();
+    }
+
+    function triggerReplySelected() {
+      replyTarget = { sender: selectedMsg.sender, text: selectedMsg.text };
+      document.getElementById('banner-action-type').innerText = 'Replying to';
+      document.getElementById('reply-user').innerText = selectedMsg.sender;
+      document.getElementById('reply-text').innerText = (selectedMsg.text || '[Image]').substring(0, 30);
       document.getElementById('reply-banner').style.display = 'flex';
+      closeActionModal();
+    }
+
+    function startEditMessage() {
+      editingMsgId = selectedMsg._id;
+      document.getElementById('msg-input').value = selectedMsg.text;
+      document.getElementById('banner-action-type').innerText = 'Editing message';
+      document.getElementById('reply-user').innerText = 'You';
+      document.getElementById('reply-text').innerText = selectedMsg.text.substring(0, 30);
+      document.getElementById('reply-banner').style.display = 'flex';
+      closeActionModal();
+    }
+
+    async function deleteSelectedMessage() {
+      if (!confirm('Delete this message?')) return;
+      await fetch(`/api/messages/${selectedMsg._id}`, { method: 'DELETE' });
+      closeActionModal();
     }
 
     function cancelReply() {
       replyTarget = null;
+      editingMsgId = null;
+      selectedImageData = null;
+      document.getElementById('msg-input').value = '';
       document.getElementById('reply-banner').style.display = 'none';
     }
 
-    function sendMessage() {
+    function notifyTyping() {
+      socket.emit('typing', { sender: currentUser, receiver: activeRoom });
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        socket.emit('stop_typing', { sender: currentUser, receiver: activeRoom });
+      }, 2000);
+    }
+
+    function handleImageSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        selectedImageData = evt.target.result;
+        document.getElementById('banner-action-type').innerText = 'Attaching image';
+        document.getElementById('reply-user').innerText = 'Photo';
+        document.getElementById('reply-text').innerText = file.name;
+        document.getElementById('reply-banner').style.display = 'flex';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function sendMessage() {
       const input = document.getElementById('msg-input');
       const text = input.value.trim();
-      if (!text) return;
+
+      if (editingMsgId) {
+        if (!text) return;
+        await fetch(`/api/messages/${editingMsgId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        cancelReply();
+        return;
+      }
+
+      if (!text && !selectedImageData) return;
 
       const payload = {
         sender: currentUser,
         receiver: activeRoom,
         text: text,
+        image: selectedImageData,
         replyTo: replyTarget
       };
 
       socket.emit('send_message', payload);
-      input.value = '';
       cancelReply();
     }
 
+    // Socket Event Handlers
     socket.on('new_message', (msg) => {
       const isForCurrentRoom = 
         (activeRoom === 'Global' && msg.receiver === 'Global') ||
@@ -305,9 +423,29 @@
       if (isForCurrentRoom) {
         appendMessage(msg);
       } else {
-        const roomKey = msg.receiver === 'Global' ? 'Global' : msg.sender;
-        unreadCounts[roomKey] = (unreadCounts[roomKey] || 0) + 1;
-        updateBadges();
+        loadUsers();
+      }
+    });
+
+    socket.on('message_updated', (updatedMsg) => {
+      const el = document.getElementById(`msg-${updatedMsg._id}`);
+      if (el) loadMessages();
+    });
+
+    socket.on('message_deleted', (msgId) => {
+      const el = document.getElementById(`msg-${msgId}`);
+      if (el) el.remove();
+    });
+
+    socket.on('user_typing', (data) => {
+      if ((activeRoom === 'Global' && data.receiver === 'Global') || data.sender === activeRoom) {
+        updateHeaderStatus(true);
+      }
+    });
+
+    socket.on('user_stop_typing', (data) => {
+      if ((activeRoom === 'Global' && data.receiver === 'Global') || data.sender === activeRoom) {
+        updateHeaderStatus(false);
       }
     });
 
