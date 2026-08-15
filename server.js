@@ -7,7 +7,7 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { maxHttpBufferSize: 1e7 }); // 10MB payload limit for images
+const io = new Server(server, { maxHttpBufferSize: 1e7 });
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -24,6 +24,14 @@ if (rawUri) {
     .then(() => console.log('MongoDB Connected Successfully'))
     .catch(err => console.error('MongoDB Error:', err.message));
 }
+
+// Health check endpoint for UptimeRobot
+app.get('/ping', (req, res) => {
+  res.status(200).json({ 
+    status: 'online', 
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' 
+  });
+});
 
 const checkDbConnection = (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
@@ -91,7 +99,6 @@ app.get('/api/users', checkDbConnection, async (req, res) => {
   try {
     const users = await User.find({}, 'username isAdmin lastSeen');
     
-    // Aggregate persistent unread counts
     const unreadCounts = {};
     if (currentUser) {
       const unreads = await Message.aggregate([
