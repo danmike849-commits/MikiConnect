@@ -11,7 +11,7 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Health check endpoint for monitoring tools
+// Health check endpoint for UptimeRobot
 app.get('/ping', (req, res) => {
   res.status(200).send('OK');
 });
@@ -19,8 +19,8 @@ app.get('/ping', (req, res) => {
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mikiconnect';
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.error('MongoDB Error:', err));
+  .then(() => console.log('MongoDB Connected Successfully'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Schemas
 const userSchema = new mongoose.Schema({
@@ -46,6 +46,10 @@ const onlineUsers = new Set();
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Username and password required' });
+    }
+
     let user = await User.findOne({ username });
     if (!user) {
       const count = await User.countDocuments();
@@ -54,9 +58,11 @@ app.post('/api/login', async (req, res) => {
     } else if (user.password !== password) {
       return res.status(400).json({ success: false, message: 'Invalid password' });
     }
+    
     res.json({ success: true, username: user.username, isAdmin: user.isAdmin });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Login Error:', err);
+    res.status(500).json({ success: false, message: `Server error: ${err.message}` });
   }
 });
 
