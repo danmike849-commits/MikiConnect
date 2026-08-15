@@ -8,43 +8,46 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
     body { background-color: #0d1117; color: #c9d1d9; height: 100vh; display: flex; flex-direction: column; }
     
-    header { background-color: #161b22; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; }
-    header h1 { font-size: 1.2rem; color: #2ea44f; display: flex; align-items: center; gap: 8px; }
+    header { background-color: #161b22; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; }
+    header h1 { font-size: 1.1rem; color: #2ea44f; display: flex; align-items: center; gap: 8px; }
     .header-btns { display: flex; gap: 8px; }
     .btn-action { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
     .btn-admin { background: #d97706; color: #fff; border: none; font-weight: bold; display: none; }
     
-    .room-bar { display: flex; gap: 8px; overflow-x: auto; padding: 10px; background-color: #161b22; border-bottom: 1px solid #30363d; }
-    .room-tab { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 8px 14px; border-radius: 20px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+    /* Dedicated Chat Header Bar */
+    .chat-header { background: #161b22; padding: 8px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #30363d; }
+    .chat-header .avatar { width: 36px; height: 36px; background: #1f6feb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .chat-header .user-info { display: flex; flex-direction: column; }
+    .chat-header .username { font-size: 0.95rem; font-weight: bold; color: #fff; }
+    .chat-header .status { font-size: 0.75rem; color: #8b949e; }
+    .chat-header .status.online { color: #2ea44f; }
+
+    .room-bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 12px; background-color: #0d1117; border-bottom: 1px solid #30363d; }
+    .room-tab { background: #161b22; border: 1px solid #30363d; color: #8b949e; padding: 6px 12px; border-radius: 18px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
     .room-tab.active { background: #1f6feb; color: #fff; border-color: #1f6feb; }
     
-    .badge { background-color: #2ea44f; color: white; font-size: 0.75rem; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
+    .badge { background-color: #2ea44f; color: white; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
     .badge.show { display: inline-block; }
 
-    #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-    .message { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
+    #chat-box { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .message { max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 0.9rem; line-height: 1.4; word-break: break-word; position: relative; }
     .message.received { background: #21262d; align-self: flex-start; border-bottom-left-radius: 2px; }
     .message.sent { background: #0b84ff; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
-    .message .sender { font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; color: #58a6ff; }
-    .message .time { font-size: 0.65rem; opacity: 0.7; margin-top: 4px; text-align: right; }
+    
+    .quoted-box { background: rgba(0, 0, 0, 0.25); border-left: 3px solid #2ea44f; padding: 4px 8px; border-radius: 4px; margin-bottom: 4px; font-size: 0.8rem; opacity: 0.9; }
+    .message .time-container { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 2px; }
+    .message .time { font-size: 0.65rem; opacity: 0.75; }
+    .message .ticks { font-size: 0.75rem; font-weight: bold; }
+    .message .ticks.read { color: #58a6ff; }
+    .message .ticks.unread { color: #8b949e; }
 
-    footer { padding: 12px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 8px; }
+    /* Reply Banner */
+    #reply-banner { background: #161b22; padding: 6px 12px; border-top: 1px solid #30363d; display: none; justify-content: space-between; align-items: center; font-size: 0.8rem; }
+    #reply-banner button { background: none; border: none; color: #da3633; cursor: pointer; font-size: 1rem; }
+
+    footer { padding: 10px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 8px; }
     input[type="text"] { flex: 1; background: #0d1117; border: 1px solid #30363d; color: #fff; padding: 10px 14px; border-radius: 20px; outline: none; }
     button.send-btn { background: #0b84ff; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-    /* Admin Panel Overlay */
-    #admin-modal { position: fixed; inset: 0; background: rgba(13, 17, 23, 0.95); display: none; flex-direction: column; padding: 20px; z-index: 90; overflow-y: auto; }
-    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-    .stat-card { background: #161b22; border: 1px solid #30363d; padding: 12px; border-radius: 8px; text-align: center; }
-    .stat-card h4 { font-size: 0.8rem; color: #8b949e; }
-    .stat-card p { font-size: 1.2rem; font-weight: bold; color: #2ea44f; margin-top: 4px; }
-    
-    .admin-section { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
-    .admin-section h3 { font-size: 1rem; margin-bottom: 10px; color: #58a6ff; }
-    .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #21262d; }
-    .btn-danger { background: #da3633; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
-    .btn-warn { background: #d97706; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 
     #auth-screen { position: fixed; inset: 0; background: #0d1117; display: flex; justify-content: center; align-items: center; z-index: 100; }
     .auth-card { background: #161b22; padding: 24px; border-radius: 12px; border: 1px solid #30363d; width: 90%; max-width: 360px; text-align: center; }
@@ -78,29 +81,19 @@
     </div>
   </div>
 
+  <div class="chat-header" id="chat-header">
+    <div class="avatar" id="header-avatar">G</div>
+    <div class="user-info">
+      <div class="username" id="header-title">Global Room</div>
+      <div class="status" id="header-status">Visible to everyone online</div>
+    </div>
+  </div>
+
   <div id="chat-box"></div>
 
-  <div id="admin-modal">
-    <div class="admin-header">
-      <h2>🛡️ Admin Dashboard</h2>
-      <button class="btn-action" onclick="toggleAdminPanel()">Close ✕</button>
-    </div>
-
-    <div class="stats-grid">
-      <div class="stat-card"><h4>Users</h4><p id="stat-users">0</p></div>
-      <div class="stat-card"><h4>Online</h4><p id="stat-online">0</p></div>
-      <div class="stat-card"><h4>Messages</h4><p id="stat-messages">0</p></div>
-    </div>
-
-    <div class="admin-section">
-      <h3>Global Actions</h3>
-      <button class="btn-danger" style="padding: 8px 14px;" onclick="clearGlobalChat()">🗑️ Clear Global Chat</button>
-    </div>
-
-    <div class="admin-section">
-      <h3>User Management</h3>
-      <div id="admin-user-list">Loading...</div>
-    </div>
+  <div id="reply-banner">
+    <div>Replying to: <strong id="reply-user"></strong> - <span id="reply-text"></span></div>
+    <button onclick="cancelReply()">✕</button>
   </div>
 
   <footer>
@@ -113,6 +106,8 @@
     let currentUser = '';
     let isUserAdmin = false;
     let activeRoom = 'Global';
+    let replyTarget = null;
+    let usersList = [];
     const unreadCounts = {};
 
     async function login() {
@@ -132,9 +127,7 @@
         isUserAdmin = data.isAdmin;
         document.getElementById('auth-screen').style.display = 'none';
         
-        if (isUserAdmin) {
-          document.getElementById('admin-btn').style.display = 'inline-block';
-        }
+        if (isUserAdmin) document.getElementById('admin-btn').style.display = 'inline-block';
 
         socket.emit('register_user', currentUser);
         loadUsers();
@@ -151,14 +144,15 @@
       const data = await res.json();
       if (!data.success) return;
 
+      usersList = data.users;
       const roomBar = document.getElementById('room-bar');
       roomBar.innerHTML = `
         <div class="room-tab ${activeRoom === 'Global' ? 'active' : ''}" onclick="switchRoom('Global')" id="tab-Global">
-          🌐 Global Room <span class="badge ${unreadCounts['Global'] ? 'show' : ''}" id="badge-Global">${unreadCounts['Global'] || 0}</span>
+          🌐 Global <span class="badge ${unreadCounts['Global'] ? 'show' : ''}" id="badge-Global">${unreadCounts['Global'] || 0}</span>
         </div>
       `;
 
-      data.users.forEach(u => {
+      usersList.forEach(u => {
         if (u.username !== currentUser) {
           const tab = document.createElement('div');
           tab.className = `room-tab ${activeRoom === u.username ? 'active' : ''}`;
@@ -168,6 +162,34 @@
           roomBar.appendChild(tab);
         }
       });
+
+      updateHeaderStatus();
+    }
+
+    function updateHeaderStatus() {
+      if (activeRoom === 'Global') {
+        document.getElementById('header-avatar').innerText = '🌐';
+        document.getElementById('header-title').innerText = 'Global Public Chat';
+        document.getElementById('header-status').className = 'status';
+        document.getElementById('header-status').innerText = 'Visible to everyone online';
+      } else {
+        const u = usersList.find(x => x.username === activeRoom);
+        document.getElementById('header-avatar').innerText = activeRoom[0].toUpperCase();
+        document.getElementById('header-title').innerText = activeRoom;
+        
+        const statusEl = document.getElementById('header-status');
+        if (u && u.isOnline) {
+          statusEl.className = 'status online';
+          statusEl.innerText = 'online';
+        } else if (u && u.lastSeen) {
+          statusEl.className = 'status';
+          const time = new Date(u.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          statusEl.innerText = `last seen today at ${time}`;
+        } else {
+          statusEl.className = 'status';
+          statusEl.innerText = 'offline';
+        }
+      }
     }
 
     function switchRoom(room) {
@@ -179,6 +201,7 @@
       const activeTab = document.getElementById(`tab-${room}`);
       if (activeTab) activeTab.classList.add('active');
       
+      updateHeaderStatus();
       loadMessages();
     }
 
@@ -214,16 +237,46 @@
       
       const div = document.createElement('div');
       div.className = `message ${isSent ? 'sent' : 'received'}`;
-      
+      div.ondblclick = () => triggerReply(msg);
+
+      let replyHtml = '';
+      if (msg.replyTo) {
+        replyHtml = `
+          <div class="quoted-box">
+            <strong>${msg.replyTo.sender}</strong>: ${msg.replyTo.text}
+          </div>
+        `;
+      }
+
       const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const ticksHtml = isSent 
+        ? `<span class="ticks ${msg.read ? 'read' : 'unread'}">${msg.read ? '✓✓' : '✓'}</span>` 
+        : '';
+
       div.innerHTML = `
-        ${!isSent ? `<div class="sender">${msg.sender}</div>` : ''}
+        ${replyHtml}
+        ${!isSent && activeRoom === 'Global' ? `<div style="font-size:0.75rem; font-weight:bold; color:#58a6ff; margin-bottom:2px;">${msg.sender}</div>` : ''}
         <div>${msg.text}</div>
-        <div class="time">${timeStr}</div>
+        <div class="time-container">
+          <span class="time">${timeStr}</span>
+          ${ticksHtml}
+        </div>
       `;
       
       chatBox.appendChild(div);
       chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function triggerReply(msg) {
+      replyTarget = { sender: msg.sender, text: msg.text };
+      document.getElementById('reply-user').innerText = msg.sender;
+      document.getElementById('reply-text').innerText = msg.text.substring(0, 30);
+      document.getElementById('reply-banner').style.display = 'flex';
+    }
+
+    function cancelReply() {
+      replyTarget = null;
+      document.getElementById('reply-banner').style.display = 'none';
     }
 
     function sendMessage() {
@@ -231,62 +284,16 @@
       const text = input.value.trim();
       if (!text) return;
 
-      socket.emit('send_message', { sender: currentUser, receiver: activeRoom, text });
+      const payload = {
+        sender: currentUser,
+        receiver: activeRoom,
+        text: text,
+        replyTo: replyTarget
+      };
+
+      socket.emit('send_message', payload);
       input.value = '';
-    }
-
-    async function toggleAdminPanel() {
-      const modal = document.getElementById('admin-modal');
-      if (modal.style.display === 'flex') {
-        modal.style.display = 'none';
-      } else {
-        modal.style.display = 'flex';
-        fetchAdminData();
-      }
-    }
-
-    async function fetchAdminData() {
-      const res = await fetch('/api/admin/data');
-      const data = await res.json();
-      if (!data.success) return;
-
-      document.getElementById('stat-users').innerText = data.stats.totalUsers;
-      document.getElementById('stat-online').innerText = data.stats.onlineUsers;
-      document.getElementById('stat-messages').innerText = data.stats.totalMessages;
-
-      const list = document.getElementById('admin-user-list');
-      list.innerHTML = '';
-      data.users.forEach(u => {
-        const item = document.createElement('div');
-        item.className = 'user-list-item';
-        item.innerHTML = `
-          <span>${u.username} ${u.isAdmin ? '<strong>(Admin)</strong>' : ''}</span>
-          <div>
-            <button class="btn-warn" onclick="toggleRole('${u.username}')">Role</button>
-            <button class="btn-danger" onclick="deleteUser('${u.username}')">Delete</button>
-          </div>
-        `;
-        list.appendChild(item);
-      });
-    }
-
-    async function toggleRole(username) {
-      await fetch(`/api/admin/users/${username}/role`, { method: 'PUT' });
-      fetchAdminData();
-    }
-
-    async function deleteUser(username) {
-      if (!confirm(`Delete user ${username}?`)) return;
-      await fetch(`/api/admin/users/${username}`, { method: 'DELETE' });
-      fetchAdminData();
-      loadUsers();
-    }
-
-    async function clearGlobalChat() {
-      if (!confirm('Are you sure you want to clear all global messages?')) return;
-      await fetch('/api/admin/clear-global', { method: 'POST' });
-      fetchAdminData();
-      if (activeRoom === 'Global') loadMessages();
+      cancelReply();
     }
 
     socket.on('new_message', (msg) => {
@@ -304,8 +311,8 @@
       }
     });
 
-    socket.on('global_chat_cleared', () => {
-      if (activeRoom === 'Global') loadMessages();
+    socket.on('messages_read', () => {
+      if (activeRoom !== 'Global') loadMessages();
     });
 
     socket.on('user_status_change', () => loadUsers());

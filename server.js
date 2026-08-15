@@ -11,7 +11,6 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Accept either MONGO_URI or MONGODB_URI, and fix lowercase scheme automatically
 let rawUri = process.env.MONGO_URI || process.env.MONGODB_URI || '';
 if (rawUri.startsWith('Mongodb+srv://')) {
   rawUri = 'mongodb+srv://' + rawUri.substring(14);
@@ -19,61 +18,50 @@ if (rawUri.startsWith('Mongodb+srv://')) {
 
 const MONGO_URI = rawUri;
 
-if (!MONGO_URI) {
-  console.error('CRITICAL: Neither MONGO_URI nor MONGODB_URI environment variable is set!');
-} else {
+if (MONGO_URI) {
   mongoose.connect(MONGO_URI)
     .then(() => console.log('MongoDB Connected Successfully'))
-    .catch(err => console.error('MongoDB Connection Error:', err.message));
+    .catch(err => console.error('MongoDB Error:', err.message));
 }
 
-// UptimeRobot Health Check
 app.get('/ping', (req, res) => {
-  const isConnected = mongoose.connection.readyState === 1;
   res.status(200).json({ 
     status: 'online', 
-    database: isConnected ? 'connected' : 'disconnected' 
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' 
   });
 });
 
-// Middleware to prevent 10s buffering timeouts when DB is disconnected
 const checkDbConnection = (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ 
-      success: false, 
-      message: 'Database connection offline. Check MONGO_URI setting in Render.' 
-    });
+    return res.status(503).json({ success: false, message: 'Database connection offline.' });
   }
   next();
 };
 
-// Schemas
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  isAdmin: { type: Boolean, default: false }
+  isAdmin: { type: Boolean, default: false },
+  lastSeen: { type: Date, default: Date.now }
 });
 
 const messageSchema = new mongoose.Schema({
   sender: String,
   receiver: String,
   text: String,
+  replyTo: { type: Object, default: null },
+  read: { type: Boolean, default: false },
   timestamp: { type: Date, default: Date.now }
 });
 
 const User = mongoose.model('User', userSchema);
 const Message = mongoose.model('Message', messageSchema);
 
-const onlineUsers = new Set();
+const onlineUsers = new Map();
 
-// API Routes
 app.post('/api/login', checkDbConnection, async (req, res) => {
   const { username, password } = req.body;
   try {
-    if (!username || !password) {
-      return res.status(400).json({ success: false, message: 'Username and password required' });
-    }
-
     let user = await User.findOne({ username });
     if (!user) {
       const count = await User.countDocuments();
@@ -82,18 +70,22 @@ app.post('/api/login', checkDbConnection, async (req, res) => {
     } else if (user.password !== password) {
       return res.status(400).json({ success: false, message: 'Invalid password' });
     }
-    
     res.json({ success: true, username: user.username, isAdmin: user.isAdmin });
   } catch (err) {
-    console.error('Login Error:', err);
-    res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
 app.get('/api/users', checkDbConnection, async (req, res) => {
   try {
-    const users = await User.find({}, 'username isAdmin');
-    res.json({ success: true, users });
+    const users = await User.find({}, 'username isAdmin lastSeen');
+    const result = users.map(u => ({
+      username: u.username,
+      isAdmin: u.isAdmin,
+      isOnline: onlineUsers.has(u.username),
+      lastSeen: u.lastSeen
+    }));
+    res.json({ success: true, users: result });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -106,6 +98,11 @@ app.get('/api/messages', checkDbConnection, async (req, res) => {
       ? { receiver: 'Global' } 
       : { $or: [{ sender: user1, receiver: user2 }, { sender: user2, receiver: user1 }] };
 
+    if (user2 !== 'Global') {
+      await Message.updateMany({ sender: user2, receiver: user1, read: false }, { $set: { read: true } });
+      io.emit('messages_read', { sender: user2, receiver: user1 });
+    }
+
     const messages = await Message.find(query).sort({ timestamp: 1 });
     res.json({ success: true, messages });
   } catch (err) {
@@ -113,74 +110,12 @@ app.get('/api/messages', checkDbConnection, async (req, res) => {
   }
 });
 
-// Admin Routes
-app.get('/api/admin/data', checkDbConnection, async (req, res) => {
-  try {
-    const totalUsers = await User.countDocuments();
-    const totalMessages = await Message.countDocuments();
-    const users = await User.find({}, 'username isAdmin');
-    const messages = await Message.find().sort({ timestamp: -1 }).limit(10);
-    
-    res.json({
-      success: true,
-      stats: { totalUsers, onlineUsers: onlineUsers.size, totalMessages },
-      users,
-      messages
-    });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-app.put('/api/admin/users/:username/role', checkDbConnection, async (req, res) => {
-  try {
-    const user = await User.findOne({ username: req.params.username });
-    if (user) {
-      user.isAdmin = !user.isAdmin;
-      await user.save();
-    }
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-app.delete('/api/admin/users/:username', checkDbConnection, async (req, res) => {
-  try {
-    await User.deleteOne({ username: req.params.username });
-    await Message.deleteMany({ $or: [{ sender: req.params.username }, { receiver: req.params.username }] });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-app.delete('/api/admin/messages/:id', checkDbConnection, async (req, res) => {
-  try {
-    await Message.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-app.post('/api/admin/clear-global', checkDbConnection, async (req, res) => {
-  try {
-    await Message.deleteMany({ receiver: 'Global' });
-    io.emit('global_chat_cleared');
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-// Socket.io WebSockets
 io.on('connection', (socket) => {
   let currentUser = '';
 
-  socket.on('register_user', (username) => {
+  socket.on('register_user', async (username) => {
     currentUser = username;
-    onlineUsers.add(username);
+    onlineUsers.set(username, socket.id);
     io.emit('user_status_change');
   });
 
@@ -190,13 +125,14 @@ io.on('connection', (socket) => {
       await newMsg.save();
       io.emit('new_message', newMsg);
     } catch (err) {
-      console.error('Save message error:', err);
+      console.error('Save error:', err);
     }
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     if (currentUser) {
       onlineUsers.delete(currentUser);
+      await User.updateOne({ username: currentUser }, { $set: { lastSeen: new Date() } });
       io.emit('user_status_change');
     }
   });
