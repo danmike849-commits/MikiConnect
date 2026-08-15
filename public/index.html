@@ -43,10 +43,9 @@
     .message .ticks.unread { color: #8b949e; }
     .edited-label { font-size: 0.6rem; opacity: 0.7; font-style: italic; margin-right: 4px; }
 
-    #action-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 200; }
-    .action-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 80%; max-width: 280px; overflow: hidden; }
+    #admin-modal, #action-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 200; }
+    .modal-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 90%; max-width: 320px; overflow: hidden; padding: 16px; }
     .action-item { padding: 12px 16px; border-bottom: 1px solid #21262d; color: #c9d1d9; cursor: pointer; font-size: 0.9rem; }
-    .action-item:hover { background: #21262d; }
     .action-item.danger { color: #da3633; }
 
     #reply-banner { background: #161b22; padding: 4px 10px; border-top: 1px solid #30363d; display: none; justify-content: space-between; align-items: center; font-size: 0.75rem; flex-shrink: 0; }
@@ -78,15 +77,13 @@
   <header>
     <h1>❤️ MIKICONNECT</h1>
     <div class="header-btns">
-      <button class="btn-action btn-admin" id="admin-btn" onclick="toggleAdminPanel()">⚡ Dashboard</button>
+      <button class="btn-action btn-admin" id="admin-btn" onclick="openAdminPanel()">⚡ Dashboard</button>
       <button class="btn-action" onclick="logout()">Log Out</button>
     </div>
   </header>
 
   <div class="room-bar" id="room-bar">
-    <div class="room-tab active" onclick="switchRoom('Global')" id="tab-Global">
-      🌐 Global
-    </div>
+    <div class="room-tab active" onclick="switchRoom('Global')" id="tab-Global">🌐 Global</div>
   </div>
 
   <div class="chat-header" id="chat-header">
@@ -111,8 +108,16 @@
     <button class="send-btn" onclick="sendMessage()">➤</button>
   </footer>
 
+  <div id="admin-modal" onclick="closeAdminPanel()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <h3 style="color:#fff; margin-bottom: 12px;">⚡ Admin Dashboard</h3>
+      <div id="admin-user-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 12px;"></div>
+      <button onclick="closeAdminPanel()" style="width: 100%; padding: 8px; background: #21262d; border: 1px solid #30363d; color: #fff; border-radius: 6px; cursor: pointer;">Close</button>
+    </div>
+  </div>
+
   <div id="action-modal" onclick="closeActionModal()">
-    <div class="action-card" onclick="event.stopPropagation()">
+    <div class="modal-card" style="padding:0;" onclick="event.stopPropagation()">
       <div class="action-item" onclick="copyMessage()">📋 Copy Text</div>
       <div class="action-item" onclick="triggerReplySelected()">💬 Reply</div>
       <div class="action-item" id="edit-opt" onclick="startEditMessage()">✏️ Edit Message</div>
@@ -182,6 +187,34 @@
       location.reload(); 
     }
 
+    async function openAdminPanel() {
+      const token = localStorage.getItem('mikiconnect_token');
+      const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+      const data = await res.json();
+      if (!data.success) return alert(data.message || 'Admin access denied');
+
+      const listEl = document.getElementById('admin-user-list');
+      listEl.innerHTML = data.users.map(u => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #30363d; font-size:0.85rem;">
+          <span>${u.username} ${u.isAdmin ? '⚡' : ''}</span>
+          ${u.username !== currentUser ? `<button onclick="deleteUserByAdmin('${u.username}')" style="background:#da3633; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Delete</button>` : ''}
+        </div>
+      `).join('');
+
+      document.getElementById('admin-modal').style.display = 'flex';
+    }
+
+    function closeAdminPanel() {
+      document.getElementById('admin-modal').style.display = 'none';
+    }
+
+    async function deleteUserByAdmin(username) {
+      if (!confirm(`Delete user ${username}?`)) return;
+      const token = localStorage.getItem('mikiconnect_token');
+      await fetch(`/api/admin/users/${username}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      openAdminPanel();
+    }
+
     async function loadUsers() {
       const res = await fetch(`/api/users?currentUser=${currentUser}`);
       const data = await res.json();
@@ -189,11 +222,7 @@
 
       usersList = data.users;
       const roomBar = document.getElementById('room-bar');
-      roomBar.innerHTML = `
-        <div class="room-tab ${activeRoom === 'Global' ? 'active' : ''}" onclick="switchRoom('Global')" id="tab-Global">
-          🌐 Global
-        </div>
-      `;
+      roomBar.innerHTML = `<div class="room-tab ${activeRoom === 'Global' ? 'active' : ''}" onclick="switchRoom('Global')" id="tab-Global">🌐 Global</div>`;
 
       usersList.forEach(u => {
         if (u.username !== currentUser) {
@@ -240,7 +269,6 @@
 
     function switchRoom(room) {
       activeRoom = room;
-      
       document.querySelectorAll('.room-tab').forEach(t => t.classList.remove('active'));
       const activeTab = document.getElementById(`tab-${room}`);
       if (activeTab) activeTab.classList.add('active');
@@ -273,22 +301,12 @@
       div.id = `msg-${msg._id}`;
       div.onclick = () => openActionModal(msg);
 
-      let replyHtml = '';
-      if (msg.replyTo) {
-        replyHtml = `
-          <div class="quoted-box">
-            <strong>${msg.replyTo.sender}</strong>: ${msg.replyTo.text || '[Image]'}
-          </div>
-        `;
-      }
-
+      let replyHtml = msg.replyTo ? `<div class="quoted-box"><strong>${msg.replyTo.sender}</strong>: ${msg.replyTo.text || '[Image]'}</div>` : '';
       let imageHtml = msg.image ? `<img src="${msg.image}" />` : '';
       let textHtml = msg.text ? `<div>${msg.text}</div>` : '';
 
       const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const ticksHtml = isSent 
-        ? `<span class="ticks ${msg.read ? 'read' : 'unread'}">${msg.read ? '✓✓' : '✓'}</span>` 
-        : '';
+      const ticksHtml = isSent ? `<span class="ticks ${msg.read ? 'read' : 'unread'}">${msg.read ? '✓✓' : '✓'}</span>` : '';
 
       div.innerHTML = `
         ${replyHtml}
@@ -309,7 +327,6 @@
     function openActionModal(msg) {
       selectedMsg = msg;
       const isSent = msg.sender === currentUser;
-      
       document.getElementById('edit-opt').style.display = isSent ? 'block' : 'none';
       document.getElementById('delete-opt').style.display = (isSent || isUserAdmin) ? 'block' : 'none';
       document.getElementById('action-modal').style.display = 'flex';
@@ -320,10 +337,7 @@
     }
 
     function copyMessage() {
-      if (selectedMsg && selectedMsg.text) {
-        navigator.clipboard.writeText(selectedMsg.text);
-        alert('Message copied to clipboard');
-      }
+      if (selectedMsg && selectedMsg.text) navigator.clipboard.writeText(selectedMsg.text);
       closeActionModal();
     }
 
@@ -417,39 +431,25 @@
         (msg.sender === activeRoom && msg.receiver === currentUser) ||
         (msg.sender === currentUser && msg.receiver === activeRoom);
 
-      if (isForCurrentRoom) {
-        appendMessage(msg);
-      } else {
-        loadUsers();
-      }
+      if (isForCurrentRoom) appendMessage(msg);
+      else loadUsers();
     });
 
-    socket.on('message_updated', (updatedMsg) => {
-      const el = document.getElementById(`msg-${updatedMsg._id}`);
-      if (el) loadMessages();
-    });
-
+    socket.on('message_updated', () => loadMessages());
     socket.on('message_deleted', (msgId) => {
       const el = document.getElementById(`msg-${msgId}`);
       if (el) el.remove();
     });
 
     socket.on('user_typing', (data) => {
-      if ((activeRoom === 'Global' && data.receiver === 'Global') || data.sender === activeRoom) {
-        updateHeaderStatus(true);
-      }
+      if ((activeRoom === 'Global' && data.receiver === 'Global') || data.sender === activeRoom) updateHeaderStatus(true);
     });
 
     socket.on('user_stop_typing', (data) => {
-      if ((activeRoom === 'Global' && data.receiver === 'Global') || data.sender === activeRoom) {
-        updateHeaderStatus(false);
-      }
+      if ((activeRoom === 'Global' && data.receiver === 'Global') || data.sender === activeRoom) updateHeaderStatus(false);
     });
 
-    socket.on('messages_read', () => {
-      if (activeRoom !== 'Global') loadMessages();
-    });
-
+    socket.on('messages_read', () => { if (activeRoom !== 'Global') loadMessages(); });
     socket.on('user_status_change', () => loadUsers());
   </script>
 </body>

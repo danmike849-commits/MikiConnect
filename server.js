@@ -21,11 +21,11 @@ if (rawUri.startsWith('Mongodb+srv://')) {
 
 if (rawUri) {
   mongoose.connect(rawUri)
-    .then(() => console.log('MongoDB Connected Successfully'))
+    .then(() => console.log('MongoDB Connected'))
     .catch(err => console.error('MongoDB Error:', err.message));
 }
 
-// Health check endpoint for UptimeRobot
+// Health check endpoint
 app.get('/ping', (req, res) => {
   res.status(200).json({ 
     status: 'online', 
@@ -35,9 +35,22 @@ app.get('/ping', (req, res) => {
 
 const checkDbConnection = (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ success: false, message: 'Database connection offline.' });
+    return res.status(503).json({ success: false, message: 'Database offline.' });
   }
   next();
+};
+
+const requireAdmin = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false, message: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!decoded.isAdmin) return res.status(403).json({ success: false, message: 'Admins only' });
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ success: false, message: 'Invalid token' });
+  }
 };
 
 const userSchema = new mongoose.Schema({
@@ -93,12 +106,31 @@ app.get('/api/verify', (req, res) => {
   }
 });
 
-// App Routes
+// Admin Routes
+app.get('/api/admin/users', checkDbConnection, requireAdmin, async (req, res) => {
+  try {
+    const users = await User.find({}, 'username isAdmin lastSeen');
+    res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/admin/users/:username', checkDbConnection, requireAdmin, async (req, res) => {
+  try {
+    await User.deleteOne({ username: req.params.username });
+    await Message.deleteMany({ $or: [{ sender: req.params.username }, { receiver: req.params.username }] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// User & Message Routes
 app.get('/api/users', checkDbConnection, async (req, res) => {
   const currentUser = req.query.currentUser;
   try {
     const users = await User.find({}, 'username isAdmin lastSeen');
-    
     const unreadCounts = {};
     if (currentUser) {
       const unreads = await Message.aggregate([
@@ -107,7 +139,6 @@ app.get('/api/users', checkDbConnection, async (req, res) => {
       ]);
       unreads.forEach(u => unreadCounts[u._id] = u.count);
     }
-
     const result = users.map(u => ({
       username: u.username,
       isAdmin: u.isAdmin,
@@ -115,7 +146,6 @@ app.get('/api/users', checkDbConnection, async (req, res) => {
       lastSeen: u.lastSeen,
       unreadCount: unreadCounts[u.username] || 0
     }));
-
     res.json({ success: true, users: result });
   } catch (err) {
     res.status(500).json({ success: false });
@@ -141,11 +171,9 @@ app.get('/api/messages', checkDbConnection, async (req, res) => {
   }
 });
 
-// Edit & Delete Routes
 app.put('/api/messages/:id', checkDbConnection, async (req, res) => {
-  const { text } = req.body;
   try {
-    const msg = await Message.findByIdAndUpdate(req.params.id, { text, isEdited: true }, { new: true });
+    const msg = await Message.findByIdAndUpdate(req.params.id, { text: req.body.text, isEdited: true }, { new: true });
     io.emit('message_updated', msg);
     res.json({ success: true });
   } catch (err) {
@@ -173,13 +201,8 @@ io.on('connection', (socket) => {
     io.emit('user_status_change');
   });
 
-  socket.on('typing', (data) => {
-    socket.broadcast.emit('user_typing', data);
-  });
-
-  socket.on('stop_typing', (data) => {
-    socket.broadcast.emit('user_stop_typing', data);
-  });
+  socket.on('typing', (data) => socket.broadcast.emit('user_typing', data));
+  socket.on('stop_typing', (data) => socket.broadcast.emit('user_stop_typing', data));
 
   socket.on('send_message', async (data) => {
     try {
