@@ -35,8 +35,11 @@
     .room-sub { font-size: 0.75rem; color: #94a3b8; }
 
     .users-bar { display: flex; gap: 8px; padding: 8px 12px; background: #0f172a; border-bottom: 1px solid #1e293b; overflow-x: auto; white-space: nowrap; }
-    .user-chip { background: #1e293b; color: #cbd5e1; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .user-chip { background: #1e293b; color: #cbd5e1; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; position: relative; }
     .user-chip.active { background: #0284c7; color: white; font-weight: bold; }
+    
+    /* GREEN UNREAD MESSAGE BADGE */
+    .unread-badge { background: #22c55e; color: #000; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; text-align: center; }
 
     .messages-container { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .message-bubble { max-width: 78%; padding: 10px 14px; border-radius: 14px; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; position: relative; }
@@ -111,7 +114,7 @@
 
     <!-- ONLINE / DM USER LIST -->
     <div class="users-bar" id="usersBar">
-      <div class="user-chip active" onclick="switchRoom('Global', 'Global Public Chat')">🌐 Global Room</div>
+      <div class="user-chip active" id="chip-Global" onclick="switchRoom('Global', 'Global Public Chat')">🌐 Global Room</div>
     </div>
 
     <!-- MESSAGES -->
@@ -172,6 +175,7 @@
     let currentUser = localStorage.getItem('miki_user');
     let isAdmin = localStorage.getItem('miki_admin') === 'true';
     let currentReceiver = 'Global';
+    let unreadCounts = {}; // Track unread counts per room/user
 
     if (currentUser) {
       initSession(currentUser, isAdmin);
@@ -229,11 +233,22 @@
         const data = await res.json();
         if (data.success) {
           const bar = document.getElementById('usersBar');
-          let html = `<div class="user-chip ${currentReceiver === 'Global' ? 'active' : ''}" onclick="switchRoom('Global', 'Global Public Chat')">🌐 Global Room</div>`;
+          let html = `
+            <div class="user-chip ${currentReceiver === 'Global' ? 'active' : ''}" id="chip-Global" onclick="switchRoom('Global', 'Global Public Chat')">
+              🌐 Global Room
+              ${unreadCounts['Global'] ? `<span class="unread-badge">${unreadCounts['Global']}</span>` : ''}
+            </div>
+          `;
           data.users.forEach(u => {
             if (u.username !== currentUser) {
               const activeClass = currentReceiver === u.username ? 'active' : '';
-              html += `<div class="user-chip ${activeClass}" onclick="switchRoom('${u.username}', '@${u.username}')">👤 ${u.username}</div>`;
+              const count = unreadCounts[u.username];
+              html += `
+                <div class="user-chip ${activeClass}" id="chip-${u.username}" onclick="switchRoom('${u.username}', '@${u.username}')">
+                  👤 ${u.username}
+                  ${count ? `<span class="unread-badge">${count}</span>` : ''}
+                </div>
+              `;
             }
           });
           bar.innerHTML = html;
@@ -243,6 +258,7 @@
 
     function switchRoom(receiver, title) {
       currentReceiver = receiver;
+      delete unreadCounts[receiver]; // Clear unread counter when opening chat
       document.getElementById('currentRoomTitle').innerText = title;
       document.getElementById('currentRoomSub').innerText = receiver === 'Global' ? 'Visible to everyone online' : 'Direct Message';
       loadUsers();
@@ -299,10 +315,18 @@
     }
 
     socket.on('new_message', (msg) => {
+      // If message belongs to current open view
       if ((msg.receiver === 'Global' && currentReceiver === 'Global') ||
           (msg.sender === currentUser && msg.receiver === currentReceiver) ||
           (msg.sender === currentReceiver && msg.receiver === currentUser)) {
         appendMessage(msg);
+      } else {
+        // Message arrived for another room -> Increment unread badge!
+        const targetKey = msg.receiver === 'Global' ? 'Global' : msg.sender;
+        if (targetKey !== currentUser) {
+          unreadCounts[targetKey] = (unreadCounts[targetKey] || 0) + 1;
+          loadUsers(); // Refresh chip badges dynamically
+        }
       }
     });
 
