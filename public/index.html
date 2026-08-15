@@ -10,7 +10,9 @@
     
     header { background-color: #161b22; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; }
     header h1 { font-size: 1.2rem; color: #2ea44f; display: flex; align-items: center; gap: 8px; }
-    .btn-logout { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    .header-btns { display: flex; gap: 8px; }
+    .btn-action { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    .btn-admin { background: #d97706; color: #fff; border: none; font-weight: bold; display: none; }
     
     .room-bar { display: flex; gap: 8px; overflow-x: auto; padding: 10px; background-color: #161b22; border-bottom: 1px solid #30363d; }
     .room-tab { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 8px 14px; border-radius: 20px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
@@ -29,6 +31,20 @@
     footer { padding: 12px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 8px; }
     input[type="text"] { flex: 1; background: #0d1117; border: 1px solid #30363d; color: #fff; padding: 10px 14px; border-radius: 20px; outline: none; }
     button.send-btn { background: #0b84ff; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    /* Admin Panel Overlay */
+    #admin-modal { position: fixed; inset: 0; background: rgba(13, 17, 23, 0.95); display: none; flex-direction: column; padding: 20px; z-index: 90; overflow-y: auto; }
+    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat-card { background: #161b22; border: 1px solid #30363d; padding: 12px; border-radius: 8px; text-align: center; }
+    .stat-card h4 { font-size: 0.8rem; color: #8b949e; }
+    .stat-card p { font-size: 1.2rem; font-weight: bold; color: #2ea44f; margin-top: 4px; }
+    
+    .admin-section { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    .admin-section h3 { font-size: 1rem; margin-bottom: 10px; color: #58a6ff; }
+    .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #21262d; }
+    .btn-danger { background: #da3633; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+    .btn-warn { background: #d97706; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 
     #auth-screen { position: fixed; inset: 0; background: #0d1117; display: flex; justify-content: center; align-items: center; z-index: 100; }
     .auth-card { background: #161b22; padding: 24px; border-radius: 12px; border: 1px solid #30363d; width: 90%; max-width: 360px; text-align: center; }
@@ -50,7 +66,10 @@
 
   <header>
     <h1>❤️ MIKICONNECT</h1>
-    <button class="btn-logout" onclick="logout()">Log Out</button>
+    <div class="header-btns">
+      <button class="btn-action btn-admin" id="admin-btn" onclick="toggleAdminPanel()">⚡ Dashboard</button>
+      <button class="btn-action" onclick="logout()">Log Out</button>
+    </div>
   </header>
 
   <div class="room-bar" id="room-bar">
@@ -61,6 +80,29 @@
 
   <div id="chat-box"></div>
 
+  <div id="admin-modal">
+    <div class="admin-header">
+      <h2>🛡️ Admin Dashboard</h2>
+      <button class="btn-action" onclick="toggleAdminPanel()">Close ✕</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><h4>Users</h4><p id="stat-users">0</p></div>
+      <div class="stat-card"><h4>Online</h4><p id="stat-online">0</p></div>
+      <div class="stat-card"><h4>Messages</h4><p id="stat-messages">0</p></div>
+    </div>
+
+    <div class="admin-section">
+      <h3>Global Actions</h3>
+      <button class="btn-danger" style="padding: 8px 14px;" onclick="clearGlobalChat()">🗑️ Clear Global Chat</button>
+    </div>
+
+    <div class="admin-section">
+      <h3>User Management</h3>
+      <div id="admin-user-list">Loading...</div>
+    </div>
+  </div>
+
   <footer>
     <input type="text" id="msg-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
     <button class="send-btn" onclick="sendMessage()">➤</button>
@@ -69,6 +111,7 @@
   <script>
     const socket = io();
     let currentUser = '';
+    let isUserAdmin = false;
     let activeRoom = 'Global';
     const unreadCounts = {};
 
@@ -86,7 +129,13 @@
 
       if (data.success) {
         currentUser = data.username;
+        isUserAdmin = data.isAdmin;
         document.getElementById('auth-screen').style.display = 'none';
+        
+        if (isUserAdmin) {
+          document.getElementById('admin-btn').style.display = 'inline-block';
+        }
+
         socket.emit('register_user', currentUser);
         loadUsers();
         loadMessages();
@@ -95,9 +144,7 @@
       }
     }
 
-    function logout() {
-      location.reload();
-    }
+    function logout() { location.reload(); }
 
     async function loadUsers() {
       const res = await fetch('/api/users');
@@ -184,14 +231,62 @@
       const text = input.value.trim();
       if (!text) return;
 
-      const msgData = {
-        sender: currentUser,
-        receiver: activeRoom,
-        text: text
-      };
-
-      socket.emit('send_message', msgData);
+      socket.emit('send_message', { sender: currentUser, receiver: activeRoom, text });
       input.value = '';
+    }
+
+    async function toggleAdminPanel() {
+      const modal = document.getElementById('admin-modal');
+      if (modal.style.display === 'flex') {
+        modal.style.display = 'none';
+      } else {
+        modal.style.display = 'flex';
+        fetchAdminData();
+      }
+    }
+
+    async function fetchAdminData() {
+      const res = await fetch('/api/admin/data');
+      const data = await res.json();
+      if (!data.success) return;
+
+      document.getElementById('stat-users').innerText = data.stats.totalUsers;
+      document.getElementById('stat-online').innerText = data.stats.onlineUsers;
+      document.getElementById('stat-messages').innerText = data.stats.totalMessages;
+
+      const list = document.getElementById('admin-user-list');
+      list.innerHTML = '';
+      data.users.forEach(u => {
+        const item = document.createElement('div');
+        item.className = 'user-list-item';
+        item.innerHTML = `
+          <span>${u.username} ${u.isAdmin ? '<strong>(Admin)</strong>' : ''}</span>
+          <div>
+            <button class="btn-warn" onclick="toggleRole('${u.username}')">Role</button>
+            <button class="btn-danger" onclick="deleteUser('${u.username}')">Delete</button>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    async function toggleRole(username) {
+      await fetch(`/api/admin/users/${username}/role`, { method: 'PUT' });
+      fetchAdminData();
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Delete user ${username}?`)) return;
+      await fetch(`/api/admin/users/${username}`, { method: 'DELETE' });
+      fetchAdminData();
+      loadUsers();
+    }
+
+    async function clearGlobalChat() {
+      if (!confirm('Are you sure you want to clear all global messages?')) return;
+      await fetch('/api/admin/clear-global', { method: 'POST' });
+      fetchAdminData();
+      if (activeRoom === 'Global') loadMessages();
     }
 
     socket.on('new_message', (msg) => {
@@ -207,6 +302,10 @@
         unreadCounts[roomKey] = (unreadCounts[roomKey] || 0) + 1;
         updateBadges();
       }
+    });
+
+    socket.on('global_chat_cleared', () => {
+      if (activeRoom === 'Global') loadMessages();
     });
 
     socket.on('user_status_change', () => loadUsers());
