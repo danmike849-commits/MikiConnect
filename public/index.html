@@ -37,13 +37,12 @@
     .users-bar { display: flex; gap: 8px; padding: 8px 12px; background: #0f172a; border-bottom: 1px solid #1e293b; overflow-x: auto; white-space: nowrap; }
     .user-chip { background: #1e293b; color: #cbd5e1; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
     .user-chip.active { background: #0284c7; color: white; font-weight: bold; }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; }
-    .status-dot.online { background: #22c55e; }
 
     .messages-container { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .message-bubble { max-width: 78%; padding: 10px 14px; border-radius: 14px; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; position: relative; }
     .message-bubble.sent { align-self: flex-end; background: #0284c7; color: white; border-bottom-right-radius: 2px; }
     .message-bubble.received { align-self: flex-start; background: #1e293b; color: #f8fafc; border-bottom-left-radius: 2px; }
+    .message-bubble.announcement { align-self: center; background: #ea580c; color: white; text-align: center; max-width: 90%; border-radius: 10px; font-weight: 500; }
     .message-sender { font-weight: bold; font-size: 0.75rem; color: #38bdf8; margin-bottom: 3px; }
     .message-bubble.sent .message-sender { display: none; }
     .message-time { font-size: 0.65rem; opacity: 0.7; text-align: right; margin-top: 4px; }
@@ -55,19 +54,30 @@
     /* ADMIN DASHBOARD MODAL */
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
     .modal.active { display: flex; }
-    .modal-card { background: #1e293b; width: 100%; max-width: 500px; max-height: 85vh; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-card { background: #1e293b; width: 100%; max-width: 520px; max-height: 90vh; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
     .modal-header { padding: 14px 18px; background: #0f172a; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
-    .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
-    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .modal-body { padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .stat-card { background: #0f172a; padding: 10px; border-radius: 8px; text-align: center; }
     .stat-num { font-size: 1.2rem; font-weight: bold; color: #38bdf8; }
     .stat-label { font-size: 0.7rem; color: #94a3b8; }
-    .admin-action-btn { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-bottom: 16px; }
+    
+    .admin-section { background: #0f172a; padding: 12px; border-radius: 8px; }
+    .admin-section h4 { font-size: 0.85rem; color: #cbd5e1; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .admin-action-btn { background: #ef4444; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; }
+    
+    .announcement-box { display: flex; gap: 6px; }
+    .btn-announce { background: #f97316; color: white; border: none; padding: 0 14px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+    .user-list-item, .msg-list-item { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 0.85rem; }
+    .btn-xs { padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
+    .btn-xs-danger { background: #ef4444; color: white; }
+    .btn-xs-role { background: #3b82f6; color: white; }
   </style>
 </head>
 <body class="logged-out">
 
-  <!-- APP HEADER (No top tab bar) -->
+  <!-- APP HEADER -->
   <header class="app-header">
     <div class="app-title">
       <span>❤️</span>
@@ -79,7 +89,7 @@
     </div>
   </header>
 
-  <!-- AUTH / LOGIN CONTAINER -->
+  <!-- AUTH VIEW -->
   <div class="auth-wrapper">
     <div class="auth-card">
       <h2>Welcome to MikiConnect</h2>
@@ -114,21 +124,44 @@
     </div>
   </div>
 
-  <!-- ADMIN PANEL MODAL -->
+  <!-- FULL ADMIN DASHBOARD MODAL -->
   <div class="modal" id="adminModal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>⚙️ Admin Dashboard</h3>
+        <h3>⚙️ Admin Control Panel</h3>
         <button class="btn-header" onclick="closeAdminModal()">✕</button>
       </div>
       <div class="modal-body">
+        <!-- STATS -->
         <div class="stat-grid">
           <div class="stat-card"><div class="stat-num" id="statUsers">0</div><div class="stat-label">Users</div></div>
           <div class="stat-card"><div class="stat-num" id="statOnline">0</div><div class="stat-label">Online</div></div>
           <div class="stat-card"><div class="stat-num" id="statMsgs">0</div><div class="stat-label">Messages</div></div>
         </div>
+
+        <!-- ANNOUNCEMENTS -->
+        <div class="admin-section">
+          <h4>📢 Broadcast Announcement</h4>
+          <div class="announcement-box">
+            <input type="text" id="announceInput" class="input-field" style="margin: 0;" placeholder="Alert all users..." />
+            <button class="btn-announce" onclick="sendAnnouncement()">Send</button>
+          </div>
+        </div>
+
+        <!-- USER MANAGEMENT -->
+        <div class="admin-section">
+          <h4>👥 Manage Users</h4>
+          <div id="adminUserList" style="max-height: 140px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- MESSAGE MODERATION -->
+        <div class="admin-section">
+          <h4>💬 Moderate Recent Messages</h4>
+          <div id="adminMsgList" style="max-height: 140px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- DANGER ZONE -->
         <button class="admin-action-btn" onclick="clearGlobalChat()">🗑️ Clear Global Chat</button>
-        <div id="adminUserList"></div>
       </div>
     </div>
   </div>
@@ -149,7 +182,7 @@
       const password = document.getElementById('passwordInput').value.trim();
 
       if (!username || !password) {
-        alert('Please fill out both username and password.');
+        alert('Please fill out both fields.');
         return;
       }
 
@@ -232,16 +265,21 @@
     function appendMessage(msg) {
       const container = document.getElementById('messagesContainer');
       const isSent = msg.sender === currentUser;
+      const isAnnounce = msg.sender === 'System Alert';
       const bubble = document.createElement('div');
-      bubble.className = `message-bubble ${isSent ? 'sent' : 'received'}`;
       
-      const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
-      bubble.innerHTML = `
-        ${!isSent ? `<div class="message-sender">${msg.sender}</div>` : ''}
-        <div>${msg.text}</div>
-        <div class="message-time">${timeStr}</div>
-      `;
+      if (isAnnounce) {
+        bubble.className = 'message-bubble announcement';
+        bubble.innerHTML = `📢 ${msg.text}`;
+      } else {
+        bubble.className = `message-bubble ${isSent ? 'sent' : 'received'}`;
+        const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        bubble.innerHTML = `
+          ${!isSent ? `<div class="message-sender">${msg.sender}</div>` : ''}
+          <div>${msg.text}</div>
+          <div class="message-time">${timeStr}</div>
+        `;
+      }
       container.appendChild(bubble);
       container.scrollTop = container.scrollHeight;
     }
@@ -251,14 +289,12 @@
       const text = input.value.trim();
       if (!text) return;
 
-      const msgData = {
+      socket.emit('send_message', {
         sender: currentUser,
         receiver: currentReceiver,
         text: text,
         timestamp: new Date()
-      };
-
-      socket.emit('send_message', msgData);
+      });
       input.value = '';
     }
 
@@ -277,12 +313,37 @@
     // ADMIN FUNCTIONS
     async function openAdminModal() {
       document.getElementById('adminModal').classList.add('active');
+      refreshAdminData();
+    }
+
+    async function refreshAdminData() {
       const res = await fetch('/api/admin/data');
       const data = await res.json();
       if (data.success) {
         document.getElementById('statUsers').innerText = data.stats.totalUsers;
         document.getElementById('statOnline').innerText = data.stats.onlineUsers;
         document.getElementById('statMsgs').innerText = data.stats.totalMessages;
+
+        // Render User List
+        const userListEl = document.getElementById('adminUserList');
+        userListEl.innerHTML = data.users.map(u => `
+          <div class="user-list-item">
+            <span>${u.isAdmin ? '👑' : '👤'} <b>${u.username}</b></span>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn-xs btn-xs-role" onclick="toggleAdminRole('${u.username}')">${u.isAdmin ? 'Demote' : 'Make Admin'}</button>
+              ${u.username !== currentUser ? `<button class="btn-xs btn-xs-danger" onclick="deleteUser('${u.username}')">Delete</button>` : ''}
+            </div>
+          </div>
+        `).join('');
+
+        // Render Recent Messages List
+        const msgListEl = document.getElementById('adminMsgList');
+        msgListEl.innerHTML = data.messages.map(m => `
+          <div class="msg-list-item">
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;"><b>${m.sender}:</b> ${m.text}</span>
+            <button class="btn-xs btn-xs-danger" onclick="deleteMessage('${m._id}')">Remove</button>
+          </div>
+        `).join('');
       }
     }
 
@@ -290,9 +351,44 @@
       document.getElementById('adminModal').classList.remove('active');
     }
 
+    function sendAnnouncement() {
+      const input = document.getElementById('announceInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      socket.emit('send_message', {
+        sender: 'System Alert',
+        receiver: 'Global',
+        text: text,
+        timestamp: new Date()
+      });
+      input.value = '';
+      alert('Announcement broadcasted!');
+    }
+
+    async function toggleAdminRole(username) {
+      await fetch(`/api/admin/users/${username}/role`, { method: 'PUT' });
+      refreshAdminData();
+    }
+
+    async function deleteUser(username) {
+      if (confirm(`Permanently delete account @${username}?`)) {
+        await fetch(`/api/admin/users/${username}`, { method: 'DELETE' });
+        refreshAdminData();
+        loadUsers();
+      }
+    }
+
+    async function deleteMessage(id) {
+      await fetch(`/api/admin/messages/${id}`, { method: 'DELETE' });
+      refreshAdminData();
+      loadMessages();
+    }
+
     async function clearGlobalChat() {
-      if (confirm('Clear all global chat messages?')) {
+      if (confirm('⚠️ Are you sure you want to delete ALL messages in the Global room?')) {
         await fetch('/api/admin/clear-global', { method: 'POST' });
+        refreshAdminData();
         closeAdminModal();
       }
     }
