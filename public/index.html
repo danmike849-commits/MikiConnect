@@ -9,159 +9,293 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background-color: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    .navbar { background: #15803d; color: white; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; flex-shrink: 0; }
-    .nav-title { font-weight: bold; font-size: 18px; white-space: nowrap; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
-    .nav-links { display: flex; gap: 12px; font-size: 13px; font-weight: 600; }
-    .nav-links a { color: rgba(255, 255, 255, 0.85); text-decoration: none; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; white-space: nowrap; }
-    .nav-links a.active, .nav-links a:hover { color: white; background: rgba(255, 255, 255, 0.2); }
+    /* APP HEADER */
+    .app-header { background: #15803d; color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .app-title { font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+    .header-actions { display: flex; gap: 8px; }
+    .btn-header { background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 0.85rem; }
+    .btn-header:hover { background: rgba(255,255,255,0.3); }
 
-    body.logged-out .nav-tabs, body.logged-out #chat-container, body.logged-out #admin-dashboard { display: none !important; }
+    /* AUTH VIEW */
+    .auth-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .auth-card { background: #1e293b; padding: 28px 22px; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); text-align: center; }
+    .auth-card h2 { margin-bottom: 6px; }
+    .auth-card p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
+    .input-field { width: 100%; padding: 12px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; font-size: 14px; outline: none; color: white; margin-bottom: 12px; }
+    .submit-btn { width: 100%; padding: 13px; background: #22c55e; border: none; color: white; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; }
 
-    .auth-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
-    .auth-card { background: #1e293b; padding: 28px 22px; border-radius: 16px; width: 100%; max-width: 380px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); text-align: center; border: 1px solid #334155; }
-    
-    .input-field { width: 100%; padding: 12px 14px; background: #0f172a; color: white; border: 1px solid #334155; border-radius: 10px; font-size: 14px; outline: none; }
-    .submit-btn { width: 100%; padding: 13px; background: #22c55e; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    /* MAIN CHAT AREA */
+    .app-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    body.logged-out .app-body, body.logged-out .app-header { display: none !important; }
+    body.logged-in .auth-wrapper { display: none !important; }
 
-    /* ADMIN STYLING */
-    .stat-card { background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid #334155; text-align: center; flex: 1; }
-    .stat-num { font-size: 20px; font-weight: bold; color: #38bdf8; }
-    .stat-label { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-    
-    .admin-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    .admin-table th, .admin-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #334155; }
-    .admin-table th { background: #0f172a; color: #38bdf8; }
+    .room-bar { background: #1e293b; padding: 10px 16px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+    .room-info { flex: 1; }
+    .room-title { font-weight: bold; color: #38bdf8; font-size: 0.95rem; }
+    .room-sub { font-size: 0.75rem; color: #94a3b8; }
 
-    .action-btn { padding: 4px 8px; border-radius: 6px; border: none; font-size: 11px; font-weight: bold; cursor: pointer; }
-    .btn-danger { background: #ef4444; color: white; }
-    .btn-role { background: #eab308; color: #0f172a; }
+    .users-bar { display: flex; gap: 8px; padding: 8px 12px; background: #0f172a; border-bottom: 1px solid #1e293b; overflow-x: auto; white-space: nowrap; }
+    .user-chip { background: #1e293b; color: #cbd5e1; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .user-chip.active { background: #0284c7; color: white; font-weight: bold; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; }
+    .status-dot.online { background: #22c55e; }
 
-    /* CHAT COMPONENTS */
-    .contact-pill { padding: 6px 14px; background: #334155; color: #f8fafc; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; border: 1px solid transparent; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
-    .contact-pill.active { background: #38bdf8; color: #0f172a; font-weight: bold; border-color: #38bdf8; }
-    .online-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; }
-    .offline-dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; display: inline-block; }
-    
-    .chat-input-bar { padding: 8px 10px; background: #0f172a; display: flex; align-items: center; gap: 6px; width: 100%; border-top: 1px solid #334155; }
-    .send-circle-btn { width: 40px; height: 40px; border-radius: 50%; background: #38bdf8; color: #0f172a; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; flex-shrink: 0; font-weight: bold; }
+    .messages-container { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .message-bubble { max-width: 78%; padding: 10px 14px; border-radius: 14px; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; position: relative; }
+    .message-bubble.sent { align-self: flex-end; background: #0284c7; color: white; border-bottom-right-radius: 2px; }
+    .message-bubble.received { align-self: flex-start; background: #1e293b; color: #f8fafc; border-bottom-left-radius: 2px; }
+    .message-sender { font-weight: bold; font-size: 0.75rem; color: #38bdf8; margin-bottom: 3px; }
+    .message-bubble.sent .message-sender { display: none; }
+    .message-time { font-size: 0.65rem; opacity: 0.7; text-align: right; margin-top: 4px; }
+
+    .chat-input-bar { padding: 10px; background: #1e293b; border-top: 1px solid #334155; display: flex; gap: 8px; align-items: center; }
+    .chat-input { flex: 1; padding: 12px 16px; background: #0f172a; border: 1px solid #334155; border-radius: 24px; color: white; font-size: 0.95rem; outline: none; }
+    .send-btn { width: 44px; height: 44px; background: #0284c7; border: none; border-radius: 50%; color: white; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+    /* ADMIN DASHBOARD MODAL */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .modal.active { display: flex; }
+    .modal-card { background: #1e293b; width: 100%; max-width: 500px; max-height: 85vh; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-header { padding: 14px 18px; background: #0f172a; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .stat-card { background: #0f172a; padding: 10px; border-radius: 8px; text-align: center; }
+    .stat-num { font-size: 1.2rem; font-weight: bold; color: #38bdf8; }
+    .stat-label { font-size: 0.7rem; color: #94a3b8; }
+    .admin-action-btn { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-bottom: 16px; }
   </style>
 </head>
 <body class="logged-out">
 
-  <div id="app-loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:9999;color:#38bdf8;">
-    <h2>Loading MikiConnect...</h2>
-  </div>
-
-  <nav class="navbar nav-tabs">
-    <div class="nav-title">❤️ MIKICONNECT</div>
-    <div class="nav-links">
-      <a href="#" onclick="switchTab('chat')" id="tab-chats" class="active">Chats</a>
-      <a href="#" id="admin-tab-link" style="display:none;" onclick="switchTab('admin')">Admin Panel</a>
-      <a href="#" onclick="logoutUser()">Log Out</a>
+  <!-- APP HEADER (No top tab bar) -->
+  <header class="app-header">
+    <div class="app-title">
+      <span>❤️</span>
+      <span>MIKICONNECT</span>
     </div>
-  </nav>
+    <div class="header-actions">
+      <button class="btn-header" id="adminBtn" style="display: none;" onclick="openAdminModal()">⚙️ Admin Panel</button>
+      <button class="btn-header" onclick="logout()">Log Out</button>
+    </div>
+  </header>
 
-  <!-- AUTH -->
-  <div class="auth-wrapper" id="auth-wrapper">
-    <div class="auth-card" id="auth-card">
-      <h2 style="margin-bottom:6px; color:#f8fafc; font-size:22px;">Welcome to MikiConnect</h2>
-      <p style="color:#94a3b8; font-size:13px; margin-bottom:20px;">Log in or create an account</p>
-      <form onsubmit="handleLogin(event)">
-        <input type="text" id="username" class="input-field" placeholder="Username" required style="margin-bottom:12px;">
-        <input type="password" id="password" class="input-field" placeholder="Password" required style="margin-bottom:18px;">
-        <button type="submit" class="submit-btn">Log In / Sign Up</button>
-      </form>
+  <!-- AUTH / LOGIN CONTAINER -->
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <h2>Welcome to MikiConnect</h2>
+      <p>Log in or create an account</p>
+      <input type="text" id="usernameInput" class="input-field" placeholder="Username" autocomplete="off" />
+      <input type="password" id="passwordInput" class="input-field" placeholder="Password" />
+      <button class="submit-btn" onclick="handleAuth()">Log In / Sign Up</button>
     </div>
   </div>
 
-  <!-- CHAT CONTAINER -->
-  <div id="chat-container" style="display:none; background:#1e293b; flex:1; flex-direction:column; overflow:hidden; max-width:600px; margin:0 auto; width:100%;">
-    <div id="active-chat-header" style="padding:10px 14px; background:#0f172a; border-bottom:1px solid #334155; display:flex; align-items:center; gap:10px;">
-      <span id="header-avatar" style="font-size:22px;">🌐</span>
-      <div>
-        <strong id="header-target-name" style="color:#38bdf8; display:block; font-size:14px;">Global Public Chat</strong>
-        <small id="header-target-sub" style="color:#94a3b8; font-size:11px;">Visible to everyone online</small>
+  <!-- MAIN CHAT BODY -->
+  <div class="app-body">
+    <div class="room-bar">
+      <div class="room-info">
+        <div class="room-title" id="currentRoomTitle">Global Public Chat</div>
+        <div class="room-sub" id="currentRoomSub">Visible to everyone online</div>
       </div>
     </div>
 
-    <div id="contacts-bar" style="display:flex; gap:8px; overflow-x:auto; padding:8px 12px; background:#182232; border-bottom:1px solid #334155;">
-      <button class="contact-pill active" id="pill-Global" onclick="selectChat('Global')">🌐 Global Room</button>
+    <!-- ONLINE / DM USER LIST -->
+    <div class="users-bar" id="usersBar">
+      <div class="user-chip active" onclick="switchRoom('Global', 'Global Public Chat')">🌐 Global Room</div>
     </div>
 
-    <div id="messages-list" style="flex:1; overflow-y:auto; padding:12px;"></div>
-    
-    <div class="typing-status-bar" id="typing-status-bar" style="display:none; padding:4px 12px; color:#38bdf8; font-size:11px;">💬 Someone is typing...</div>
+    <!-- MESSAGES -->
+    <div class="messages-container" id="messagesContainer"></div>
 
+    <!-- INPUT BAR -->
     <div class="chat-input-bar">
-      <input type="text" id="chat-text" placeholder="Type a message..." style="flex:1; padding:10px 14px; background:#1e293b; color:white; border:1px solid #334155; border-radius:20px; outline:none;" oninput="handleTypingInput()" onkeypress="if(event.key==='Enter') sendTextMessage()">
-      <button class="send-circle-btn" onclick="sendTextMessage()">➤</button>
+      <input type="text" id="messageInput" class="chat-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendMessage()" />
+      <button class="send-btn" onclick="sendMessage()">➤</button>
     </div>
   </div>
 
-  <!-- FULL-CONTROL ADMIN DASHBOARD -->
-  <div id="admin-dashboard" style="display:none; background:#1e293b; padding:18px; border-radius:12px; margin:10px auto; max-width:600px; flex:1; overflow-y:auto; width:95%;">
-    <h2 style="color:#38bdf8; margin-bottom:12px; font-size:20px;">⚡ Admin Control Center</h2>
-    
-    <!-- STATS ROW -->
-    <div style="display:flex; gap:8px; margin-bottom:16px;">
-      <div class="stat-card">
-        <div class="stat-num" id="stat-total-users">0</div>
-        <div class="stat-label">Total Users</div>
+  <!-- ADMIN PANEL MODAL -->
+  <div class="modal" id="adminModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>⚙️ Admin Dashboard</h3>
+        <button class="btn-header" onclick="closeAdminModal()">✕</button>
       </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-online-users">0</div>
-        <div class="stat-label">Online Now</div>
+      <div class="modal-body">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-num" id="statUsers">0</div><div class="stat-label">Users</div></div>
+          <div class="stat-card"><div class="stat-num" id="statOnline">0</div><div class="stat-label">Online</div></div>
+          <div class="stat-card"><div class="stat-num" id="statMsgs">0</div><div class="stat-label">Messages</div></div>
+        </div>
+        <button class="admin-action-btn" onclick="clearGlobalChat()">🗑️ Clear Global Chat</button>
+        <div id="adminUserList"></div>
       </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-total-msgs">0</div>
-        <div class="stat-label">Messages</div>
-      </div>
-    </div>
-
-    <!-- SYSTEM BROADCAST TOOL -->
-    <div style="background:#0f172a; padding:12px; border-radius:10px; margin-bottom:16px; border:1px solid #334155;">
-      <h4 style="color:#f8fafc; font-size:13px; margin-bottom:8px;">📢 Broadcast Announcement</h4>
-      <div style="display:flex; gap:6px;">
-        <input type="text" id="admin-broadcast-input" placeholder="Post official system message..." style="flex:1; padding:8px 12px; background:#1e293b; color:white; border:1px solid #334155; border-radius:8px; font-size:12px;">
-        <button onclick="sendAdminBroadcast()" style="padding:8px 12px; background:#22c55e; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer;">Send</button>
-      </div>
-    </div>
-
-    <!-- USER MANAGEMENT -->
-    <div style="margin-bottom:20px;">
-      <h3 style="color:#cbd5e1; font-size:15px; margin-bottom:8px;">User Accounts & Moderation</h3>
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Role</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="admin-users-table-body"></tbody>
-      </table>
-    </div>
-
-    <!-- MESSAGE AUDIT LOG & PURGE -->
-    <div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <h3 style="color:#cbd5e1; font-size:15px;">Message Logs</h3>
-        <button onclick="clearGlobalChatHistory()" class="action-btn btn-danger">Purge Global Chat</button>
-      </div>
-      <div id="admin-messages-log" style="max-height:220px; overflow-y:auto; font-size:12px; background:#0f172a; padding:10px; border-radius:8px; border:1px solid #334155;"></div>
     </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="app.js"></script>
   <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      const loader = document.getElementById('app-loader');
-      if (loader) {
-        loader.style.opacity = '0';
-        setTimeout(() => loader.style.display = 'none', 300);
+    const socket = io();
+    let currentUser = localStorage.getItem('miki_user');
+    let isAdmin = localStorage.getItem('miki_admin') === 'true';
+    let currentReceiver = 'Global';
+
+    if (currentUser) {
+      initSession(currentUser, isAdmin);
+    }
+
+    async function handleAuth() {
+      const username = document.getElementById('usernameInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+
+      if (!username || !password) {
+        alert('Please fill out both username and password.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          currentUser = data.username;
+          isAdmin = data.isAdmin;
+          localStorage.setItem('miki_user', currentUser);
+          localStorage.setItem('miki_admin', isAdmin);
+          initSession(currentUser, isAdmin);
+        } else {
+          alert(data.message || 'Authentication failed');
+        }
+      } catch (err) {
+        alert('Network or server error');
+      }
+    }
+
+    function initSession(user, adminState) {
+      document.body.className = 'logged-in';
+      if (adminState) {
+        document.getElementById('adminBtn').style.display = 'inline-block';
+      }
+      socket.emit('register_user', user);
+      loadUsers();
+      loadMessages();
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.reload();
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        if (data.success) {
+          const bar = document.getElementById('usersBar');
+          let html = `<div class="user-chip ${currentReceiver === 'Global' ? 'active' : ''}" onclick="switchRoom('Global', 'Global Public Chat')">🌐 Global Room</div>`;
+          data.users.forEach(u => {
+            if (u.username !== currentUser) {
+              const activeClass = currentReceiver === u.username ? 'active' : '';
+              html += `<div class="user-chip ${activeClass}" onclick="switchRoom('${u.username}', '@${u.username}')">👤 ${u.username}</div>`;
+            }
+          });
+          bar.innerHTML = html;
+        }
+      } catch (e) {}
+    }
+
+    function switchRoom(receiver, title) {
+      currentReceiver = receiver;
+      document.getElementById('currentRoomTitle').innerText = title;
+      document.getElementById('currentRoomSub').innerText = receiver === 'Global' ? 'Visible to everyone online' : 'Direct Message';
+      loadUsers();
+      loadMessages();
+    }
+
+    async function loadMessages() {
+      try {
+        const res = await fetch(`/api/messages?user1=${currentUser}&user2=${currentReceiver}`);
+        const data = await res.json();
+        if (data.success) {
+          const container = document.getElementById('messagesContainer');
+          container.innerHTML = '';
+          data.messages.forEach(msg => appendMessage(msg));
+          container.scrollTop = container.scrollHeight;
+        }
+      } catch (e) {}
+    }
+
+    function appendMessage(msg) {
+      const container = document.getElementById('messagesContainer');
+      const isSent = msg.sender === currentUser;
+      const bubble = document.createElement('div');
+      bubble.className = `message-bubble ${isSent ? 'sent' : 'received'}`;
+      
+      const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      bubble.innerHTML = `
+        ${!isSent ? `<div class="message-sender">${msg.sender}</div>` : ''}
+        <div>${msg.text}</div>
+        <div class="message-time">${timeStr}</div>
+      `;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const msgData = {
+        sender: currentUser,
+        receiver: currentReceiver,
+        text: text,
+        timestamp: new Date()
+      };
+
+      socket.emit('send_message', msgData);
+      input.value = '';
+    }
+
+    socket.on('new_message', (msg) => {
+      if ((msg.receiver === 'Global' && currentReceiver === 'Global') ||
+          (msg.sender === currentUser && msg.receiver === currentReceiver) ||
+          (msg.sender === currentReceiver && msg.receiver === currentUser)) {
+        appendMessage(msg);
       }
     });
+
+    socket.on('global_chat_cleared', () => {
+      if (currentReceiver === 'Global') loadMessages();
+    });
+
+    // ADMIN FUNCTIONS
+    async function openAdminModal() {
+      document.getElementById('adminModal').classList.add('active');
+      const res = await fetch('/api/admin/data');
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('statUsers').innerText = data.stats.totalUsers;
+        document.getElementById('statOnline').innerText = data.stats.onlineUsers;
+        document.getElementById('statMsgs').innerText = data.stats.totalMessages;
+      }
+    }
+
+    function closeAdminModal() {
+      document.getElementById('adminModal').classList.remove('active');
+    }
+
+    async function clearGlobalChat() {
+      if (confirm('Clear all global chat messages?')) {
+        await fetch('/api/admin/clear-global', { method: 'POST' });
+        closeAdminModal();
+      }
+    }
   </script>
 </body>
 </html>
