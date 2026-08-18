@@ -914,7 +914,12 @@ body, html {
       alert('Opening post creator / upload modal...');
     });
   }
-socket.on('user_status_change', () => loadUsers());
-  </script>
+  socket.on('user_status_change', () => loadUsers());
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
 </body>
 </html>
+
+
