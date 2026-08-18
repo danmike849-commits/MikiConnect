@@ -842,7 +842,79 @@ body, html {
     });
 
     socket.on('messages_read', () => { if (activeRoom !== 'Global') loadMessages(); });
-    socket.on('user_status_change', () => loadUsers());
+    socket.
+  // 1. Bottom Navigation Tabs Switcher
+  const navItems = document.querySelectorAll('.bottom-nav .nav-item');
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      navItems.forEach(nav => nav.classList.remove('active'));
+      item.classList.add('active');
+
+      const tabName = item.querySelector('span:last-child')?.innerText || 'Action';
+      console.log(`Navigated to: ${tabName}`);
+    });
+  });
+
+  // 2. Top Feed Filter Tabs Switcher
+  const topNavSpans = document.querySelectorAll('.top-nav span');
+  topNavSpans.forEach(span => {
+    span.addEventListener('click', () => {
+      topNavSpans.forEach(tab => tab.classList.remove('active'));
+      span.classList.add('active');
+      console.log(`Feed switched to: ${span.innerText}`);
+    });
+  });
+
+  // 3. Heart / Like Button Toggle
+  const likeBtn = document.querySelector('.action-btn:nth-child(1)');
+  if (likeBtn) {
+    likeBtn.addEventListener('click', () => {
+      const heartIcon = likeBtn.querySelector('i');
+      const countSpan = likeBtn.querySelector('span');
+
+      if (likeBtn.classList.contains('liked')) {
+        likeBtn.classList.remove('liked');
+        heartIcon.style.color = '#fff';
+        countSpan.innerText = '1.3K';
+      } else {
+        likeBtn.classList.add('liked');
+        heartIcon.style.color = '#fe2c55';
+        countSpan.innerText = '1.4K';
+      }
+    });
+  }
+
+  // 4. Action Buttons (Comments & Share)
+  const commentBtn = document.querySelector('.action-btn:nth-child(2)');
+  if (commentBtn) {
+    commentBtn.addEventListener('click', () => {
+      alert('Opening comments drawer...');
+    });
+  }
+
+  const shareBtn = document.querySelector('.action-btn:nth-child(3)');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', () => {
+      if (navigator.share) {
+        navigator.share({
+          title: 'MikiConnect',
+          text: 'Check out this post on MikiConnect!',
+          url: window.location.href,
+        }).catch(() => {});
+      } else {
+        alert('Post link copied to clipboard!');
+      }
+    });
+  }
+
+  // 5. Create (+ Button) Trigger
+  const addBtn = document.querySelector('.add-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      alert('Opening post creator / upload modal...');
+    });
+  }
+socket.on('user_status_change', () => loadUsers());
   </script>
 </body>
 </html>
