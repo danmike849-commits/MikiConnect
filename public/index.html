@@ -550,9 +550,12 @@ async function login() {
     const data = await res.json();
 
     if (res.ok) {
-      document.getElementById('auth-screen').style.display = 'none';
-      alert('Welcome back!');
-    } else {
+  localStorage.setItem('mikiconnect_token', data.token);
+  document.getElementById('auth-screen').style.display = 'none';
+  alert('Welcome back!');
+  window.location.reload();
+} else {
+
       alert(data.error || 'Login failed');
     }
   } catch (err) {
