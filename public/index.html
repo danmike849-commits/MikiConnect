@@ -76,11 +76,387 @@
 p, span, div {
   font-size: 1rem;
   font-weight: 500;
-} </style>
+} /* Full screen viewport reset */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #000;
+  font-family: sans-serif;
+}
+
+.tiktok-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #000;
+}
+
+/* Top Transparent Nav Bar */
+.top-nav {
+  position: absolute;
+  top: 15px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  z-index: 10;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+}
+.top-nav .active {
+  color: #fff;
+  font-weight: bold;
+  border-bottom: 2px solid #fff;
+}
+
+/* Side Action Buttons Overlay */
+.side-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  z-index: 10;
+  color: #fff;
+}
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+/* Fixed Bottom Navigation Bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 55px;
+  background-color: #000;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #222;
+  z-index: 20;
+  color: #888;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.65rem;
+}
+.nav-item.active {
+  color: #fff;
+}
+.add-btn {
+  background: #fe2c55;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: bold;
+  padding: 2px 14px;
+  border-radius: 8px;
+}
+/* Full screen viewport reset */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #000;
+  font-family: sans-serif;
+}
+
+.tiktok-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #000;
+}
+
+/* Top Transparent Nav Bar */
+.top-nav {
+  position: absolute;
+  top: 15px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  z-index: 10;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+}
+.top-nav .active {
+  color: #fff;
+  font-weight: bold;
+  border-bottom: 2px solid #fff;
+}
+
+/* Side Action Buttons Overlay */
+.side-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  z-index: 10;
+  color: #fff;
+}
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+/* Fixed Bottom Navigation Bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 55px;
+  background-color: #000;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #222;
+  z-index: 20;
+  color: #888;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.65rem;
+}
+.nav-item.active {
+  color: #fff;
+}
+.add-btn {
+  background: #fe2c55;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: bold;
+  padding: 2px 14px;
+  border-radius: 8px;
+}
+/* Full screen viewport reset */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #000;
+  font-family: sans-serif;
+}
+
+.tiktok-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #000;
+}
+
+/* Top Transparent Nav Bar */
+.top-nav {
+  position: absolute;
+  top: 15px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  z-index: 10;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+}
+.top-nav .active {
+  color: #fff;
+  font-weight: bold;
+  border-bottom: 2px solid #fff;
+}
+
+/* Side Action Buttons Overlay */
+.side-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  z-index: 10;
+  color: #fff;
+}
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+/* Fixed Bottom Navigation Bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 55px;
+  background-color: #000;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #222;
+  z-index: 20;
+  color: #888;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.65rem;
+}
+.nav-item.active {
+  color: #fff;
+}
+.add-btn {
+  background: #fe2c55;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: bold;
+  padding: 2px 14px;
+  border-radius: 8px;
+} /* Full screen viewport reset */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #000;
+  font-family: sans-serif;
+}
+
+.tiktok-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #000;
+}
+
+/* Top Transparent Nav Bar */
+.top-nav {
+  position: absolute;
+  top: 15px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  z-index: 10;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+}
+.top-nav .active {
+  color: #fff;
+  font-weight: bold;
+  border-bottom: 2px solid #fff;
+}
+
+/* Side Action Buttons Overlay */
+.side-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  z-index: 10;
+  color: #fff;
+}
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+/* Fixed Bottom Navigation Bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 55px;
+  background-color: #000;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #222;
+  z-index: 20;
+  color: #888;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.65rem;
+}
+.nav-item.active {
+  color: #fff;
+}
+.add-btn {
+  background: #fe2c55;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: bold;
+  padding: 2px 14px;
+  border-radius: 8px;
+}
+ </style>
 
   <script src="/socket.io/socket.io.js"></script>
 </head>
-<body>
+<body><!-- TikTok Style Layout -->
+<div class="tiktok-container">
+  <div class="top-nav">
+    <span>STEM</span>
+    <span>Explore</span>
+    <span>Following</span>
+    <span class="active">For You</span>
+  </div>
+
+  <div class="feed-content" id="feedContent">
+    <div class="side-actions">
+      <div class="action-btn"><i>❤️</i><span>1.3K</span></div>
+      <div class="action-btn"><i>💬</i><span>128</span></div>
+      <div class="action-btn"><i>↪️</i><span>5</span></div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active"><span class="icon">🏠</span><span>Home</span></div>
+    <div class="nav-item"><span class="icon">👥</span><span>Friends</span></div>
+    <div class="nav-item add-btn"><span>+</span></div>
+    <div class="nav-item"><span class="icon">💬</span><span>Inbox</span></div>
+    <div class="nav-item"><span class="icon">👤</span><span>Profile</span></div>
+  </div>
+</div>
+
 
   <div id="auth-screen">
     <div class="auth-card">
@@ -91,8 +467,7 @@ p, span, div {
     </div>
   </div>
 
-  <header>
-    <h1>❤️ MIKICONNECT</h1>
+  
     <div class="header-btns">
       <button class="btn-action btn-admin" id="admin-btn" onclick="openAdminPanel()">⚡ Dashboard</button>
       <button class="btn-action" onclick="logout()">Log Out</button>
