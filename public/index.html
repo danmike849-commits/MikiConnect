@@ -528,6 +528,38 @@ body, html {
     let selectedImageData = null;
     let usersList = [];
     let typingTimeout = null;
+async function login() {
+  const usernameInput = document.getElementById('username');
+  const passwordInput = document.getElementById('password');
+
+  const username = usernameInput ? usernameInput.value.trim() : '';
+  const password = passwordInput ? passwordInput.value.trim() : '';
+
+  if (!username || !password) {
+    alert('Please fill in both fields.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      document.getElementById('auth-screen').style.display = 'none';
+      alert('Welcome back!');
+    } else {
+      alert(data.error || 'Login failed');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Network error connecting to backend.');
+  }
+}
 
     window.onload = async () => {
       const token = localStorage.getItem('mikiconnect_token');
