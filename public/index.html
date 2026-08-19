@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -244,7 +245,7 @@ body, html {
 .nav-item.active {
   color: #fff;
 }
-.add-btn {
+q.add-btn {
   background: #fe2c55;
   color: #fff;
   font-size: 1.4rem;
@@ -549,12 +550,16 @@ async function login() {
 
     const data = await res.json();
 
-    if (res.ok) {
-  localStorage.setItem('mikiconnect_token', data.token);
-  document.getElementById('auth-screen').style.display = 'none';
-  alert('Welcome back!');
-  window.location.reload();
-} else {
+        if (res.ok) {
+      localStorage.setItem('mikiconnect_token', data.token);
+      document.getElementById('auth-screen').style.setProperty('display', 'none', 'important');
+      alert('Welcome back!');
+      
+      currentUser = username;
+      if (typeof loadMessages === 'function') loadMessages();
+      if (typeof loadUsers === 'function') loadUsers();
+    } else {
+
 
       alert(data.error || 'Login failed');
     }
