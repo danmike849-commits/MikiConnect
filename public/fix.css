@@ -1,0 +1,57 @@
+* {
+  box-sizing: border-box !important;
+}
+
+html, body {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background-color: #0f172a !important;
+}
+
+/* Force main wrapper to fill full screen vertically */
+body > div, #app, #app-container, .app-container {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+/* Fix login overlay to cover whole screen */
+#login-modal, #login-overlay, .login-overlay, [id*="login"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Un-collapse room selection bar */
+.room-bar, .room-selector, [class*="room"] {
+  position: relative !important;
+  width: 100% !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  z-index: 10 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Input container pinned at bottom */
+.input-container, .message-input, [class*="input"] {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  z-index: 1000 !important;
+}
