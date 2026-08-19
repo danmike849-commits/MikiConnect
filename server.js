@@ -11,10 +11,9 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_super_secret_key_2026';
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mikiconnect';
+const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_secret_key_2026';
+const MONGO_URI = process.env.MONGO_URI;
 
-// MIDDLEWARE
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -29,7 +28,6 @@ const PostSchema = new mongoose.Schema({
   author: { type: String, required: true },
   caption: { type: String, required: true },
   likes: { type: Number, default: 0 },
-  comments: [{ author: String, text: String, createdAt: { type: Date, default: Date.now } }],
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -41,17 +39,14 @@ const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch (err) {
     res.status(403).json({ error: 'Invalid token' });
   }
 };
 
-// --- API ROUTES ---
-
-// 1. AUTHENTICATION (REGISTER / LOGIN)
+// API ROUTES
 app.post('/api/auth/register-or-login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
@@ -70,11 +65,10 @@ app.post('/api/auth/register-or-login', async (req, res) => {
     const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, username: user.username });
   } catch (err) {
-    res.status(500).json({ error: 'Server auth error' });
+    res.status(500).json({ error: 'Database authentication error' });
   }
 });
 
-// 2. FETCH REGISTERED USERS
 app.get('/api/users', async (req, res) => {
   try {
     const users = await User.find({}, 'username createdAt').sort({ createdAt: -1 });
@@ -84,7 +78,6 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// 3. GET & CREATE POSTS
 app.get('/api/posts', async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 }).limit(50);
@@ -96,29 +89,36 @@ app.get('/api/posts', async (req, res) => {
 
 app.post('/api/posts', authenticate, async (req, res) => {
   const { caption } = req.body;
-  if (!caption) return res.status(400).json({ error: 'Caption is required' });
+  if (!caption) return res.status(400).json({ error: 'Caption required' });
 
   try {
     const post = new Post({ author: req.user.username, caption });
     await post.save();
-    io.emit('new_post', post); // REAL-TIME BROADCAST
+    io.emit('new_post', post);
     res.status(201).json(post);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create post' });
+    res.status(500).json({ error: 'Failed to save post' });
   }
 });
 
-// SOCKET.IO REAL-TIME CHAT
+// SOCKET CHAT
 io.on('connection', (socket) => {
   socket.on('send_message', (data) => {
     io.emit('receive_message', data);
   });
 });
 
-// CONNECT TO MONGOOSE & START SERVER
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log('Connected to MongoDB Atlas');
-    server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
-  })
-  .catch(err => console.error('MongoDB connection error:', err));
+// HEALTH CHECK ROUTE FOR MONITORING
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
+// START HTTP SERVER FIRST (Prevents Render Port Timeout)
+server.listen(PORT, () => {
+  console.log(`Server live on port ${PORT}`);
+  if (MONGO_URI) {
+    mongoose.connect(MONGO_URI)
+      .then(() => console.log('Connected to MongoDB Atlas'))
+      .catch(err => console.error('MongoDB error:', err.message));
+  } else {
+    console.warn('WARNING: MONGO_URI is not set in environment variables.');
+  }
+});
