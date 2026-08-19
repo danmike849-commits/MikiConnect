@@ -568,7 +568,7 @@ async function login() {
     alert('Network error connecting to backend.');
   }
 }
-
+window.login = login;
     window.onload = async () => {
       const token = localStorage.getItem('mikiconnect_token');
       if (token) {
