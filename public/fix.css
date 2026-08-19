@@ -9,9 +9,10 @@ html, body {
   padding: 0 !important;
   overflow: hidden !important;
   background-color: #0f172a !important;
+  color: #ffffff !important;
 }
 
-/* Hide background app layers while unauthenticated */
+/* Main Login Overlay Container */
 #login-modal, #login-overlay, .login-overlay, [id*="login"] {
   position: fixed !important;
   top: 0 !important;
@@ -24,15 +25,43 @@ html, body {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
+  padding: 20px !important;
 }
 
-/* Make sure form elements inside login stand out */
-#login-modal *, #login-overlay *, .login-overlay * {
-  position: static !important;
-  opacity: 1 !important;
+/* Ensure Login Card and Form Inputs Are Visible */
+#login-modal form, .login-overlay form, [id*="login"] form,
+#login-modal div, .login-overlay div {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  max-width: 320px !important;
+  gap: 12px !important;
 }
 
-/* Force chat layout elements into a clean flex column when logged in */
+#login-modal input, .login-overlay input, [id*="login"] input {
+  display: block !important;
+  width: 100 !important;
+  padding: 12px !important;
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border: 1px solid #334155 !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+}
+
+#login-modal button, .login-overlay button, [id*="login"] button {
+  display: block !important;
+  width: 100% !important;
+  padding: 12px !important;
+  background-color: #22c55e !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+}
+
+/* App Layout rules for post-login */
 .app-container, #app {
   display: flex !important;
   flex-direction: column !important;
