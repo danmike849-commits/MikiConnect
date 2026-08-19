@@ -28,31 +28,35 @@ html, body {
   padding: 20px !important;
 }
 
-/* Ensure Login Card and Form Inputs Are Visible */
-#login-modal form, .login-overlay form, [id*="login"] form,
-#login-modal div, .login-overlay div {
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100% !important;
-  max-width: 320px !important;
-  gap: 12px !important;
+/* Force all text elements, headings, and spans inside login to be visible */
+#login-modal *, .login-overlay *, [id*="login"] * {
+  color: #ffffff !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
+/* Force inputs and buttons inside the overlay to render with fixed dimensions */
 #login-modal input, .login-overlay input, [id*="login"] input {
   display: block !important;
-  width: 100 !important;
-  padding: 12px !important;
+  width: 280px !important;
+  max-width: 90% !important;
+  height: 45px !important;
+  margin: 8px auto !important;
+  padding: 10px 14px !important;
   background-color: #1e293b !important;
   color: #ffffff !important;
-  border: 1px solid #334155 !important;
+  border: 1px solid #475569 !important;
   border-radius: 8px !important;
   font-size: 16px !important;
 }
 
 #login-modal button, .login-overlay button, [id*="login"] button {
   display: block !important;
-  width: 100% !important;
-  padding: 12px !important;
+  width: 280px !important;
+  max-width: 90% !important;
+  height: 45px !important;
+  margin: 12px auto !important;
+  padding: 10px !important;
   background-color: #22c55e !important;
   color: #ffffff !important;
   border: none !important;
