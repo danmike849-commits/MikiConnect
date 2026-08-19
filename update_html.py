@@ -1,0 +1,92 @@
+with open('public/index.html', 'r') as f:
+    content = f.read()
+
+css_block = """
+<style id="embedded-layout-fix">
+* { box-sizing: border-box !important; }
+html, body {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+}
+#auth-screen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  background-color: #0f172a !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.auth-card {
+  background-color: #1e293b !important;
+  padding: 24px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 300px !important;
+  max-width: 90% !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+}
+#auth-screen input, #username, #password {
+  display: block !important;
+  width: 100% !important;
+  height: 45px !important;
+  margin-bottom: 12px !important;
+  padding: 10px 14px !important;
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border: 1px solid #475569 !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+}
+#auth-screen button, #login-btn {
+  display: block !important;
+  width: 100% !important;
+  height: 45px !important;
+  padding: 10px !important;
+  background-color: #22c55e !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+}
+.app-container, #app {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+  width: 100vw !important;
+}
+.room-bar, .room-dropdown {
+  position: relative !important;
+  width: 100% !important;
+  z-index: 10 !important;
+}
+.messages-container, #messages {
+  flex: 1 !important;
+  overflow-y: auto !important;
+}
+.input-container, .message-input {
+  position: relative !important;
+  width: 100% !important;
+  z-index: 20 !important;
+}
+</style>
+"""
+
+if '</head>' in content:
+    new_content = content.replace('</head>', css_block + '\n</head>')
+    with open('public/index.html', 'w') as f:
+        f.write(new_content)
+    print("Successfully embedded CSS into index.html")
+else:
+    print("Could not find </head> tag")

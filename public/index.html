@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MikiConnect</title>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     html, body { width: 100%; height: 100%; overflow: hidden; background-color: #000000; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
-    /* AUTH OVERLAY */
     #auth-screen {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: #0f172a; z-index: 999999; display: flex;
@@ -31,25 +31,17 @@
 
     #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; background: #000; }
 
-    /* TOP FEED TABS - ONLY VISIBLE ON FEED VIEW */
     .top-nav {
       position: absolute; top: 0; left: 0; width: 100%; height: 54px;
       display: flex; align-items: center; justify-content: center; gap: 18px;
       z-index: 100; background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
       font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.6);
     }
-    .top-nav .tab { cursor: pointer; transition: all 0.2s; position: relative; padding: 4px 0; }
     .top-nav .tab.active { color: #ffffff; font-weight: 700; font-size: 16px; }
-    .top-nav .tab.active::after {
-      content: ''; position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
-      width: 20px; height: 3px; background-color: #ff2a5f; border-radius: 2px;
-    }
 
-    /* VIEW SECTIONS */
     .view-section { display: none; width: 100%; height: calc(100vh - 56px); position: relative; overflow-y: auto; }
     .view-section.active-view { display: flex; flex-direction: column; }
 
-    /* FEED CARD */
     .feed-container { width: 100%; height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; }
     .feed-card {
       width: 100%; height: calc(100vh - 106px); scroll-snap-align: start; position: relative;
@@ -57,7 +49,6 @@
       border-bottom: 1px solid #1e293b;
     }
 
-    /* SIDE ACTIONS */
     .side-actions {
       position: absolute; right: 12px; bottom: 30px; display: flex;
       flex-direction: column; align-items: center; gap: 18px; z-index: 90;
@@ -72,7 +63,6 @@
     .post-info .author { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
     .post-info .caption { font-size: 14px; line-height: 1.4; color: #e2e8f0; }
 
-    /* CHAT INPUT */
     .chat-input-bar {
       width: 100%; height: 50px; padding: 6px 12px; background: rgba(15, 23, 42, 0.95);
       display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 95;
@@ -86,7 +76,6 @@
       border: none; color: #fff; font-weight: bold; font-size: 16px; cursor: pointer;
     }
 
-    /* BOTTOM NAV */
     .bottom-nav {
       position: absolute; bottom: 0; left: 0; width: 100%; height: 56px;
       background: #000000; border-top: 1px solid rgba(255,255,255,0.12);
@@ -94,7 +83,6 @@
     }
     .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #94a3b8; font-size: 10px; font-weight: 600; cursor: pointer; }
     .nav-item.active { color: #ffffff; }
-    .nav-icon { font-size: 20px; }
 
     .create-btn {
       width: 42px; height: 28px; background: #ffffff; border-radius: 8px;
@@ -107,23 +95,36 @@
     .page-padding { padding: 20px; height: 100%; overflow-y: auto; }
     .page-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: #ff2a5f; }
     .list-item { background: #1e293b; padding: 14px; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85); z-index: 99999; display: none;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.active-modal { display: flex; }
+    .modal-card {
+      width: 100%; max-width: 500px; background: #1e293b; border-radius: 20px 20px 0 0;
+      padding: 20px; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid #334155;
+    }
+    .modal-card textarea {
+      width: 100%; height: 90px; background: #0f172a; color: #fff;
+      border: 1px solid #334155; border-radius: 10px; padding: 12px; outline: none; font-size: 14px;
+    }
   </style>
 </head>
 <body>
 
-  <!-- AUTH SCREEN -->
   <div id="auth-screen">
     <div class="auth-card">
       <h2>MikiConnect</h2>
       <input type="text" id="username" placeholder="Username">
       <input type="password" id="password" placeholder="Password">
-      <button type="button" id="login-btn">Log In / Sign Up</button>
+      <button type="button" id="login-btn">Log In / Register</button>
     </div>
   </div>
 
   <div id="app-container">
 
-    <!-- TOP NAV (ONLY VISIBLE ON HOME FEED) -->
     <div class="top-nav" id="top-nav">
       <div class="tab">STEM</div>
       <div class="tab">Explore</div>
@@ -131,43 +132,24 @@
       <div class="tab active">For You</div>
     </div>
 
-    <!-- HOME VIEW -->
     <div id="feed-view" class="view-section active-view">
-      <div class="feed-container">
-        <div class="feed-card">
-          <div class="side-actions">
-            <div class="action-btn"><div class="action-icon">❤️</div><span class="action-count">1.2k</span></div>
-            <div class="action-btn"><div class="action-icon">💬</div><span class="action-count">342</span></div>
-            <div class="action-btn"><div class="action-icon">🔖</div><span class="action-count">88</span></div>
-            <div class="action-btn"><div class="action-icon">🔄</div><span class="action-count">15</span></div>
-          </div>
-          <div class="post-info">
-            <div class="author">@global_room <span style="color:#ff2a5f;">✔</span></div>
-            <div class="caption">Welcome to MikiConnect Global Feed! Express yourself and connect with users worldwide. 🚀❤️</div>
-          </div>
-        </div>
-      </div>
+      <div class="feed-container" id="feed-posts"></div>
       <div class="chat-input-bar">
-        <input type="text" placeholder="Type a message...">
-        <button class="send-btn">➔</button>
+        <input type="text" id="chat-msg" placeholder="Type a live message...">
+        <button class="send-btn" onclick="sendSocketMessage()">➔</button>
       </div>
     </div>
 
-    <!-- FRIENDS VIEW (DYNAMICALLY LOADED FROM DATABASE) -->
     <div id="friends-view" class="view-section page-padding">
       <div class="page-title">Registered Users</div>
-      <div id="users-list">
-        <div style="color:#94a3b8;">Loading database users...</div>
-      </div>
+      <div id="users-list">Loading users...</div>
     </div>
 
-    <!-- INBOX VIEW -->
     <div id="inbox-view" class="view-section page-padding">
-      <div class="page-title">Inbox & Notifications</div>
-      <div class="list-item"><span>💬</span> <div><strong>Global Chat</strong><br><small style="color:#94a3b8">Welcome to MikiConnect!</small></div></div>
+      <div class="page-title">Live Chat Stream</div>
+      <div id="live-chat-box" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
 
-    <!-- PROFILE VIEW -->
     <div id="profile-view" class="view-section page-padding">
       <div class="page-title">My Profile</div>
       <div class="list-item" style="flex-direction:column; text-align:center; padding:24px;">
@@ -177,7 +159,6 @@
       <button onclick="logoutUser()" style="width:100%; padding:12px; background:#ef4444; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Log Out</button>
     </div>
 
-    <!-- BOTTOM NAV -->
     <div class="bottom-nav">
       <div class="nav-item active" onclick="switchView('feed-view', this, true)">
         <div class="nav-icon">🏠</div><span>Home</span>
@@ -185,7 +166,7 @@
       <div class="nav-item" onclick="switchView('friends-view', this, false)">
         <div class="nav-icon">👥</div><span>Friends</span>
       </div>
-      <div class="create-btn"><span>+</span></div>
+      <div class="create-btn" onclick="openCreateModal()"><span>+</span></div>
       <div class="nav-item" onclick="switchView('inbox-view', this, false)">
         <div class="nav-icon">💬</div><span>Inbox</span>
       </div>
@@ -196,67 +177,149 @@
 
   </div>
 
+  <div id="create-modal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="color:#ff2a5f;">Create New Post</h3>
+      <textarea id="post-text" placeholder="What's on your mind?"></textarea>
+      <button onclick="publishPost()" style="padding:12px; background:#ff2a5f; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Publish Post</button>
+      <button onclick="closeModals()" style="padding:10px; background:transparent; color:#94a3b8; border:none; cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+
   <script>
-    // LOGIN
-    document.getElementById('login-btn').addEventListener('click', () => {
-      const u = document.getElementById('username').value.trim();
-      const p = document.getElementById('password').value.trim();
-      if (u && p) {
-        localStorage.setItem('username', u);
-        document.getElementById('profile-username').textContent = '@' + u;
+    const socket = io();
+    let authToken = localStorage.getItem('token');
+    let currentUser = localStorage.getItem('username');
+
+    if (authToken && currentUser) {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('profile-username').textContent = '@' + currentUser;
+      initData();
+    }
+
+    // 1. JWT LOGIN / REGISTER
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      if (!username || !password) return alert('Enter username and password');
+
+      const res = await fetch('/api/auth/register-or-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username);
+        authToken = data.token;
+        currentUser = data.username;
+        document.getElementById('profile-username').textContent = '@' + currentUser;
         document.getElementById('auth-screen').style.display = 'none';
-        fetchRealUsers();
+        initData();
       } else {
-        alert('Please fill in both fields.');
+        alert(data.error || 'Authentication failed');
       }
     });
 
-    // SWITCH VIEW & HIDE TOP TABS ON NON-HOME VIEWS
+    function initData() {
+      fetchPosts();
+      fetchUsers();
+    }
+
+    // 2. MONGO DB POST FETCHING & CREATION
+    async function fetchPosts() {
+      const res = await fetch('/api/posts');
+      const posts = await res.json();
+      const feed = document.getElementById('feed-posts');
+      feed.innerHTML = '';
+      posts.forEach(p => renderPost(p));
+    }
+
+    function renderPost(post) {
+      const feed = document.getElementById('feed-posts');
+      const card = document.createElement('div');
+      card.className = 'feed-card';
+      card.innerHTML = `
+        <div class="side-actions">
+          <div class="action-btn"><div class="action-icon">❤️</div><span class="action-count">${post.likes || 0}</span></div>
+          <div class="action-btn"><div class="action-icon">💬</div><span class="action-count">0</span></div>
+          <div class="action-btn"><div class="action-icon">🔖</div><span class="action-count">0</span></div>
+        </div>
+        <div class="post-info">
+          <div class="author">@${post.author} <span style="color:#ff2a5f;">✔</span></div>
+          <div class="caption">${post.caption}</div>
+        </div>
+      `;
+      feed.prepend(card);
+    }
+
+    async function publishPost() {
+      const caption = document.getElementById('post-text').value.trim();
+      if (!caption) return;
+
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + authToken
+        },
+        body: JSON.stringify({ caption })
+      });
+
+      if (res.ok) {
+        document.getElementById('post-text').value = '';
+        closeModals();
+      } else {
+        alert('Failed to publish post');
+      }
+    }
+
+    // 3. FETCH REGISTERED USERS
+    async function fetchUsers() {
+      const res = await fetch('/api/users');
+      const users = await res.json();
+      const container = document.getElementById('users-list');
+      container.innerHTML = users.map(u => `
+        <div class="list-item">
+          <span>👤</span>
+          <div><strong>@${u.username}</strong><br><small style="color:#94a3b8;">Registered User</small></div>
+        </div>
+      `).join('');
+    }
+
+    // 4. SOCKET.IO REAL-TIME CHAT
+    function sendSocketMessage() {
+      const input = document.getElementById('chat-msg');
+      const msg = input.value.trim();
+      if (!msg) return;
+      socket.emit('send_message', { user: currentUser, text: msg });
+      input.value = '';
+    }
+
+    socket.on('receive_message', (data) => {
+      const box = document.getElementById('live-chat-box');
+      const item = document.createElement('div');
+      item.className = 'list-item';
+      item.innerHTML = `<span>💬</span><div><strong>@${data.user}:</strong> ${data.text}</div>`;
+      box.prepend(item);
+    });
+
+    socket.on('new_post', (post) => {
+      renderPost(post);
+    });
+
     function switchView(viewId, element, isHome) {
       document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active-view'));
       document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
       document.getElementById(viewId).classList.add('active-view');
       if (element) element.classList.add('active');
-      
-      // Toggle top tabs visibility to avoid header text overlapping
       document.getElementById('top-nav').style.display = isHome ? 'flex' : 'none';
-
-      if (viewId === 'friends-view') {
-        fetchRealUsers();
-      }
     }
 
-    // FETCH LIVE USERS FROM BACKEND DATABASE
-    async function fetchRealUsers() {
-      const container = document.getElementById('users-list');
-      try {
-        const res = await fetch('/api/users');
-        if (!res.ok) throw new Error();
-        const users = await res.json();
-        
-        if (!users || users.length === 0) {
-          container.innerHTML = '<div style="color:#94a3b8;">No other registered users in MongoDB yet.</div>';
-          return;
-        }
-
-        container.innerHTML = users.map(u => `
-          <div class="list-item">
-            <span>👤</span>
-            <div>
-              <strong>@${u.username || u.name}</strong><br>
-              <small style="color:#94a3b8;">Registered User</small>
-            </div>
-          </div>
-        `).join('');
-      } catch (e) {
-        container.innerHTML = '<div style="color:#94a3b8;">Connect backend API to display registered users.</div>';
-      }
-    }
-
-    function logoutUser() {
-      localStorage.removeItem('username');
-      location.reload();
-    }
+    function openCreateModal() { document.getElementById('create-modal').classList.add('active-modal'); }
+    function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active-modal')); }
+    function logoutUser() { localStorage.clear(); location.reload(); }
   </script>
 </body>
 </html>
