@@ -464,14 +464,15 @@ body, html {
       <h2 style="margin-bottom: 16px; color: #fff;">MikiConnect</h2>
       <input type="text" id="username" placeholder="Username">
       <input type="password" id="password" placeholder="Password">
-      <button onclick="login()">Log In / Sign Up</button>
+      <button id="login-btn">Log In / Sign Up</button>
+
     </div>
   </div>
 
   
     <div class="header-btns">
       <button class="btn-action btn-admin" id="admin-btn" onclick="openAdminPanel()">⚡ Dashboard</button>
-      <button class="btn-action" onclick="logout()">Log Out</button>
+      <button class=
     </div>
   </header>
 
@@ -569,7 +570,10 @@ async function login() {
   }
 }
 window.login = login;
-    window.onload = async () => {
+      
+window.onload = async () => {   const loginBtn = document.getElementById('login-btn');
+  if (loginBtn) loginBtn.addEventListener('click', login);
+
       const token = localStorage.getItem('mikiconnect_token');
       if (token) {
         const res = await fetch('/api/verify', { headers: { 'Authorization': `Bearer ${token}` } });
