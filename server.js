@@ -101,24 +101,40 @@ app.post('/api/posts', authenticate, async (req, res) => {
   }
 });
 
-// SOCKET CHAT
+// SOCKET DM ROUTING
+const userSockets = {};
+
 io.on('connection', (socket) => {
+  socket.on('register_user', (username) => {
+    userSockets[username] = socket.id;
+  });
+
   socket.on('send_message', (data) => {
     io.emit('receive_message', data);
   });
+
+  socket.on('send_private_message', (data) => {
+    const recipientSocketId = userSockets[data.recipient];
+    if (recipientSocketId) {
+      io.to(recipientSocketId).emit('receive_private_message', data);
+    }
+    socket.emit('receive_private_message', data);
+  });
+
+  socket.on('disconnect', () => {
+    for (const [user, id] of Object.entries(userSockets)) {
+      if (id === socket.id) delete userSockets[user];
+    }
+  });
 });
 
-// HEALTH CHECK ROUTE FOR MONITORING
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// START HTTP SERVER FIRST (Prevents Render Port Timeout)
 server.listen(PORT, () => {
   console.log(`Server live on port ${PORT}`);
   if (MONGO_URI) {
     mongoose.connect(MONGO_URI)
       .then(() => console.log('Connected to MongoDB Atlas'))
       .catch(err => console.error('MongoDB error:', err.message));
-  } else {
-    console.warn('WARNING: MONGO_URI is not set in environment variables.');
   }
 });
