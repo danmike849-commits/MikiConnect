@@ -95,14 +95,49 @@
     .page-padding { padding: 20px; height: 100%; overflow-y: auto; }
     .page-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: #ff2a5f; }
     
-    /* CLICKABLE USER LIST CARDS */
     .user-card {
       background: #1e293b; padding: 14px; border-radius: 12px; margin-bottom: 10px;
       display: flex; align-items: center; justify-content: space-between; cursor: pointer;
       transition: background 0.2s, transform 0.1s; border: 1px solid #334155;
     }
-    .user-card:active { transform: scale(0.98); background: #334155; }
     .dm-badge { background: #ff2a5f; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
+    /* FULLSCREEN TIKTOK CAMERA UI */
+    #camera-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #000; z-index: 99999; display: none; flex-direction: column;
+      justify-content: space-between; padding: 20px 16px 30px;
+    }
+    #camera-screen.active-cam { display: flex; }
+    #camera-preview {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      object-fit: cover; z-index: 1;
+    }
+    .cam-overlay { position: relative; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+    .cam-header { display: flex; justify-content: space-between; align-items: center; }
+    .sound-badge { background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; backdrop-filter: blur(8px); }
+    .cam-tools { position: absolute; right: 0; top: 60px; display: flex; flex-direction: column; gap: 20px; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+
+    .cam-bottom { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 10px; }
+    .mode-selector { display: flex; gap: 18px; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.6); }
+    .mode-selector span.active-mode { color: #fff; border-bottom: 2px solid #fff; padding-bottom: 2px; }
+
+    .shutter-container { display: flex; align-items: center; justify-content: space-around; width: 100%; }
+    .shutter-btn {
+      width: 76px; height: 76px; border-radius: 50%; border: 4px solid #fff;
+      background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .shutter-inner { width: 62px; height: 62px; border-radius: 50%; background: #fe2c55; }
+
+    .text-input-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); z-index: 20; display: none;
+      flex-direction: column; justify-content: center; padding: 20px; gap: 14px;
+    }
+    .text-input-overlay textarea {
+      width: 100%; height: 120px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 12px; padding: 14px; color: #fff; font-size: 16px; outline: none;
+    }
 
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -114,7 +149,7 @@
       width: 100%; max-width: 500px; background: #1e293b; border-radius: 20px 20px 0 0;
       padding: 20px; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid #334155;
     }
-    .modal-card textarea, .modal-card input {
+    .modal-card input {
       width: 100%; background: #0f172a; color: #fff;
       border: 1px solid #334155; border-radius: 10px; padding: 12px; outline: none; font-size: 14px;
     }
@@ -174,7 +209,7 @@
       <div class="nav-item" onclick="switchView('friends-view', this, false)">
         <div class="nav-icon">👥</div><span>Friends</span>
       </div>
-      <div class="create-btn" onclick="openCreateModal()"><span>+</span></div>
+      <div class="create-btn" onclick="openCamera()"><span>+</span></div>
       <div class="nav-item" onclick="switchView('inbox-view', this, false)">
         <div class="nav-icon">💬</div><span>Inbox</span>
       </div>
@@ -185,7 +220,52 @@
 
   </div>
 
-  <!-- PRIVATE DM CHAT MODAL -->
+  <!-- TIKTOK STYLE CAMERA OVERLAY -->
+  <div id="camera-screen">
+    <video id="camera-preview" autoplay playsinline muted></video>
+    
+    <div class="cam-overlay">
+      <div class="cam-header">
+        <span style="font-size:24px; cursor:pointer;" onclick="closeCamera()">✕</span>
+        <div class="sound-badge">🎵 Add sound</div>
+        <span style="font-size:20px; cursor:pointer;" onclick="switchCameraFacing()">🔄</span>
+      </div>
+
+      <div class="cam-tools">
+        <div>⚡</div>
+        <div>⏱️</div>
+        <div>🖼️</div>
+        <div>✨</div>
+      </div>
+
+      <div class="cam-bottom">
+        <div class="mode-selector">
+          <span>10m</span>
+          <span>60s</span>
+          <span>15s</span>
+          <span class="active-mode" onclick="setMode('PHOTO')">PHOTO</span>
+          <span onclick="openTextOverlay()">TEXT</span>
+        </div>
+
+        <div class="shutter-container">
+          <div style="width:40px;"></div>
+          <div class="shutter-btn" onclick="triggerCapture()">
+            <div class="shutter-inner"></div>
+          </div>
+          <div style="width:40px; font-size:24px; cursor:pointer;" onclick="openTextOverlay()">✍️</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-input-overlay" id="text-overlay">
+      <h3 style="color:#fe2c55;">Write Post Caption</h3>
+      <textarea id="camera-post-caption" placeholder="What's on your mind?"></textarea>
+      <button onclick="publishCameraPost()" style="padding:14px; background:#fe2c55; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Publish Post</button>
+      <button onclick="closeTextOverlay()" style="padding:10px; background:transparent; color:#aaa; border:none; cursor:pointer;">Back to Camera</button>
+    </div>
+  </div>
+
+  <!-- PRIVATE CHAT MODAL -->
   <div id="dm-modal" class="modal-overlay">
     <div class="modal-card">
       <h3 style="color:#ff2a5f;" id="dm-target-title">Chat with User</h3>
@@ -198,21 +278,13 @@
     </div>
   </div>
 
-  <!-- CREATE POST MODAL -->
-  <div id="create-modal" class="modal-overlay">
-    <div class="modal-card">
-      <h3 style="color:#ff2a5f;">Create New Post</h3>
-      <textarea id="post-text" placeholder="What's on your mind?"></textarea>
-      <button onclick="publishPost()" style="padding:12px; background:#ff2a5f; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Publish Post</button>
-      <button onclick="closeModals()" style="padding:10px; background:transparent; color:#94a3b8; border:none; cursor:pointer;">Cancel</button>
-    </div>
-  </div>
-
   <script>
     const socket = io();
     let authToken = localStorage.getItem('token');
     let currentUser = localStorage.getItem('username');
     let activeDmTarget = null;
+    let currentStream = null;
+    let useFacingUser = true;
 
     if (authToken && currentUser) {
       document.getElementById('auth-screen').style.display = 'none';
@@ -250,6 +322,68 @@
       fetchUsers();
     }
 
+    // CAMERA FUNCTIONS
+    async function openCamera() {
+      document.getElementById('camera-screen').classList.add('active-cam');
+      startCameraStream();
+    }
+
+    async function startCameraStream() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: useFacingUser ? 'user' : 'environment' },
+          audio: false
+        });
+        document.getElementById('camera-preview').srcObject = currentStream;
+      } catch (err) {
+        console.warn('Camera permission denied or unavailable');
+      }
+    }
+
+    function switchCameraFacing() {
+      useFacingUser = !useFacingUser;
+      startCameraStream();
+    }
+
+    function closeCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      document.getElementById('camera-screen').classList.remove('active-cam');
+      closeTextOverlay();
+    }
+
+    function openTextOverlay() { document.getElementById('text-overlay').style.display = 'flex'; }
+    function closeTextOverlay() { document.getElementById('text-overlay').style.display = 'none'; }
+
+    function triggerCapture() { openTextOverlay(); }
+
+    async function publishCameraPost() {
+      const caption = document.getElementById('camera-post-caption').value.trim();
+      if (!caption) return alert('Write a caption for your post');
+
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + authToken
+        },
+        body: JSON.stringify({ caption })
+      });
+
+      if (res.ok) {
+        document.getElementById('camera-post-caption').value = '';
+        closeCamera();
+        switchView('feed-view', document.querySelectorAll('.bottom-nav .nav-item')[0], true);
+      } else {
+        alert('Failed to publish post');
+      }
+    }
+
+    // FEED & POSTS
     async function fetchPosts() {
       const res = await fetch('/api/posts');
       const posts = await res.json();
@@ -276,28 +410,7 @@
       feed.prepend(card);
     }
 
-    async function publishPost() {
-      const caption = document.getElementById('post-text').value.trim();
-      if (!caption) return;
-
-      const res = await fetch('/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + authToken
-        },
-        body: JSON.stringify({ caption })
-      });
-
-      if (res.ok) {
-        document.getElementById('post-text').value = '';
-        closeModals();
-      } else {
-        alert('Failed to publish post');
-      }
-    }
-
-    // CLICKABLE USERS FOR DIRECT MESSAGING
+    // USER LIST & DM
     async function fetchUsers() {
       const res = await fetch('/api/users');
       const users = await res.json();
@@ -378,9 +491,7 @@
       box.prepend(item);
     });
 
-    socket.on('new_post', (post) => {
-      renderPost(post);
-    });
+    socket.on('new_post', (post) => { renderPost(post); });
 
     function switchView(viewId, element, isHome) {
       document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active-view'));
@@ -390,7 +501,6 @@
       document.getElementById('top-nav').style.display = isHome ? 'flex' : 'none';
     }
 
-    function openCreateModal() { document.getElementById('create-modal').classList.add('active-modal'); }
     function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active-modal')); }
     function logoutUser() { localStorage.clear(); location.reload(); }
   </script>
