@@ -14,8 +14,9 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 
 // MONGOOSE SCHEMAS
 const UserSchema = new mongoose.Schema({
@@ -47,6 +48,41 @@ const authenticate = (req, res, next) => {
 };
 
 // API ROUTES
+// CLOUDINARY MEDIA UPLOAD CONFIG
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const multer = require('multer');
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'mikiconnect_media',
+    resource_type: 'auto'
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Media Upload Route
+app.post('/api/upload', upload.single('media'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+  res.json({ url: req.file.path });
+});
+const requireAdmin = (req, res, next) => {
+  if (req.user && req.user.isAdmin === true) {
+    return next();
+  }
+  return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+};
+
 app.post('/api/auth/register-or-login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
