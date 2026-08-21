@@ -3,506 +3,367 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MikiConnect</title>
-  <script src="/socket.io/socket.io.js"></script>
+  <title>MikiConnect - Chats</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background-color: #000000; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-
-    #auth-screen {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #0f172a; z-index: 999999; display: flex;
-      align-items: center; justify-content: center; padding: 20px;
-    }
-    .auth-card {
-      background: #1e293b; padding: 28px 24px; border-radius: 16px;
-      width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 14px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.6); text-align: center; border: 1px solid #334155;
-    }
-    .auth-card h2 { font-size: 24px; font-weight: 800; color: #ff2a5f; }
-    .auth-card input {
-      width: 100%; height: 46px; padding: 0 14px; background: #0f172a;
-      color: #fff; border: 1px solid #334155; border-radius: 10px; font-size: 15px; outline: none;
-    }
-    .auth-card button {
-      width: 100%; height: 46px; background: #ff2a5f; color: #fff;
-      border: none; border-radius: 10px; font-weight: 700; font-size: 16px; cursor: pointer;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; background: #000; }
-
-    .top-nav {
-      position: absolute; top: 0; left: 0; width: 100%; height: 54px;
-      display: flex; align-items: center; justify-content: center; gap: 18px;
-      z-index: 100; background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
-      font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.6);
-    }
-    .top-nav .tab.active { color: #ffffff; font-weight: 700; font-size: 16px; }
-
-    .view-section { display: none; width: 100%; height: calc(100vh - 56px); position: relative; overflow-y: auto; }
-    .view-section.active-view { display: flex; flex-direction: column; }
-
-    .feed-container { width: 100%; height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; }
-    .feed-card {
-      width: 100%; height: calc(100vh - 106px); scroll-snap-align: start; position: relative;
-      display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; padding-bottom: 20px;
-      border-bottom: 1px solid #1e293b;
+    body, html {
+      height: 100%;
+      background-color: #000000;
+      color: #ffffff;
+      overflow: hidden;
     }
 
-    .side-actions {
-      position: absolute; right: 12px; bottom: 30px; display: flex;
-      flex-direction: column; align-items: center; gap: 18px; z-index: 90;
-    }
-    .action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
-    .action-icon {
-      width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; font-size: 20px;
+    .messenger-container {
+      display: flex;
+      width: 100vw;
+      height: 100dvh;
     }
 
-    .post-info { width: 75%; z-index: 90; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
-    .post-info .author { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-    .post-info .caption { font-size: 14px; line-height: 1.4; color: #e2e8f0; }
+    /* Left Panel: Inbox & Active Contacts */
+    .inbox-panel {
+      width: 100%;
+      max-width: 360px;
+      background-color: #121212;
+      border-right: 1px solid #2f2f2f;
+      display: flex;
+      flex-direction: column;
+    }
 
+    .panel-header {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #e4e6eb;
+    }
+
+    /* Active Stories Row */
+    .active-users-row {
+      display: flex;
+      gap: 14px;
+      padding: 12px 16px;
+      overflow-x: auto;
+      border-bottom: 1px solid #242526;
+      scrollbar-width: none;
+    }
+
+    .active-users-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .user-avatar-wrapper {
+      position: relative;
+      flex-shrink: 0;
+      text-align: center;
+      width: 56px;
+    }
+
+    .avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: #3a3b3c;
+    }
+
+    .active-dot {
+      width: 14px;
+      height: 14px;
+      background-color: #31a24c;
+      border-radius: 50%;
+      border: 2px solid #121212;
+      position: absolute;
+      bottom: 18px;
+      right: 2px;
+    }
+
+    .avatar-name {
+      font-size: 11px;
+      color: #b0b3b8;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Inbox List */
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .chat-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .chat-item:hover, .chat-item.active {
+      background-color: #242526;
+    }
+
+    .chat-details {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .chat-details .name {
+      font-weight: 600;
+      font-size: 15px;
+      color: #f5f6f7;
+    }
+
+    .chat-details .last-message {
+      font-size: 13px;
+      color: #b0b3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    /* Right Panel: Active Chat Room */
+    .chat-view-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: #000000;
+    }
+
+    .chat-header {
+      padding: 12px 16px;
+      background-color: #121212;
+      border-bottom: 1px solid #242526;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-header .chat-info h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .chat-header .chat-info p {
+      font-size: 12px;
+      color: #31a24c;
+    }
+
+    /* Messages Area */
+    .messages-container {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .message-bubble {
+      max-width: 65%;
+      padding: 10px 14px;
+      font-size: 15px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .message-bubble.received {
+      align-self: flex-start;
+      background-color: #242526;
+      color: #e4e6eb;
+      border-radius: 18px 18px 18px 4px;
+    }
+
+    .message-bubble.sent {
+      align-self: flex-end;
+      background-color: #0084ff;
+      color: #ffffff;
+      border-radius: 18px 18px 4px 18px;
+    }
+
+    .message-media {
+      max-width: 100%;
+      border-radius: 12px;
+      margin-top: 6px;
+    }
+
+    /* Chat Input Bar */
     .chat-input-bar {
-      width: 100%; height: 50px; padding: 6px 12px; background: rgba(15, 23, 42, 0.95);
-      display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 95;
+      padding: 12px;
+      background-color: #121212;
+      border-top: 1px solid #242526;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .chat-input-bar input {
-      flex: 1; height: 38px; background: #1e293b; border: 1px solid #334155;
-      border-radius: 20px; padding: 0 14px; color: #fff; font-size: 14px; outline: none;
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #0084ff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
+    .chat-input-bar input[type="text"] {
+      flex: 1;
+      background-color: #242526;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 20px;
+      color: #ffffff;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .chat-input-bar input[type="text"]::placeholder {
+      color: #b0b3b8;
+    }
+
     .send-btn {
-      width: 38px; height: 38px; border-radius: 50%; background: #ff2a5f;
-      border: none; color: #fff; font-weight: bold; font-size: 16px; cursor: pointer;
+      background: none;
+      border: none;
+      color: #0084ff;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
     }
 
-    .bottom-nav {
-      position: absolute; bottom: 0; left: 0; width: 100%; height: 56px;
-      background: #000000; border-top: 1px solid rgba(255,255,255,0.12);
-      display: flex; align-items: center; justify-content: space-around; z-index: 101;
-    }
-    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #94a3b8; font-size: 10px; font-weight: 600; cursor: pointer; }
-    .nav-item.active { color: #ffffff; }
-
-    .create-btn {
-      width: 42px; height: 28px; background: #ffffff; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;
-    }
-    .create-btn::before { content: ''; position: absolute; left: -3px; width: 14px; height: 100%; background: #25f4ee; border-radius: 6px 0 0 6px; z-index: -1; }
-    .create-btn::after { content: ''; position: absolute; right: -3px; width: 14px; height: 100%; background: #fe2c55; border-radius: 0 6px 6px 0; z-index: -1; }
-    .create-btn span { color: #000; font-weight: 900; font-size: 20px; line-height: 1; }
-
-    .page-padding { padding: 20px; height: 100%; overflow-y: auto; }
-    .page-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: #ff2a5f; }
-    
-    .user-card {
-      background: #1e293b; padding: 14px; border-radius: 12px; margin-bottom: 10px;
-      display: flex; align-items: center; justify-content: space-between; cursor: pointer;
-      transition: background 0.2s, transform 0.1s; border: 1px solid #334155;
-    }
-    .dm-badge { background: #ff2a5f; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-
-    /* FULLSCREEN TIKTOK CAMERA UI */
-    #camera-screen {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #000; z-index: 99999; display: none; flex-direction: column;
-      justify-content: space-between; padding: 20px 16px 30px;
-    }
-    #camera-screen.active-cam { display: flex; }
-    #camera-preview {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      object-fit: cover; z-index: 1;
-    }
-    .cam-overlay { position: relative; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
-    .cam-header { display: flex; justify-content: space-between; align-items: center; }
-    .sound-badge { background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; backdrop-filter: blur(8px); }
-    .cam-tools { position: absolute; right: 0; top: 60px; display: flex; flex-direction: column; gap: 20px; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-
-    .cam-bottom { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 10px; }
-    .mode-selector { display: flex; gap: 18px; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.6); }
-    .mode-selector span.active-mode { color: #fff; border-bottom: 2px solid #fff; padding-bottom: 2px; }
-
-    .shutter-container { display: flex; align-items: center; justify-content: space-around; width: 100%; }
-    .shutter-btn {
-      width: 76px; height: 76px; border-radius: 50%; border: 4px solid #fff;
-      background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;
-    }
-    .shutter-inner { width: 62px; height: 62px; border-radius: 50%; background: #fe2c55; }
-
-    .text-input-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); z-index: 20; display: none;
-      flex-direction: column; justify-content: center; padding: 20px; gap: 14px;
-    }
-    .text-input-overlay textarea {
-      width: 100%; height: 120px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 12px; padding: 14px; color: #fff; font-size: 16px; outline: none;
-    }
-
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.85); z-index: 99999; display: none;
-      align-items: flex-end; justify-content: center;
-    }
-    .modal-overlay.active-modal { display: flex; }
-    .modal-card {
-      width: 100%; max-width: 500px; background: #1e293b; border-radius: 20px 20px 0 0;
-      padding: 20px; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid #334155;
-    }
-    .modal-card input {
-      width: 100%; background: #0f172a; color: #fff;
-      border: 1px solid #334155; border-radius: 10px; padding: 12px; outline: none; font-size: 14px;
+    /* Responsive mobile view */
+    @media (max-width: 768px) {
+      .chat-view-panel {
+        display: flex;
+      }
+      .inbox-panel {
+        display: none; /* Can be toggled using JS when switching screens */
+      }
     }
   </style>
 </head>
 <body>
 
-  <div id="auth-screen">
-    <div class="auth-card">
-      <h2>MikiConnect</h2>
-      <input type="text" id="username" placeholder="Username">
-      <input type="password" id="password" placeholder="Password">
-      <button type="button" id="login-btn">Log In / Register</button>
-    </div>
-  </div>
-
-  <div id="app-container">
-
-    <div class="top-nav" id="top-nav">
-      <div class="tab">STEM</div>
-      <div class="tab">Explore</div>
-      <div class="tab">Following</div>
-      <div class="tab active">For You</div>
-    </div>
-
-    <div id="feed-view" class="view-section active-view">
-      <div class="feed-container" id="feed-posts"></div>
-      <div class="chat-input-bar">
-        <input type="text" id="chat-msg" placeholder="Type a public message...">
-        <button class="send-btn" onclick="sendPublicMessage()">➔</button>
-      </div>
-    </div>
-
-    <div id="friends-view" class="view-section page-padding">
-      <div class="page-title">Registered Users</div>
-      <div id="users-list">Loading registered users...</div>
-    </div>
-
-    <div id="inbox-view" class="view-section page-padding">
-      <div class="page-title">Live Public Feed Chat</div>
-      <div id="live-chat-box" style="display:flex; flex-direction:column; gap:10px;"></div>
-    </div>
-
-    <div id="profile-view" class="view-section page-padding">
-      <div class="page-title">My Profile</div>
-      <div class="user-card" style="flex-direction:column; text-align:center; padding:24px;">
-        <div style="font-size:48px; margin-bottom:8px;">👤</div>
-        <h3 id="profile-username" style="color:#ff2a5f;">@guest</h3>
-      </div>
-      <button onclick="logoutUser()" style="width:100%; padding:12px; background:#ef4444; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Log Out</button>
-    </div>
-
-    <div class="bottom-nav">
-      <div class="nav-item active" onclick="switchView('feed-view', this, true)">
-        <div class="nav-icon">🏠</div><span>Home</span>
-      </div>
-      <div class="nav-item" onclick="switchView('friends-view', this, false)">
-        <div class="nav-icon">👥</div><span>Friends</span>
-      </div>
-      <div class="create-btn" onclick="openCamera()"><span>+</span></div>
-      <div class="nav-item" onclick="switchView('inbox-view', this, false)">
-        <div class="nav-icon">💬</div><span>Inbox</span>
-      </div>
-      <div class="nav-item" onclick="switchView('profile-view', this, false)">
-        <div class="nav-icon">👤</div><span>Profile</span>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- TIKTOK STYLE CAMERA OVERLAY -->
-  <div id="camera-screen">
-    <video id="camera-preview" autoplay playsinline muted></video>
+  <div class="messenger-container">
     
-    <div class="cam-overlay">
-      <div class="cam-header">
-        <span style="font-size:24px; cursor:pointer;" onclick="closeCamera()">✕</span>
-        <div class="sound-badge">🎵 Add sound</div>
-        <span style="font-size:20px; cursor:pointer;" onclick="switchCameraFacing()">🔄</span>
+    <!-- Left Panel: Inbox -->
+    <aside class="inbox-panel" id="inbox-panel">
+      <div class="panel-header">
+        <h1>Chats</h1>
       </div>
 
-      <div class="cam-tools">
-        <div>⚡</div>
-        <div>⏱️</div>
-        <div>🖼️</div>
-        <div>✨</div>
-      </div>
-
-      <div class="cam-bottom">
-        <div class="mode-selector">
-          <span>10m</span>
-          <span>60s</span>
-          <span>15s</span>
-          <span class="active-mode" onclick="setMode('PHOTO')">PHOTO</span>
-          <span onclick="openTextOverlay()">TEXT</span>
+      <!-- Active Users Row -->
+      <div class="active-users-row" id="active-users">
+        <div class="user-avatar-wrapper">
+          <img src="https://via.placeholder.com/50" class="avatar" alt="User">
+          <div class="active-dot"></div>
+          <div class="avatar-name">Mika</div>
         </div>
+      </div>
 
-        <div class="shutter-container">
-          <div style="width:40px;"></div>
-          <div class="shutter-btn" onclick="triggerCapture()">
-            <div class="shutter-inner"></div>
+      <!-- Inbox Threads -->
+      <div class="chat-list" id="chat-list">
+        <div class="chat-item active">
+          <img src="https://via.placeholder.com/50" class="avatar" alt="Avatar">
+          <div class="chat-details">
+            <div class="name">General Chat</div>
+            <div class="last-message">Welcome to MikiConnect Messenger!</div>
           </div>
-          <div style="width:40px; font-size:24px; cursor:pointer;" onclick="openTextOverlay()">✍️</div>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <div class="text-input-overlay" id="text-overlay">
-      <h3 style="color:#fe2c55;">Write Post Caption</h3>
-      <textarea id="camera-post-caption" placeholder="What's on your mind?"></textarea>
-      <button onclick="publishCameraPost()" style="padding:14px; background:#fe2c55; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Publish Post</button>
-      <button onclick="closeTextOverlay()" style="padding:10px; background:transparent; color:#aaa; border:none; cursor:pointer;">Back to Camera</button>
-    </div>
-  </div>
-
-  <!-- PRIVATE CHAT MODAL -->
-  <div id="dm-modal" class="modal-overlay">
-    <div class="modal-card">
-      <h3 style="color:#ff2a5f;" id="dm-target-title">Chat with User</h3>
-      <div id="dm-chat-history" style="height: 180px; overflow-y: auto; background: #0f172a; padding: 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="dm-input" placeholder="Type a private message...">
-        <button onclick="sendPrivateMessage()" style="padding:0 16px; background:#ff2a5f; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Send</button>
+    <!-- Right Panel: Messenger Workspace -->
+    <main class="chat-view-panel" id="chat-view-panel">
+      
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <img src="https://via.placeholder.com/50" class="avatar" alt="Avatar" id="chat-header-avatar">
+        <div class="chat-info">
+          <h3 id="chat-header-title">General Chat</h3>
+          <p id="chat-header-status">Active now</p>
+        </div>
       </div>
-      <button onclick="closeModals()" style="padding:10px; background:transparent; color:#94a3b8; border:none; cursor:pointer;">Close</button>
-    </div>
+
+      <!-- Messages Thread -->
+      <div class="messages-container" id="messages-container">
+        <div class="message-bubble received">
+          Hey Mika! Welcome to the new Messenger interface.
+        </div>
+        <div class="message-bubble sent">
+          Looks clean! Ready to send images and voice notes.
+        </div>
+      </div>
+
+      <!-- Input Actions -->
+      <div class="chat-input-bar">
+        <label class="icon-btn" title="Send Photo/Video">
+          📷
+          <input type="file" id="media-input" accept="image/*,video/*" hidden>
+        </label>
+        <button class="icon-btn" id="mic-btn" title="Voice Note">🎙️</button>
+        <input type="text" id="message-input" placeholder="Aa" autocomplete="off">
+        <button class="send-btn" id="send-btn">➤</button>
+      </div>
+
+    </main>
+
   </div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    let authToken = localStorage.getItem('token');
-    let currentUser = localStorage.getItem('username');
-    let activeDmTarget = null;
-    let currentStream = null;
-    let useFacingUser = true;
+    const sendBtn = document.getElementById('send-btn');
+    const messageInput = document.getElementById('message-input');
+    const messagesContainer = document.getElementById('messages-container');
 
-    if (authToken && currentUser) {
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('profile-username').textContent = '@' + currentUser;
-      initData();
-    }
-
-    document.getElementById('login-btn').addEventListener('click', async () => {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-      if (!username || !password) return alert('Enter username and password');
-
-      const res = await fetch('/api/auth/register-or-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('username', data.username);
-        authToken = data.token;
-        currentUser = data.username;
-        document.getElementById('profile-username').textContent = '@' + currentUser;
-        document.getElementById('auth-screen').style.display = 'none';
-        initData();
-      } else {
-        alert(data.error || 'Authentication failed');
-      }
+    // Send Message Trigger
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
     });
 
-    function initData() {
-      socket.emit('register_user', currentUser);
-      fetchPosts();
-      fetchUsers();
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      // Render sent bubble locally
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble sent';
+      bubble.innerText = text;
+      messagesContainer.appendChild(bubble);
+
+      messageInput.value = '';
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+      // Socket emit
+      socket.emit('chatMessage', { text });
     }
 
-    // CAMERA FUNCTIONS
-    async function openCamera() {
-      document.getElementById('camera-screen').classList.add('active-cam');
-      startCameraStream();
-    }
-
-    async function startCameraStream() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      try {
-        currentStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: useFacingUser ? 'user' : 'environment' },
-          audio: false
-        });
-        document.getElementById('camera-preview').srcObject = currentStream;
-      } catch (err) {
-        console.warn('Camera permission denied or unavailable');
-      }
-    }
-
-    function switchCameraFacing() {
-      useFacingUser = !useFacingUser;
-      startCameraStream();
-    }
-
-    function closeCamera() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      document.getElementById('camera-screen').classList.remove('active-cam');
-      closeTextOverlay();
-    }
-
-    function openTextOverlay() { document.getElementById('text-overlay').style.display = 'flex'; }
-    function closeTextOverlay() { document.getElementById('text-overlay').style.display = 'none'; }
-
-    function triggerCapture() { openTextOverlay(); }
-
-    async function publishCameraPost() {
-      const caption = document.getElementById('camera-post-caption').value.trim();
-      if (!caption) return alert('Write a caption for your post');
-
-      const res = await fetch('/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + authToken
-        },
-        body: JSON.stringify({ caption })
-      });
-
-      if (res.ok) {
-        document.getElementById('camera-post-caption').value = '';
-        closeCamera();
-        switchView('feed-view', document.querySelectorAll('.bottom-nav .nav-item')[0], true);
-      } else {
-        alert('Failed to publish post');
-      }
-    }
-
-    // FEED & POSTS
-    async function fetchPosts() {
-      const res = await fetch('/api/posts');
-      const posts = await res.json();
-      const feed = document.getElementById('feed-posts');
-      feed.innerHTML = '';
-      posts.forEach(p => renderPost(p));
-    }
-
-    function renderPost(post) {
-      const feed = document.getElementById('feed-posts');
-      const card = document.createElement('div');
-      card.className = 'feed-card';
-      card.innerHTML = `
-        <div class="side-actions">
-          <div class="action-btn"><div class="action-icon">❤️</div><span class="action-count">${post.likes || 0}</span></div>
-          <div class="action-btn"><div class="action-icon">💬</div><span class="action-count">0</span></div>
-          <div class="action-btn"><div class="action-icon">🔖</div><span class="action-count">0</span></div>
-        </div>
-        <div class="post-info">
-          <div class="author">@${post.author} <span style="color:#ff2a5f;">✔</span></div>
-          <div class="caption">${post.caption}</div>
-        </div>
-      `;
-      feed.prepend(card);
-    }
-
-    // USER LIST & DM
-    async function fetchUsers() {
-      const res = await fetch('/api/users');
-      const users = await res.json();
-      const container = document.getElementById('users-list');
-      
-      container.innerHTML = users
-        .filter(u => u.username !== currentUser)
-        .map(u => `
-          <div class="user-card" onclick="openPrivateChat('${u.username}')">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-size:24px;">👤</span>
-              <div>
-                <strong>@${u.username}</strong><br>
-                <small style="color:#94a3b8;">Registered User</small>
-              </div>
-            </div>
-            <span class="dm-badge">Chat 💬</span>
-          </div>
-        `).join('');
-    }
-
-    function openPrivateChat(targetUsername) {
-      activeDmTarget = targetUsername;
-      document.getElementById('dm-target-title').textContent = 'Chat with @' + targetUsername;
-      document.getElementById('dm-chat-history').innerHTML = '';
-      document.getElementById('dm-modal').classList.add('active-modal');
-    }
-
-    function sendPrivateMessage() {
-      const input = document.getElementById('dm-input');
-      const msg = input.value.trim();
-      if (!msg || !activeDmTarget) return;
-
-      socket.emit('send_private_message', {
-        sender: currentUser,
-        recipient: activeDmTarget,
-        text: msg
-      });
-
-      appendDmMessage(currentUser, msg);
-      input.value = '';
-    }
-
-    function appendDmMessage(sender, text) {
-      const box = document.getElementById('dm-chat-history');
-      const div = document.createElement('div');
-      div.style.padding = '6px 10px';
-      div.style.borderRadius = '8px';
-      div.style.background = sender === currentUser ? '#ff2a5f' : '#1e293b';
-      div.style.alignSelf = sender === currentUser ? 'flex-end' : 'flex-start';
-      div.style.maxWidth = '80%';
-      div.innerHTML = `<small style="opacity:0.8;">@${sender}:</small><br>${text}`;
-      box.appendChild(div);
-      box.scrollTop = box.scrollHeight;
-    }
-
-    function sendPublicMessage() {
-      const input = document.getElementById('chat-msg');
-      const msg = input.value.trim();
-      if (!msg) return;
-      socket.emit('send_message', { user: currentUser, text: msg });
-      input.value = '';
-    }
-
-    socket.on('receive_private_message', (data) => {
-      if (data.sender === activeDmTarget || data.sender === currentUser) {
-        appendDmMessage(data.sender, data.text);
-      } else {
-        alert(`New message from @${data.sender}`);
-      }
+    // Socket listener for incoming messages
+    socket.on('message', (data) => {
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble received';
+      bubble.innerText = data.text;
+      messagesContainer.appendChild(bubble);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
     });
-
-    socket.on('receive_message', (data) => {
-      const box = document.getElementById('live-chat-box');
-      const item = document.createElement('div');
-      item.className = 'user-card';
-      item.innerHTML = `<span>💬</span><div><strong>@${data.user}:</strong> ${data.text}</div>`;
-      box.prepend(item);
-    });
-
-    socket.on('new_post', (post) => { renderPost(post); });
-
-    function switchView(viewId, element, isHome) {
-      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active-view'));
-      document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
-      document.getElementById(viewId).classList.add('active-view');
-      if (element) element.classList.add('active');
-      document.getElementById('top-nav').style.display = isHome ? 'flex' : 'none';
-    }
-
-    function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active-modal')); }
-    function logoutUser() { localStorage.clear(); location.reload(); }
   </script>
 </body>
 </html>
+
