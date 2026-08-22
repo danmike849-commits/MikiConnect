@@ -44,8 +44,13 @@
     .message { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; position: relative; user-select: none; }
     .message.received { background: #222; align-self: flex-start; border-bottom-left-radius: 4px; }
     .message.sent { background: #0084ff; align-self: flex-end; border-bottom-right-radius: 4px; }
-    .message img, .message video, .message audio { max-width: 100%; border-radius: 12px; display: block; }
+    .message img, .message video { max-width: 100%; border-radius: 12px; display: block; }
     .sender-name { font-size: 11px; opacity: 0.6; margin-bottom: 4px; }
+
+    .voice-note-card { display: flex; align-items: center; gap: 8px; width: 200px; padding: 4px 0; }
+    .waveform { flex: 1; height: 24px; display: flex; align-items: center; gap: 2px; }
+    .wave-bar { flex: 1; background: rgba(255,255,255,0.4); border-radius: 2px; height: 100%; animation: pulseWave 1.2s infinite ease-in-out; }
+    @keyframes pulseWave { 0%, 100% { height: 30%; } 50% { height: 100%; } }
 
     .msg-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 10px; opacity: 0.8; margin-top: 4px; }
     .read-mark { color: #00e676; font-weight: bold; font-size: 12px; }
@@ -77,13 +82,11 @@
 </head>
 <body onclick="hideActionMenu()">
 
-  <!-- ACTION MENU -->
   <div id="action-menu">
     <button onclick="openEditModal()">✏️ Edit</button>
     <button class="delete-btn" onclick="triggerDelete()">🗑️ Delete</button>
   </div>
 
-  <!-- EDIT MODAL -->
   <div id="edit-modal" style="display:none;">
     <div class="custom-box">
       <h3>Edit Message</h3>
@@ -95,7 +98,6 @@
     </div>
   </div>
 
-  <!-- BIO MODAL -->
   <div id="bio-modal" style="display:none;">
     <div class="custom-box">
       <h3>Update Status Bio</h3>
@@ -107,7 +109,6 @@
     </div>
   </div>
 
-  <!-- AUTH MODAL -->
   <div id="auth-modal">
     <div class="custom-box" style="text-align:center;">
       <h2 style="color:#0084ff; margin-bottom:16px;">MikiConnect</h2>
@@ -117,12 +118,14 @@
     </div>
   </div>
 
-  <!-- MAIN CHAT APP -->
   <div class="app-container" id="app">
     <div class="sidebar">
       <div class="sidebar-header">
         <span onclick="openBioModal()" style="cursor:pointer;" title="Tap to change status">MikiConnect ✏️</span>
-        <button onclick="logout()" style="background:none; border:none; color:#ff4444; font-size:12px; cursor:pointer;">Logout</button>
+        <div>
+          <button id="admin-link" onclick="location.href='/admin.html'" style="display:none; background:none; border:none; color:#00e676; font-size:12px; margin-right:8px; cursor:pointer;">Admin</button>
+          <button onclick="logout()" style="background:none; border:none; color:#ff4444; font-size:12px; cursor:pointer;">Logout</button>
+        </div>
       </div>
       <div class="active-users-bar" id="active-users"></div>
       <div class="chat-list" id="chat-friends-list"></div>
@@ -157,9 +160,11 @@
   <script>
     let socket;
     let currentUser = localStorage.getItem('username');
+    let userRole = localStorage.getItem('role');
     let activeChatTarget = 'General Chat';
     let mediaRecorder = null;
     let audioChunks = [];
+    let recordTimer = null;
     let selectedMsgId = null;
     let longPressTimer;
     let typingTimer;
@@ -168,6 +173,7 @@
 
     if (currentUser) {
       document.getElementById('auth-modal').style.display = 'none';
+      if (userRole === 'admin') document.getElementById('admin-link').style.display = 'inline';
       initApp();
     }
 
@@ -185,8 +191,11 @@
 
       if (data.username) {
         localStorage.setItem('username', data.username);
+        localStorage.setItem('role', data.role);
         currentUser = data.username;
+        userRole = data.role;
         document.getElementById('auth-modal').style.display = 'none';
+        if (userRole === 'admin') document.getElementById('admin-link').style.display = 'inline';
         initApp();
       } else {
         alert(data.error || 'Authentication failed');
@@ -202,6 +211,7 @@
       socket = io();
       socket.emit('user_connected', currentUser);
 
+      setupWebPush();
       await fetchUnreadCounts();
       await loadFriendsList();
 
@@ -254,6 +264,27 @@
       });
 
       loadChatHistory('General Chat');
+    }
+
+    async function setupWebPush() {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const keyRes = await fetch('/api/push/key');
+          const { publicKey } = await keyRes.json();
+          const reg = await navigator.serviceWorker.register('/sw.js');
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: publicKey
+          });
+          await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser, subscription: sub })
+          });
+        } catch(e) {
+          console.log('Push notification registration skipped:', e);
+        }
+      }
     }
 
     async function fetchUnreadCounts() {
@@ -359,19 +390,33 @@
       let html = '';
       if (!isSent) html += `<div class="sender-name">${msg.sender}</div>`;
       if (msg.text) html += `<div class="msg-text">${msg.text} ${msg.isEdited ? '(edited)' : ''}</div>`;
+      
       if (msg.mediaUrl) {
-        if (msg.mediaType === 'video') html += `<video src="${msg.mediaUrl}" controls></video>`;
-        else if (msg.mediaType === 'audio') html += `<audio src="${msg.mediaUrl}" controls></audio>`;
-        else html += `<img src="${msg.mediaUrl}" />`;
+        if (msg.mediaType === 'video') {
+          html += `<video src="${msg.mediaUrl}" controls></video>`;
+        } else if (msg.mediaType === 'audio') {
+          html += `
+            <div class="voice-note-card">
+              <audio src="${msg.mediaUrl}" controls style="width:100%;"></audio>
+              <div class="waveform">
+                <div class="wave-bar" style="animation-delay: 0s;"></div>
+                <div class="wave-bar" style="animation-delay: 0.2s;"></div>
+                <div class="wave-bar" style="animation-delay: 0.4s;"></div>
+                <div class="wave-bar" style="animation-delay: 0.1s;"></div>
+              </div>
+            </div>
+          `;
+        } else {
+          html += `<img src="${msg.mediaUrl}" />`;
+        }
       }
 
-      // Read Receipts (Single Green Check = Sent/Unread, Double Green Check = Read)
       const readMarkHtml = isSent ? `<span class="read-mark">${msg.isRead ? '✓✓' : '✓'}</span>` : '';
       html += `<div class="msg-meta"><span>${timeStr}</span> ${readMarkHtml}</div>`;
 
       div.innerHTML = html;
 
-      if (isSent) {
+      if (isSent || userRole === 'admin') {
         div.addEventListener('touchstart', (e) => startLongPress(e, msg._id), { passive: true });
         div.addEventListener('touchend', endLongPress);
         div.addEventListener('mousedown', (e) => startLongPress(e, msg._id));
@@ -442,7 +487,11 @@
     async function triggerDelete() {
       hideActionMenu();
       if (!selectedMsgId) return;
-      await fetch(`/api/messages/${selectedMsgId}`, { method: 'DELETE' });
+      
+      const endpoint = (userRole === 'admin') ? `/api/admin/messages/${selectedMsgId}` : `/api/messages/${selectedMsgId}`;
+      const headers = (userRole === 'admin') ? { 'x-admin-user': currentUser } : {};
+
+      await fetch(endpoint, { method: 'DELETE', headers });
       selectedMsgId = null;
     }
 
@@ -513,6 +562,7 @@
           mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
           
           mediaRecorder.onstop = async () => {
+            clearTimeout(recordTimer);
             btn.classList.remove('mic-recording');
             const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
             const formData = new FormData();
@@ -527,6 +577,12 @@
 
           mediaRecorder.start();
           btn.classList.add('mic-recording');
+
+          // Auto cap recording at 2 minutes (120,000 ms)
+          recordTimer = setTimeout(() => {
+            if (mediaRecorder.state === 'recording') mediaRecorder.stop();
+          }, 120000);
+
         } catch (err) {
           alert('Microphone access denied');
         }
