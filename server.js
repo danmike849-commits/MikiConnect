@@ -76,8 +76,7 @@ function getRoomId(user1, user2) {
   return [user1, user2].sort().join('_');
 }
 
-// Bypassed Middleware for Admin Routes
-
+// Admin Guard Middleware
 async function isAdmin(req, res, next) {
   const adminUsername = req.headers['x-admin-user'];
   if (!adminUsername) return res.status(401).json({ error: 'Unauthorized' });
@@ -85,6 +84,54 @@ async function isAdmin(req, res, next) {
   if (user && user.role === 'admin') return next();
   res.status(403).json({ error: 'Access denied' });
 }
+
+// Admin APIs
+app.get('/api/admin/stats', isAdmin, async (req, res) => {
+  const totalUsers = await User.countDocuments();
+  const totalMessages = await Message.countDocuments();
+  const bannedUsers = await User.countDocuments({ isBanned: true });
+  const activeSockets = io.engine.clientsCount || 0;
+  res.json({ totalUsers, totalMessages, bannedUsers, activeSockets });
+});
+
+app.get('/api/admin/users', isAdmin, async (req, res) => {
+  const users = await User.find({}, 'username role isBanned createdAt').sort({ createdAt: -1 });
+  res.json(users);
+});
+
+app.put('/api/admin/users/ban', isAdmin, async (req, res) => {
+  const { username, isBanned } = req.body;
+  await User.updateOne({ username }, { $set: { isBanned } });
+  res.json({ success: true });
+});
+
+app.put('/api/admin/users/role', isAdmin, async (req, res) => {
+  const { username, role } = req.body;
+  await User.updateOne({ username }, { $set: { role } });
+  res.json({ success: true });
+});
+
+app.delete('/api/admin/users/:username', isAdmin, async (req, res) => {
+  await User.deleteOne({ username: req.params.username });
+  res.json({ success: true });
+});
+
+app.get('/api/admin/messages', isAdmin, async (req, res) => {
+  const messages = await Message.find().sort({ createdAt: -1 }).limit(20);
+  res.json(messages);
+});
+
+app.delete('/api/admin/messages/:id', isAdmin, async (req, res) => {
+  await Message.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
+});
+
+app.post('/api/admin/broadcast', isAdmin, async (req, res) => {
+  const { message } = req.body;
+  io.emit('systemAnnouncement', { text: message, sender: 'SYSTEM' });
+  res.json({ success: true });
+});
+
 
 
 // Auth API
