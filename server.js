@@ -113,3 +113,21 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'username');
+    res.json(users.map(u => u.username));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'username');
+    res.json(users.map(u => u.username));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});

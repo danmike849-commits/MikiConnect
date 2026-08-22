@@ -12,11 +12,14 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; width: 100%; background-color: #000; color: #fff; overflow: hidden; position: fixed; }
 
-    #auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 999; }
-    .auth-box { background: #111; padding: 24px; border-radius: 12px; width: 90%; max-width: 360px; border: 1px solid #222; text-align: center; }
-    .auth-box h2 { color: #0084ff; margin-bottom: 16px; }
-    .auth-box input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; outline: none; }
-    .auth-box button { width: 100%; padding: 12px; background: #0084ff; border: none; color: #fff; font-weight: bold; border-radius: 8px; cursor: pointer; }
+    #auth-modal, #edit-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 2500; }
+    .custom-box { background: #121212; padding: 20px; border-radius: 16px; width: 85%; max-width: 320px; border: 1px solid #282828; text-align: center; }
+    .custom-box h3 { color: #fff; font-size: 16px; margin-bottom: 14px; text-align: left; }
+    .custom-box input { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #fff; outline: none; font-size: 15px; }
+    .custom-box .btn-row { display: flex; justify-content: flex-end; gap: 12px; }
+    .custom-box button { padding: 8px 16px; background: none; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    .custom-box .cancel-btn { color: #888; }
+    .custom-box .save-btn { background: #0084ff; color: #fff; }
 
     .app-container { display: flex; width: 100vw; height: 100dvh; overflow: hidden; }
     .sidebar { width: 320px; border-right: 1px solid #222; display: flex; flex-direction: column; background: #000; height: 100%; }
@@ -25,7 +28,12 @@
     .active-users-bar { display: flex; gap: 12px; padding: 12px 16px; overflow-x: auto; border-bottom: 1px solid #111; }
     .user-avatar-wrap { position: relative; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; }
     .avatar { width: 44px; height: 44px; border-radius: 50%; background: #0084ff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    .online-indicator { position: absolute; bottom: 14px; right: 0; width: 12px; height: 12px; background: #00e676; border-radius: 50%; border: 2px solid #000; }
+    .online-indicator { position: absolute; bottom: 14px; right: 0; width: 12px; height: 12px; background: #333; border-radius: 50%; border: 2px solid #000; }
+    .online-indicator.is-online { background: #00e676; }
+
+    .chat-list { flex: 1; overflow-y: auto; }
+    .chat-item { padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #111; display: flex; align-items: center; }
+    .chat-item:hover { background: #111; }
 
     .chat-window { flex: 1; display: flex; flex-direction: column; background: #000; height: 100dvh; position: relative; overflow: hidden; }
     .chat-header { height: 60px; min-height: 60px; padding: 0 16px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; background: #000; }
@@ -37,15 +45,15 @@
     .message img, .message video, .message audio { max-width: 100%; border-radius: 12px; display: block; }
     .sender-name { font-size: 11px; opacity: 0.6; margin-bottom: 4px; }
 
-    /* ACTION MENU FOR LONG PRESS */
     #action-menu { display: none; position: fixed; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); overflow: hidden; }
     #action-menu button { display: block; width: 100%; padding: 12px 20px; background: none; border: none; color: #fff; text-align: left; font-size: 14px; cursor: pointer; }
     #action-menu button:hover { background: #333; }
     #action-menu button.delete-btn { color: #ff4444; border-top: 1px solid #2a2a2a; }
 
-    .input-bar { height: 65px; min-height: 65px; padding: 10px 12px; border-top: 1px solid #222; display: flex; gap: 10px; align-items: center; background: #000; z-index: 10; }
-    .input-wrapper { flex: 1; position: relative; display: flex; align-items: center; }
-    .input-wrapper input[type="text"] { width: 100%; background: #181818; border: none; padding: 10px 42px 10px 16px; border-radius: 20px; color: #fff; font-size: 15px; outline: none; }
+    /* SHORTENED INPUT BAR */
+    .input-bar { height: 65px; min-height: 65px; padding: 10px 12px; border-top: 1px solid #222; display: flex; gap: 8px; align-items: center; justify-content: center; background: #000; z-index: 10; }
+    .input-wrapper { width: 65%; max-width: 240px; position: relative; display: flex; align-items: center; }
+    .input-wrapper input[type="text"] { width: 100%; background: #181818; border: none; padding: 10px 38px 10px 14px; border-radius: 20px; color: #fff; font-size: 15px; outline: none; }
     .mic-inside-btn { position: absolute; right: 10px; background: none; border: none; color: #0084ff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .mic-recording { color: #ff4444 !important; animation: blink 1s infinite; }
 
@@ -65,10 +73,22 @@
 </head>
 <body onclick="hideActionMenu()">
 
-  <!-- LONG PRESS CONTEXT MENU -->
+  <!-- ACTION MENU -->
   <div id="action-menu">
-    <button onclick="triggerEdit()">✏️ Edit</button>
+    <button onclick="openEditModal()">✏️ Edit</button>
     <button class="delete-btn" onclick="triggerDelete()">🗑️ Delete</button>
+  </div>
+
+  <!-- CUSTOM EDIT MODAL -->
+  <div id="edit-modal" style="display:none;">
+    <div class="custom-box">
+      <h3>Edit Message</h3>
+      <input type="text" id="edit-msg-input">
+      <div class="btn-row">
+        <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+        <button class="save-btn" onclick="saveEditedMessage()">Save</button>
+      </div>
+    </div>
   </div>
 
   <!-- CALL MODAL -->
@@ -86,11 +106,11 @@
 
   <!-- AUTH MODAL -->
   <div id="auth-modal">
-    <div class="auth-box">
-      <h2>MikiConnect</h2>
+    <div class="custom-box" style="text-align:center;">
+      <h2 style="color:#0084ff; margin-bottom:16px;">MikiConnect</h2>
       <input type="text" id="auth-username" placeholder="Username">
       <input type="password" id="auth-password" placeholder="Password">
-      <button onclick="handleAuth()">Login / Register</button>
+      <button class="save-btn" style="width:100%; padding:12px; border-radius:10px;" onclick="handleAuth()">Login / Register</button>
     </div>
   </div>
 
@@ -103,12 +123,12 @@
       </div>
       <div class="active-users-bar" id="active-users"></div>
       
-      <div class="chat-list">
-        <div class="chat-item" style="padding:16px; cursor:pointer; border-bottom:1px solid #111; display:flex; align-items:center;" onclick="openChat('General Chat')">
+      <div class="chat-list" id="chat-friends-list">
+        <div class="chat-item" onclick="openChat('General Chat')">
           <div class="avatar">G</div>
           <div style="margin-left: 12px;">
             <strong>General Chat</strong>
-            <p style="font-size: 12px; color: #888;">Tap to open messaging</p>
+            <p style="font-size: 12px; color: #888;">Public Room</p>
           </div>
         </div>
       </div>
@@ -152,6 +172,7 @@
     let callTargetUser = '';
     let selectedMsgId = null;
     let longPressTimer;
+    let onlineUsersList = [];
 
     const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
@@ -188,20 +209,16 @@
       location.reload();
     }
 
-    function initApp() {
+    async function initApp() {
       socket = io();
       socket.emit('user_connected', currentUser);
       initCallSocketListeners();
 
+      await loadFriendsList();
+
       socket.on('active_users', (users) => {
-        const container = document.getElementById('active-users');
-        container.innerHTML = users.map(u => `
-          <div class="user-avatar-wrap" onclick="openChat('${u}')">
-            <div class="avatar">${u[0].toUpperCase()}</div>
-            <div class="online-indicator"></div>
-            <span>${u}</span>
-          </div>
-        `).join('');
+        onlineUsersList = users;
+        renderUsersBar();
       });
 
       fetch('/api/messages')
@@ -237,6 +254,56 @@
       });
     }
 
+    async function loadFriendsList() {
+      try {
+        const res = await fetch('/api/users');
+        const users = await res.json();
+        
+        const friendsList = document.getElementById('chat-friends-list');
+        let html = `<div class="chat-item" onclick="openChat('General Chat')">
+          <div class="avatar">G</div>
+          <div style="margin-left: 12px;">
+            <strong>General Chat</strong>
+            <p style="font-size: 12px; color: #888;">Public Room</p>
+          </div>
+        </div>`;
+
+        users.forEach(u => {
+          if (u !== currentUser) {
+            html += `<div class="chat-item" onclick="openChat('${u}')">
+              <div class="avatar">${u[0].toUpperCase()}</div>
+              <div style="margin-left: 12px;">
+                <strong>${u}</strong>
+                <p style="font-size: 12px; color: #888;">Tap to chat</p>
+              </div>
+            </div>`;
+          }
+        });
+
+        friendsList.innerHTML = html;
+        window.allRegisteredUsers = users;
+        renderUsersBar();
+      } catch (err) {
+        console.error('Error loading friends list', err);
+      }
+    }
+
+    function renderUsersBar() {
+      const container = document.getElementById('active-users');
+      if (!window.allRegisteredUsers) return;
+
+      container.innerHTML = window.allRegisteredUsers.filter(u => u !== currentUser).map(u => {
+        const isOnline = onlineUsersList.includes(u);
+        return `
+          <div class="user-avatar-wrap" onclick="openChat('${u}')">
+            <div class="avatar">${u[0].toUpperCase()}</div>
+            <div class="online-indicator ${isOnline ? 'is-online' : ''}"></div>
+            <span>${u}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
     function appendMessage(msg) {
       const isSent = msg.sender === currentUser;
       const div = document.createElement('div');
@@ -256,7 +323,6 @@
 
       div.innerHTML = html;
 
-      // Add Long Press Event for Sent Messages
       if (isSent) {
         div.addEventListener('touchstart', (e) => startLongPress(e, msg._id), { passive: true });
         div.addEventListener('touchend', endLongPress);
@@ -294,14 +360,42 @@
       document.getElementById('action-menu').style.display = 'none';
     }
 
-    function triggerEdit() {
-      if (selectedMsgId) editMessage(selectedMsgId);
+    function openEditModal() {
       hideActionMenu();
+      if (!selectedMsgId) return;
+      
+      const msgDiv = document.getElementById(`msg-${selectedMsgId}`);
+      if (msgDiv) {
+        const textEl = msgDiv.querySelector('.msg-text');
+        const currentText = textEl ? textEl.innerText.replace(' (edited)', '') : '';
+        document.getElementById('edit-msg-input').value = currentText;
+        document.getElementById('edit-modal').style.display = 'flex';
+      }
     }
 
-    function triggerDelete() {
-      if (selectedMsgId) deleteMessage(selectedMsgId);
+    function closeEditModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+      selectedMsgId = null;
+    }
+
+    async function saveEditedMessage() {
+      const newText = document.getElementById('edit-msg-input').value.trim();
+      if (!newText || !selectedMsgId) return;
+
+      await fetch(`/api/messages/${selectedMsgId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newText })
+      });
+
+      closeEditModal();
+    }
+
+    async function triggerDelete() {
       hideActionMenu();
+      if (!selectedMsgId) return;
+      await fetch(`/api/messages/${selectedMsgId}`, { method: 'DELETE' });
+      selectedMsgId = null;
     }
 
     function emitTyping() {
@@ -379,21 +473,6 @@
       if (!text) return;
       socket.emit('chat message', { sender: currentUser, text });
       input.value = '';
-    }
-
-    async function editMessage(id) {
-      const newText = prompt('Edit your message:');
-      if (!newText) return;
-      await fetch(`/api/messages/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: newText })
-      });
-    }
-
-    async function deleteMessage(id) {
-      if (!confirm('Delete this message?')) return;
-      await fetch(`/api/messages/${id}`, { method: 'DELETE' });
     }
 
     async function startCall(isVideo) {
