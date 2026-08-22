@@ -50,7 +50,6 @@
     #action-menu button:hover { background: #333; }
     #action-menu button.delete-btn { color: #ff4444; border-top: 1px solid #2a2a2a; }
 
-    /* SHORTENED INPUT BAR */
     .input-bar { height: 65px; min-height: 65px; padding: 10px 12px; border-top: 1px solid #222; display: flex; gap: 8px; align-items: center; justify-content: center; background: #000; z-index: 10; }
     .input-wrapper { width: 65%; max-width: 240px; position: relative; display: flex; align-items: center; }
     .input-wrapper input[type="text"] { width: 100%; background: #181818; border: none; padding: 10px 38px 10px 14px; border-radius: 20px; color: #fff; font-size: 15px; outline: none; }
@@ -79,7 +78,7 @@
     <button class="delete-btn" onclick="triggerDelete()">🗑️ Delete</button>
   </div>
 
-  <!-- CUSTOM EDIT MODAL -->
+  <!-- EDIT MODAL -->
   <div id="edit-modal" style="display:none;">
     <div class="custom-box">
       <h3>Edit Message</h3>
@@ -165,6 +164,7 @@
     let socket;
     let currentUser = localStorage.getItem('username');
     let token = localStorage.getItem('token');
+    let activeChatTarget = 'General Chat';
     let mediaRecorder = null;
     let audioChunks = [];
     let peerConnection;
@@ -221,23 +221,21 @@
         renderUsersBar();
       });
 
-      fetch('/api/messages')
-        .then(res => res.json())
-        .then(messages => {
-          document.getElementById('messages').innerHTML = '';
-          messages.forEach(appendMessage);
-          scrollToBottom();
-        });
+      loadChatHistory('General Chat');
 
       socket.on('chat message', (msg) => {
-        appendMessage(msg);
-        scrollToBottom();
+        if (msg.recipient === activeChatTarget || (msg.recipient === currentUser && msg.sender === activeChatTarget) || (activeChatTarget === 'General Chat' && msg.recipient === 'General Chat')) {
+          appendMessage(msg);
+          scrollToBottom();
+        }
       });
 
       socket.on('user_typing', (data) => {
-        const el = document.getElementById('typing-status');
-        el.innerText = `${data.username} is typing...`;
-        setTimeout(() => { el.innerText = ''; }, 3000);
+        if (data.username === activeChatTarget || activeChatTarget === 'General Chat') {
+          const el = document.getElementById('typing-status');
+          el.innerText = `${data.username} is typing...`;
+          setTimeout(() => { el.innerText = ''; }, 3000);
+        }
       });
 
       socket.on('message_edited', (msg) => {
@@ -302,6 +300,17 @@
           </div>
         `;
       }).join('');
+    }
+
+    async function loadChatHistory(chatTarget) {
+      activeChatTarget = chatTarget;
+      document.getElementById('messages').innerHTML = '';
+      socket.emit('join_room', { user1: currentUser, user2: chatTarget });
+
+      const res = await fetch(`/api/messages/${encodeURIComponent(chatTarget)}/${encodeURIComponent(currentUser)}`);
+      const messages = await res.json();
+      messages.forEach(appendMessage);
+      scrollToBottom();
     }
 
     function appendMessage(msg) {
@@ -399,7 +408,7 @@
     }
 
     function emitTyping() {
-      if (socket) socket.emit('typing', { username: currentUser });
+      if (socket) socket.emit('typing', { username: currentUser, recipient: activeChatTarget });
     }
 
     async function uploadMedia() {
@@ -419,7 +428,7 @@
           if (mime.startsWith('video')) type = 'video';
           if (mime.startsWith('audio')) type = 'audio';
 
-          socket.emit('chat message', { sender: currentUser, mediaUrl: data.url, mediaType: type });
+          socket.emit('chat message', { sender: currentUser, recipient: activeChatTarget, mediaUrl: data.url, mediaType: type });
           fileInput.value = '';
         } else {
           alert('Upload failed');
@@ -453,7 +462,7 @@
             const res = await fetch('/api/upload', { method: 'POST', body: formData });
             const data = await res.json();
             if (data.url) {
-              socket.emit('chat message', { sender: currentUser, mediaUrl: data.url, mediaType: 'audio' });
+              socket.emit('chat message', { sender: currentUser, recipient: activeChatTarget, mediaUrl: data.url, mediaType: 'audio' });
             }
           };
 
@@ -471,19 +480,16 @@
       const input = document.getElementById('msg-input');
       const text = input.value.trim();
       if (!text) return;
-      socket.emit('chat message', { sender: currentUser, text });
+      socket.emit('chat message', { sender: currentUser, recipient: activeChatTarget, text });
       input.value = '';
     }
 
     async function startCall(isVideo) {
-      const activeTitle = document.getElementById('chat-title').innerText.trim();
-      if (activeTitle && activeTitle !== 'General Chat') {
-        callTargetUser = activeTitle;
-      } else {
-        callTargetUser = prompt('Enter username to call:');
+      if (activeChatTarget === 'General Chat') {
+        return alert('Calls are only available in 1-on-1 private chats.');
       }
 
-      if (!callTargetUser) return;
+      callTargetUser = activeChatTarget;
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         return alert('Camera/Mic not accessible. Ensure HTTPS is enabled.');
@@ -584,6 +590,7 @@
     function openChat(title) {
       document.getElementById('chat-title').innerText = title;
       document.getElementById('app').classList.add('active-chat');
+      loadChatHistory(title);
     }
 
     function closeChat() {

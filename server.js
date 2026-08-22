@@ -5,11 +5,20 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  maxHttpBufferSize: 1e8 // 100 MB limit for voice/media
+  maxHttpBufferSize: 1e8 // 100 MB limit
+});
+
+// Enforce HTTPS in production on Render
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
+    return res.redirect(`https://${req.headers.host}${req.url}`);
+  }
+  next();
 });
 
 app.use(cors());
@@ -32,6 +41,7 @@ const User = mongoose.model('User', UserSchema);
 
 const MessageSchema = new mongoose.Schema({
   sender: String,
+  recipient: { type: String, default: 'General Chat' },
   text: String,
   mediaUrl: String,
   mediaType: String,
@@ -40,12 +50,18 @@ const MessageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', MessageSchema);
 
-// File Upload Config
+// Storage Engine
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
+
+// Helper to generate consistent room names for 1-on-1 chats
+function getRoomId(user1, user2) {
+  if (user2 === 'General Chat') return 'General Chat';
+  return [user1, user2].sort().join('_');
+}
 
 // API ROUTES
 app.post('/api/auth/register-or-login', async (req, res) => {
@@ -55,18 +71,23 @@ app.post('/api/auth/register-or-login', async (req, res) => {
   try {
     let user = await User.findOne({ username });
     if (!user) {
-      user = new User({ username, password });
+      const hashedPassword = await bcrypt.hash(password, 10);
+      user = new User({ username, password: hashedPassword });
       await user.save();
-    } else if (user.password !== password) {
+      return res.json({ username: user.username, token: 'demo-token' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       return res.status(401).json({ error: 'Invalid password' });
     }
+
     res.json({ username: user.username, token: 'demo-token' });
   } catch (err) {
     res.status(500).json({ error: 'Auth server error' });
   }
 });
 
-// GET ALL REGISTERED USERS (MUST BE BEFORE LISTEN)
 app.get('/api/users', async (req, res) => {
   try {
     const users = await User.find({}, 'username');
@@ -76,9 +97,23 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-app.get('/api/messages', async (req, res) => {
+app.get('/api/messages/:activeChat/:currentUser', async (req, res) => {
   try {
-    const messages = await Message.find().sort({ createdAt: 1 });
+    const { activeChat, currentUser } = req.params;
+    let query = {};
+    
+    if (activeChat === 'General Chat') {
+      query = { recipient: 'General Chat' };
+    } else {
+      query = {
+        $or: [
+          { sender: currentUser, recipient: activeChat },
+          { sender: activeChat, recipient: currentUser }
+        ]
+      };
+    }
+
+    const messages = await Message.find(query).sort({ createdAt: 1 });
     res.json(messages);
   } catch (err) {
     res.status(500).json({ error: 'Error fetching messages' });
@@ -93,7 +128,8 @@ app.post('/api/upload', upload.single('media'), (req, res) => {
 app.put('/api/messages/:id', async (req, res) => {
   try {
     const msg = await Message.findByIdAndUpdate(req.params.id, { text: req.body.text, isEdited: true }, { new: true });
-    io.emit('message_edited', msg);
+    const roomId = getRoomId(msg.sender, msg.recipient);
+    io.to(roomId).emit('message_edited', msg);
     res.json(msg);
   } catch (err) {
     res.status(500).json({ error: 'Update failed' });
@@ -102,8 +138,12 @@ app.put('/api/messages/:id', async (req, res) => {
 
 app.delete('/api/messages/:id', async (req, res) => {
   try {
-    await Message.findByIdAndDelete(req.params.id);
-    io.emit('message_deleted', req.params.id);
+    const msg = await Message.findById(req.params.id);
+    if (msg) {
+      const roomId = getRoomId(msg.sender, msg.recipient);
+      await Message.findByIdAndDelete(req.params.id);
+      io.to(roomId).emit('message_deleted', req.params.id);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Delete failed' });
@@ -116,42 +156,43 @@ const activeUsers = new Map();
 io.on('connection', (socket) => {
   socket.on('user_connected', (username) => {
     activeUsers.set(socket.id, username);
+    socket.join(username); // Join personal user room
+    socket.join('General Chat');
     io.emit('active_users', Array.from(new Set(activeUsers.values())));
+  });
+
+  socket.on('join_room', ({ user1, user2 }) => {
+    const roomId = getRoomId(user1, user2);
+    socket.join(roomId);
   });
 
   socket.on('chat message', async (data) => {
     try {
       const newMsg = new Message(data);
       await newMsg.save();
-      io.emit('chat message', newMsg);
+
+      const roomId = getRoomId(data.sender, data.recipient);
+      io.to(roomId).emit('chat message', newMsg);
     } catch (err) {
       console.error('Error saving message:', err);
     }
   });
 
   socket.on('typing', (data) => {
-    socket.broadcast.emit('user_typing', data);
+    const roomId = getRoomId(data.username, data.recipient);
+    socket.to(roomId).emit('user_typing', data);
   });
 
   socket.on('call_user', (data) => {
-    const targetSocketId = [...activeUsers.entries()].find(([_, un]) => un === data.userToCall)?.[0];
-    if (targetSocketId) {
-      io.to(targetSocketId).emit('incoming_call', { signal: data.signalData, from: data.from, isVideo: data.isVideo });
-    }
+    io.to(data.userToCall).emit('incoming_call', { signal: data.signalData, from: data.from, isVideo: data.isVideo });
   });
 
   socket.on('answer_call', (data) => {
-    const targetSocketId = [...activeUsers.entries()].find(([_, un]) => un === data.to)?.[0];
-    if (targetSocketId) {
-      io.to(targetSocketId).emit('call_accepted', data.signal);
-    }
+    io.to(data.to).emit('call_accepted', data.signal);
   });
 
   socket.on('end_call', (data) => {
-    const targetSocketId = [...activeUsers.entries()].find(([_, un]) => un === data.to)?.[0];
-    if (targetSocketId) {
-      io.to(targetSocketId).emit('call_ended');
-    }
+    io.to(data.to).emit('call_ended');
   });
 
   socket.on('disconnect', () => {
