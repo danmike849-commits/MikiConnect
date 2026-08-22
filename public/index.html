@@ -327,7 +327,10 @@
     }
 
     async function startCall(isVideo) {
-      callTargetUser = prompt('Enter username to call:');
+      callTargetUser = document.getElementById('chat-title').innerText.trim();
+      if (!callTargetUser || callTargetUser === 'General Chat') {
+        callTargetUser = prompt('Enter username to call:');
+      }
       if (!callTargetUser) return;
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
