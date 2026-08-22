@@ -29,11 +29,15 @@
     .broadcast-box { display: flex; gap: 12px; }
     .broadcast-box input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #111; color: #fff; outline: none; }
     .broadcast-box button { background: #0084ff; color: #fff; padding: 0 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+    .nav-btn { background: #222; color: #fff; border: 1px solid #333; padding: 8px 16px; border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 14px; }
   </style>
 </head>
 <body>
 
-  <h1>🛡️ MikiConnect Control Panel</h1>
+  <div style="display:flex; justify-space-between; align-items:center; margin-bottom:20px;">
+    <h1>🛡️ MikiConnect Control Panel</h1>
+    <a href="/" class="nav-btn">← Back to Chat</a>
+  </div>
 
   <div class="stats-grid">
     <div class="stat-card"><h3>Total Registered Users</h3><p id="stat-users">0</p></div>
@@ -67,9 +71,14 @@
 
   <script>
     const adminUser = localStorage.getItem('username');
+    const userRole = localStorage.getItem('role');
 
     async function loadAdminData() {
-      if (!adminUser) return alert('Log in as admin on main app first!');
+      if (!adminUser || userRole !== 'admin') {
+        alert('Access denied: Please log in as an Admin account first.');
+        window.location.href = '/';
+        return;
+      }
 
       const headers = { 'x-admin-user': adminUser, 'Content-Type': 'application/json' };
 
@@ -77,7 +86,11 @@
         const statsRes = await fetch('/api/admin/stats', { headers });
         const stats = await statsRes.json();
         
-        if (stats.error) return alert(stats.error);
+        if (stats.error) {
+          alert(stats.error);
+          window.location.href = '/';
+          return;
+        }
 
         document.getElementById('stat-users').innerText = stats.totalUsers;
         document.getElementById('stat-active').innerText = stats.activeSockets;
