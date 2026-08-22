@@ -55,7 +55,19 @@
     }
   </style>
 </head>
-<body>
+<body>  <!-- CALL MODAL -->
+  <div id="call-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:1000; flex-direction:column; align-items:center; justify-content:center;">
+    <h3 id="call-status" style="margin-bottom:20px; color:#fff;">Calling...</h3>
+    <div style="display:flex; gap:10px; position:relative; width:90%; max-width:500px; height:300px; background:#111; border-radius:12px; overflow:hidden;">
+      <video id="remote-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+      <video id="local-video" autoplay playsinline muted style="width:100px; height:140px; object-fit:cover; position:absolute; bottom:10px; right:10px; border-radius:8px; border:2px solid #0084ff;"></video>
+    </div>
+    <div style="margin-top:20px; display:flex; gap:15px;">
+      <button id="accept-call-btn" style="display:none; background:#00e676; border:none; color:#fff; padding:12px 24px; border-radius:20px; font-weight:bold; cursor:pointer;" onclick="acceptCall()">Answer</button>
+      <button style="background:#ff4444; border:none; color:#fff; padding:12px 24px; border-radius:20px; font-weight:bold; cursor:pointer;" onclick="endCall()">End Call</button>
+    </div>
+  </div>
+
 
   <!-- AUTH MODAL -->
   <div id="auth-modal">
@@ -86,14 +98,18 @@
           </div>
         </div>
       </div>
-    </div>
 
     <div class="chat-window">
-      <div class="chat-header">
+            <div class="chat-header">
         <button onclick="closeChat()" style="background:none; border:none; color:#0084ff; font-size:16px; cursor:pointer;" id="back-btn">← Back</button>
         <strong id="chat-title">General Chat</strong>
+        <div style="margin-left:auto; display:flex; gap:12px;">
+          <button onclick="startCall(false)" style="background:none; border:none; font-size:20px; cursor:pointer;">📞</button>
+          <button onclick="startCall(true)" style="background:none; border:none; font-size:20px; cursor:pointer;">📹</button>
+        </div>
       </div>
       <div class="messages-container" id="messages"></div>
+
       <div id="typing-status"></div>
       <div class="input-bar">
         <label for="media-file" class="btn-icon">📁</label>
@@ -111,6 +127,11 @@
     let token = localStorage.getItem('token');
     let mediaRecorder;
     let audioChunks = [];
+    let peerConnection;
+    let localStream;
+    let callTargetUser = '';
+
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
     if (token && currentUser) {
       document.getElementById('auth-modal').style.display = 'none';
@@ -145,9 +166,11 @@
       location.reload();
     }
 
-    function initApp() {
+       function initApp() {
       socket = io();
       socket.emit('user_connected', currentUser);
+      initCallSocketListeners(); // <-- Add this line here
+
 
       // Render Online Users
       socket.on('active_users', (users) => {
@@ -308,6 +331,89 @@
     function closeChat() {
       document.getElementById('app').classList.remove('active-chat');
     }
-  </script>
+  </script>    async function startCall(isVideo) {
+      callTargetUser = prompt('Enter username to call:');
+      if (!callTargetUser) return;
+
+      document.getElementById('call-modal').style.display = 'flex';
+      document.getElementById('call-status').innerText = `Calling ${callTargetUser}...`;
+
+      localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+      document.getElementById('local-video').srcObject = localStream;
+
+      peerConnection = new RTCPeerConnection(rtcConfig);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.ontrack = e => {
+        document.getElementById('remote-video').srcObject = e.streams[0];
+      };
+
+      peerConnection.onicecandidate = e => {
+        if (e.candidate) {
+          socket.emit('call_user', { userToCall: callTargetUser, signalData: peerConnection.localDescription, from: currentUser, isVideo });
+        }
+      };
+
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+    }
+
+    function initCallSocketListeners() {
+      socket.on('incoming_call', async (data) => {
+        callTargetUser = data.from;
+        document.getElementById('call-modal').style.display = 'flex';
+        document.getElementById('call-status').innerText = `Incoming ${data.isVideo ? 'Video' : 'Voice'} Call from ${data.from}`;
+        document.getElementById('accept-call-btn').style.display = 'block';
+
+        window.incomingSignal = data.signal;
+        window.incomingIsVideo = data.isVideo;
+      });
+
+      socket.on('call_accepted', async (signal) => {
+        document.getElementById('call-status').innerText = 'Connected';
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+      });
+
+      socket.on('call_ended', () => {
+        cleanupCall();
+      });
+    }
+
+    async function acceptCall() {
+      document.getElementById('accept-call-btn').style.display = 'none';
+      document.getElementById('call-status').innerText = 'Connected';
+
+      localStream = await navigator.mediaDevices.getUserMedia({ video: window.incomingIsVideo, audio: true });
+      document.getElementById('local-video').srcObject = localStream;
+
+      peerConnection = new RTCPeerConnection(rtcConfig);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.ontrack = e => {
+        document.getElementById('remote-video').srcObject = e.streams[0];
+      };
+
+      peerConnection.onicecandidate = e => {
+        if (e.candidate) {
+          socket.emit('answer_call', { to: callTargetUser, signal: peerConnection.localDescription });
+        }
+      };
+
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingSignal));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+    }
+
+    function endCall() {
+      socket.emit('end_call', { to: callTargetUser });
+      cleanupCall();
+    }
+
+    function cleanupCall() {
+      if (peerConnection) peerConnection.close();
+      if (localStream) localStream.getTracks().forEach(track => track.stop());
+      document.getElementById('call-modal').style.display = 'none';
+    }
+
 </body>
 </html>
