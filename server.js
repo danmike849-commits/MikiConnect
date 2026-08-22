@@ -1,137 +1,115 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-require('dotenv').config();
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.json());
 app.use(express.static('public'));
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_secret_key';
+// Create uploads directory if not exists
+const uploadDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-// Schemas & Models
-const userSchema = new mongoose.Schema({
-  username: { type: String, unique: true, required: true },
-  password: { type: String, required: true },
-  isAdmin: { type: Boolean, default: false }
-});
-const User = mongoose.model('User', userSchema);
-
-const messageSchema = new mongoose.Schema({
-  sender: String,
-  text: String,
-  mediaUrl: String,
-  mediaType: String,
-  isEdited: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
-});
-const Message = mongoose.model('Message', messageSchema);
-
-// Cloudinary Configuration
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: { folder: 'mikiconnect_media', resource_type: 'auto' }
+// Multer storage engine
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage });
 
-// API Endpoints
-app.post('/api/auth/register-or-login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Missing credentials' });
+let activeUsers = {};
+let messages = [];
 
-    let user = await User.findOne({ username });
-    if (!user) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      user = new User({ username, password: hashedPassword });
-      await user.save();
-    } else {
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ error: 'Invalid password' });
-    }
-
-    const token = jwt.sign({ id: user._id, username: user.username, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, username: user.username, isAdmin: user.isAdmin });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.get('/api/messages', async (req, res) => {
-  const messages = await Message.find().sort({ createdAt: 1 });
-  res.json(messages);
-});
-
+// Media Upload Endpoint
 app.post('/api/upload', upload.single('media'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Upload failed' });
-  res.json({ url: req.file.path, resource_type: req.file.mimetype.split('/')[0] });
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.json({ url: fileUrl });
 });
 
-app.put('/api/messages/:id', async (req, res) => {
-  const { text } = req.body;
-  const message = await Message.findByIdAndUpdate(req.params.id, { text, isEdited: true }, { new: true });
-  io.emit('message_edited', message);
-  res.json(message);
+// Auth route placeholder
+app.post('/api/auth/register-or-login', (req, res) => {
+  const { username } = req.body;
+  res.json({ token: 'demo-token', username });
 });
 
-app.delete('/api/messages/:id', async (req, res) => {
-  await Message.findByIdAndDelete(req.params.id);
+// Messages routes
+app.get('/api/messages', (req, res) => res.json(messages));
+
+app.put('/api/messages/:id', (req, res) => {
+  const msg = messages.find(m => m._id === req.params.id);
+  if (msg) {
+    msg.text = req.body.text;
+    msg.isEdited = true;
+    io.emit('message_edited', msg);
+    return res.json(msg);
+  }
+  res.status(404).json({ error: 'Message not found' });
+});
+
+app.delete('/api/messages/:id', (req, res) => {
+  messages = messages.filter(m => m._id !== req.params.id);
   io.emit('message_deleted', req.params.id);
   res.json({ success: true });
 });
 
 // Socket.io Handlers
-const activeUsers = new Map();
-
 io.on('connection', (socket) => {
   socket.on('user_connected', (username) => {
-    activeUsers.set(username, socket.id);
-    io.emit('active_users', Array.from(activeUsers.keys()));
+    activeUsers[socket.id] = username;
+    io.emit('active_users', Object.values(activeUsers));
   });
 
-  socket.on('chat message', async (data) => {
-    const newMsg = new Message(data);
-    await newMsg.save();
-    io.emit('chat message', newMsg);
+  socket.on('chat message', (data) => {
+    const msg = {
+      _id: Date.now().toString(),
+      sender: data.sender,
+      text: data.text || '',
+      mediaUrl: data.mediaUrl || null,
+      mediaType: data.mediaType || null,
+      timestamp: new Date()
+    };
+    messages.push(msg);
+    io.emit('chat message', msg);
   });
 
-  socket.on('typing', (data) => {
-    socket.broadcast.emit('user_typing', data);
+  socket.on('typing', (data) => socket.broadcast.emit('user_typing', data));
+
+  // WebRTC Signaling
+  socket.on('call_user', (data) => {
+    const targetSocket = Object.keys(activeUsers).find(key => activeUsers[key] === data.userToCall);
+    if (targetSocket) {
+      io.to(targetSocket).emit('incoming_call', { signal: data.signalData, from: data.from, isVideo: data.isVideo });
+    }
+  });
+
+  socket.on('answer_call', (data) => {
+    const targetSocket = Object.keys(activeUsers).find(key => activeUsers[key] === data.to);
+    if (targetSocket) {
+      io.to(targetSocket).emit('call_accepted', data.signal);
+    }
+  });
+
+  socket.on('end_call', (data) => {
+    const targetSocket = Object.keys(activeUsers).find(key => activeUsers[key] === data.to);
+    if (targetSocket) {
+      io.to(targetSocket).emit('call_ended');
+    }
   });
 
   socket.on('disconnect', () => {
-    for (let [username, id] of activeUsers.entries()) {
-      if (id === socket.id) {
-        activeUsers.delete(username);
-        break;
-      }
-    }
-    io.emit('active_users', Array.from(activeUsers.keys()));
+    delete activeUsers[socket.id];
+    io.emit('active_users', Object.values(activeUsers));
   });
 });
 
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI;
-
-if (MONGO_URI) {
-  mongoose.connect(MONGO_URI)
-    .then(() => console.log('Connected to MongoDB Atlas'))
-    .catch(console.error);
-}
-
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

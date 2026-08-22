@@ -9,7 +9,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #000; color: #fff; height: 100vh; display: flex; overflow: hidden; }
 
-    #auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    #auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 999; }
     .auth-box { background: #111; padding: 24px; border-radius: 12px; width: 90%; max-width: 360px; border: 1px solid #222; text-align: center; }
     .auth-box h2 { color: #0084ff; margin-bottom: 16px; }
     .auth-box input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; outline: none; }
@@ -31,13 +31,14 @@
     .message { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; position: relative; }
     .message.received { background: #222; align-self: flex-start; border-bottom-left-radius: 4px; }
     .message.sent { background: #0084ff; align-self: flex-end; border-bottom-right-radius: 4px; }
-    .message img, .message video, .message audio { max-width: 100%; border-radius: 12px; margin-top: 6px; }
+    .message img, .message video, .message audio { max-width: 100%; border-radius: 12px; margin-top: 6px; display: block; }
     .sender-name { font-size: 11px; opacity: 0.6; margin-bottom: 2px; }
-    .msg-actions { font-size: 10px; margin-top: 4px; opacity: 0.7; cursor: pointer; display: flex; gap: 8px; justify-content: flex-end; }
+    .msg-actions { font-size: 11px; margin-top: 6px; opacity: 0.8; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 4px; }
+    .msg-actions span { cursor: pointer; text-decoration: underline; }
 
     .input-bar { padding: 12px; border-top: 1px solid #222; display: flex; gap: 8px; align-items: center; }
     .input-bar input[type="text"] { flex: 1; background: #181818; border: none; padding: 12px 16px; border-radius: 20px; color: #fff; font-size: 15px; outline: none; }
-    .btn-icon { background: none; border: none; color: #0084ff; font-size: 20px; cursor: pointer; padding: 0 4px; }
+    .btn-icon { background: none; border: none; color: #0084ff; font-size: 20px; cursor: pointer; padding: 0 4px; display: flex; align-items: center; justify-content: center; }
     .send-btn { background: #0084ff; border: none; color: #fff; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
     #typing-status { font-size: 12px; color: #888; padding: 0 16px 4px; height: 16px; }
 
@@ -144,8 +145,8 @@
       });
       const data = await res.json();
 
-      if (data.token) {
-        localStorage.setItem('token', data.token);
+      if (data.username) {
+        localStorage.setItem('token', data.token || 'demo-token');
         localStorage.setItem('username', data.username);
         currentUser = data.username;
         document.getElementById('auth-modal').style.display = 'none';
@@ -179,6 +180,7 @@
       fetch('/api/messages')
         .then(res => res.json())
         .then(messages => {
+          document.getElementById('messages').innerHTML = '';
           messages.forEach(appendMessage);
           scrollToBottom();
         });
@@ -196,7 +198,10 @@
 
       socket.on('message_edited', (msg) => {
         const el = document.getElementById(`msg-${msg._id}`);
-        if (el) el.querySelector('.msg-text').innerText = `${msg.text} (edited)`;
+        if (el) {
+          const txt = el.querySelector('.msg-text');
+          if (txt) txt.innerText = `${msg.text} (edited)`;
+        }
       });
 
       socket.on('message_deleted', (id) => {
@@ -231,7 +236,7 @@
     }
 
     function emitTyping() {
-      socket.emit('typing', { username: currentUser });
+      if (socket) socket.emit('typing', { username: currentUser });
     }
 
     async function uploadMedia() {
@@ -241,42 +246,57 @@
       const formData = new FormData();
       formData.append('media', fileInput.files[0]);
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      const data = await res.json();
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
 
-      if (data.url) {
-        const mime = fileInput.files[0].type;
-        let type = 'image';
-        if (mime.startsWith('video')) type = 'video';
-        if (mime.startsWith('audio')) type = 'audio';
+        if (data.url) {
+          const mime = fileInput.files[0].type;
+          let type = 'image';
+          if (mime.startsWith('video')) type = 'video';
+          if (mime.startsWith('audio')) type = 'audio';
 
-        socket.emit('chat message', { sender: currentUser, mediaUrl: data.url, mediaType: type });
+          socket.emit('chat message', { sender: currentUser, mediaUrl: data.url, mediaType: type });
+          fileInput.value = '';
+        } else {
+          alert('Upload failed');
+        }
+      } catch (err) {
+        alert('File upload error');
       }
     }
 
     async function toggleVoiceRecord() {
       const btn = document.getElementById('record-btn');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return alert('Audio recording is not supported or permission denied on this browser.');
+      }
+
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-          const formData = new FormData();
-          formData.append('media', audioBlob, 'voicenote.mp3');
-          const res = await fetch('/api/upload', { method: 'POST', body: formData });
-          const data = await res.json();
-          if (data.url) {
-            socket.emit('chat message', { sender: currentUser, mediaUrl: data.url, mediaType: 'audio' });
-          }
-        };
-        mediaRecorder.start();
-        btn.style.color = '#ff4444';
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+            const formData = new FormData();
+            formData.append('media', audioBlob, 'voicenote.mp3');
+            
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.url) {
+              socket.emit('chat message', { sender: currentUser, mediaUrl: data.url, mediaType: 'audio' });
+            }
+          };
+          mediaRecorder.start();
+          btn.style.color = '#ff4444';
+        } catch (err) {
+          alert('Microphone access denied or unavailable.');
+        }
       } else {
         mediaRecorder.stop();
         btn.style.color = '#0084ff';
@@ -310,27 +330,34 @@
       callTargetUser = prompt('Enter username to call:');
       if (!callTargetUser) return;
 
-      document.getElementById('call-modal').style.display = 'flex';
-      document.getElementById('call-status').innerText = `Calling ${callTargetUser}...`;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return alert('Camera/Mic not accessible. Ensure HTTPS is enabled.');
+      }
 
-      localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
-      document.getElementById('local-video').srcObject = localStream;
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+        document.getElementById('call-modal').style.display = 'flex';
+        document.getElementById('call-status').innerText = `Calling ${callTargetUser}...`;
+        document.getElementById('local-video').srcObject = localStream;
 
-      peerConnection = new RTCPeerConnection(rtcConfig);
-      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-      peerConnection.ontrack = e => {
-        document.getElementById('remote-video').srcObject = e.streams[0];
-      };
+        peerConnection.ontrack = e => {
+          document.getElementById('remote-video').srcObject = e.streams[0];
+        };
 
-      peerConnection.onicecandidate = e => {
-        if (e.candidate) {
-          socket.emit('call_user', { userToCall: callTargetUser, signalData: peerConnection.localDescription, from: currentUser, isVideo });
-        }
-      };
+        peerConnection.onicecandidate = e => {
+          if (e.candidate) {
+            socket.emit('call_user', { userToCall: callTargetUser, signalData: peerConnection.localDescription, from: currentUser, isVideo });
+          }
+        };
 
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+      } catch (err) {
+        alert('Could not access camera or microphone.');
+      }
     }
 
     function initCallSocketListeners() {
@@ -358,25 +385,29 @@
       document.getElementById('accept-call-btn').style.display = 'none';
       document.getElementById('call-status').innerText = 'Connected';
 
-      localStream = await navigator.mediaDevices.getUserMedia({ video: window.incomingIsVideo, audio: true });
-      document.getElementById('local-video').srcObject = localStream;
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: window.incomingIsVideo, audio: true });
+        document.getElementById('local-video').srcObject = localStream;
 
-      peerConnection = new RTCPeerConnection(rtcConfig);
-      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-      peerConnection.ontrack = e => {
-        document.getElementById('remote-video').srcObject = e.streams[0];
-      };
+        peerConnection.ontrack = e => {
+          document.getElementById('remote-video').srcObject = e.streams[0];
+        };
 
-      peerConnection.onicecandidate = e => {
-        if (e.candidate) {
-          socket.emit('answer_call', { to: callTargetUser, signal: peerConnection.localDescription });
-        }
-      };
+        peerConnection.onicecandidate = e => {
+          if (e.candidate) {
+            socket.emit('answer_call', { to: callTargetUser, signal: peerConnection.localDescription });
+          }
+        };
 
-      await peerConnection.setRemoteDescription(window.incomingSignal);
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingSignal));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+      } catch (err) {
+        alert('Could not open device media for answering call.');
+      }
     }
 
     function endCall() {
