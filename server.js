@@ -77,9 +77,15 @@ function getRoomId(user1, user2) {
 }
 
 // Bypassed Middleware for Admin Routes
+
 async function isAdmin(req, res, next) {
-  return next();
+  const adminUsername = req.headers['x-admin-user'];
+  if (!adminUsername) return res.status(401).json({ error: 'Unauthorized' });
+  const user = await User.findOne({ username: adminUsername });
+  if (user && user.role === 'admin') return next();
+  res.status(403).json({ error: 'Access denied' });
 }
+
 
 // Auth API
 app.post('/api/auth/register-or-login', async (req, res) => {
