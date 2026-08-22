@@ -1,18 +1,31 @@
 {
   "name": "mikiconnect",
   "version": "1.0.0",
-  "description": "Full-stack real-time messaging application",
-  "main": "server.js",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danmike849-commits/MikiConnect.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/danmike849-commits/MikiConnect/issues"
+  },
+  "homepage": "https://github.com/danmike849-commits/MikiConnect#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cloudinary": "^1.41.3",
-    "express": "^4.22.2",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^8.24.3",
-    "multer": "^1.4.5-lts.2",
+    "mongoose": "^9.9.3",
+    "multer": "^2.2.0",
     "multer-storage-cloudinary": "^4.0.0",
     "socket.io": "^4.8.3"
   }

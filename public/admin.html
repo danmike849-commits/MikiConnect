@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MikiConnect Admin</title>
+  <style>
+    body { background: #121212; color: #fff; font-family: sans-serif; padding: 20px; }
+    h1 { color: #0084ff; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; background: #1e1e1e; border-radius: 8px; overflow: hidden; }
+    th, td { padding: 12px; border-bottom: 1px solid #2f2f2f; text-align: left; }
+    th { background: #242526; color: #b0b3b8; }
+  </style>
+</head>
+<body>
+  <h1>User Management</h1>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Username</th><th>Admin Status</th></tr>
+    </thead>
+    <tbody id="users-table"></tbody>
+  </table>
+
+  <script>
+    const token = localStorage.getItem('token');
+    fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(users => {
+        if (users.error) return alert(users.error);
+        document.getElementById('users-table').innerHTML = users.map(u => `
+          <tr>
+            <td>${u._id}</td>
+            <td>${u.username}</td>
+            <td>${u.isAdmin ? 'Admin' : 'User'}</td>
+          </tr>
+        `).join('');
+      });
+  </script>
+</body>
+</html>
