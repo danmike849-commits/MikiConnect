@@ -1,39 +1,47 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
+const path = require('path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const path = require('path');
 const { Server } = require('socket.io');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const multer = require('multer');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
+const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_secret_key';
 
+// Body Parsers (50MB limit for high-res media)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
+app.use(express.static(path.join(__dirname, 'public')));
 
 // MONGOOSE SCHEMAS
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  isAdmin: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 
-const PostSchema = new mongoose.Schema({
-  author: { type: String, required: true },
-  caption: { type: String, required: true },
-  likes: { type: Number, default: 0 },
+const MessageSchema = new mongoose.Schema({
+  sender: String,
+  receiver: String, // 'all' for group, or specific username
+  text: String,
+  mediaUrl: String,
+  mediaType: String, // 'image', 'video', 'audio'
   createdAt: { type: Date, default: Date.now }
 });
 
 const User = mongoose.model('User', UserSchema);
-const Post = mongoose.model('Post', PostSchema);
+const Message = mongoose.model('Message', MessageSchema);
 
 // AUTH MIDDLEWARE
 const authenticate = (req, res, next) => {
@@ -47,12 +55,12 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// API ROUTES
-// CLOUDINARY MEDIA UPLOAD CONFIG
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const multer = require('multer');
+const requireAdmin = (req, res, next) => {
+  if (req.user && req.user.isAdmin === true) return next();
+  return res.status(403).json({ error: 'Admin privileges required' });
+};
 
+// CLOUDINARY STORAGE
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -61,116 +69,92 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'mikiconnect_media',
-    resource_type: 'auto'
-  }
+  params: { folder: 'mikiconnect_messenger', resource_type: 'auto' }
 });
+const upload = multer({ storage });
 
-const upload = multer({ storage: storage });
-
-// Media Upload Route
-app.post('/api/upload', upload.single('media'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-  res.json({ url: req.file.path });
-});
-const requireAdmin = (req, res, next) => {
-  if (req.user && req.user.isAdmin === true) {
-    return next();
-  }
-  return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
-};
-
+// API ROUTES
 app.post('/api/auth/register-or-login', async (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
 
-  try {
-    let user = await User.findOne({ username });
-    if (!user) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      user = new User({ username, password: hashedPassword });
-      await user.save();
-    } else {
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ error: 'Invalid password' });
-    }
-
-    const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, username: user.username });
-  } catch (err) {
-    res.status(500).json({ error: 'Database authentication error' });
+  let user = await User.findOne({ username });
+  if (!user) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user = new User({ username, password: hashedPassword, isAdmin: username === 'mika' });
+    await user.save();
+  } else {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: 'Invalid password' });
   }
+
+  const token = jwt.sign(
+{ id: user._id, username: user.username, isAdmin: user.isAdmin },
+
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  res.json({ token, username: user.username, isAdmin: user.isAdmin });
 });
 
-app.get('/api/users', async (req, res) => {
-  try {
-    const users = await User.find({}, 'username createdAt').sort({ createdAt: -1 });
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
+
+
+app.post('/api/upload', upload.single('media'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  res.json({ url: req.file.path });
 });
 
-app.get('/api/posts', async (req, res) => {
-  try {
-    const posts = await Post.find().sort({ createdAt: -1 }).limit(50);
-    res.json(posts);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch posts' });
-  }
+app.get('/api/messages', async (req, res) => {
+  const messages = await Message.find().sort({ createdAt: 1 }).limit(100);
+  res.json(messages);
 });
 
-app.post('/api/posts', authenticate, async (req, res) => {
-  const { caption } = req.body;
-  if (!caption) return res.status(400).json({ error: 'Caption required' });
-
-  try {
-    const post = new Post({ author: req.user.username, caption });
-    await post.save();
-    io.emit('new_post', post);
-    res.status(201).json(post);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to save post' });
-  }
+app.get('/api/admin/users', authenticate, requireAdmin, async (req, res) => {
+  const users = await User.find({}, '-password');
+  res.json(users);
 });
 
-// SOCKET DM ROUTING
-const userSockets = {};
+// REAL-TIME MESSENGER SOCKETS
+let onlineUsers = new Map();
 
 io.on('connection', (socket) => {
-  socket.on('register_user', (username) => {
-    userSockets[username] = socket.id;
+  socket.on('join', (username) => {
+    socket.username = username;
+    onlineUsers.set(username, socket.id);
+    io.emit('onlineUsersList', Array.from(onlineUsers.keys()));
   });
 
-  socket.on('send_message', (data) => {
-    io.emit('receive_message', data);
+  socket.on('typing', (isTyping) => {
+    socket.broadcast.emit('userTyping', { username: socket.username, isTyping });
   });
 
-  socket.on('send_private_message', (data) => {
-    const recipientSocketId = userSockets[data.recipient];
-    if (recipientSocketId) {
-      io.to(recipientSocketId).emit('receive_private_message', data);
-    }
-    socket.emit('receive_private_message', data);
+  socket.on('sendMessage', async (data) => {
+    const newMsg = new Message({
+      sender: data.sender,
+      receiver: data.receiver || 'all',
+      text: data.text || '',
+      mediaUrl: data.mediaUrl || null,
+      mediaType: data.mediaType || null
+    });
+    await newMsg.save();
+    io.emit('receiveMessage', newMsg);
   });
 
   socket.on('disconnect', () => {
-    for (const [user, id] of Object.entries(userSockets)) {
-      if (id === socket.id) delete userSockets[user];
+    if (socket.username) {
+      onlineUsers.delete(socket.username);
+      io.emit('onlineUsersList', Array.from(onlineUsers.keys()));
     }
   });
 });
 
-app.get('/health', (req, res) => res.status(200).send('OK'));
+// START SERVER
+if (MONGO_URI) {
+  mongoose.connect(MONGO_URI)
+    .then(() => server.listen(PORT, () => console.log(`Messenger running on port ${PORT}`)))
+    .catch(err => console.error(err));
+} else {
+  server.listen(PORT, () => console.log(`Server started on port ${PORT} (MongoDB URI missing)`));
+}
 
-server.listen(PORT, () => {
-  console.log(`Server live on port ${PORT}`);
-  if (MONGO_URI) {
-    mongoose.connect(MONGO_URI)
-      .then(() => console.log('Connected to MongoDB Atlas'))
-      .catch(err => console.error('MongoDB error:', err.message));
-  }
-});
