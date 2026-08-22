@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#000000">
-  <meta name="mobile-web-app-capable" content="yes">
   <title>MikiConnect</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; width: 100%; background-color: #000; color: #fff; overflow: hidden; position: fixed; }
 
-    #auth-modal, #edit-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 2500; }
+    #auth-modal, #edit-modal, #bio-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 2500; }
     .custom-box { background: #121212; padding: 20px; border-radius: 16px; width: 85%; max-width: 320px; border: 1px solid #282828; text-align: center; }
     .custom-box h3 { color: #fff; font-size: 16px; margin-bottom: 14px; text-align: left; }
     .custom-box input { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #fff; outline: none; font-size: 15px; }
@@ -32,18 +31,24 @@
     .online-indicator.is-online { background: #00e676; }
 
     .chat-list { flex: 1; overflow-y: auto; }
-    .chat-item { padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #111; display: flex; align-items: center; }
+    .chat-item { padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #111; display: flex; align-items: center; justify-content: space-between; }
     .chat-item:hover { background: #111; }
+    .unread-badge { background: #00e676; color: #000; font-weight: bold; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
 
     .chat-window { flex: 1; display: flex; flex-direction: column; background: #000; height: 100dvh; position: relative; overflow: hidden; }
     .chat-header { height: 60px; min-height: 60px; padding: 0 16px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; background: #000; }
     .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #000; }
+    
+    .date-divider { align-self: center; background: #1a1a1a; color: #888; font-size: 11px; padding: 4px 12px; border-radius: 10px; margin: 8px 0; }
     
     .message { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; position: relative; user-select: none; }
     .message.received { background: #222; align-self: flex-start; border-bottom-left-radius: 4px; }
     .message.sent { background: #0084ff; align-self: flex-end; border-bottom-right-radius: 4px; }
     .message img, .message video, .message audio { max-width: 100%; border-radius: 12px; display: block; }
     .sender-name { font-size: 11px; opacity: 0.6; margin-bottom: 4px; }
+
+    .msg-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 10px; opacity: 0.8; margin-top: 4px; }
+    .read-mark { color: #00e676; font-weight: bold; font-size: 12px; }
 
     #action-menu { display: none; position: fixed; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); overflow: hidden; }
     #action-menu button { display: block; width: 100%; padding: 12px 20px; background: none; border: none; color: #fff; text-align: left; font-size: 14px; cursor: pointer; }
@@ -90,16 +95,15 @@
     </div>
   </div>
 
-  <!-- CALL MODAL -->
-  <div id="call-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:1000; flex-direction:column; align-items:center; justify-content:center;">
-    <h3 id="call-status" style="margin-bottom:20px; color:#fff;">Calling...</h3>
-    <div style="display:flex; gap:10px; position:relative; width:90%; max-width:500px; height:300px; background:#111; border-radius:12px; overflow:hidden;">
-      <video id="remote-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-      <video id="local-video" autoplay playsinline muted style="width:100px; height:140px; object-fit:cover; position:absolute; bottom:10px; right:10px; border-radius:8px; border:2px solid #0084ff;"></video>
-    </div>
-    <div style="margin-top:20px; display:flex; gap:15px;">
-      <button id="accept-call-btn" style="display:none; background:#00e676; border:none; color:#fff; padding:12px 24px; border-radius:20px; font-weight:bold; cursor:pointer;" onclick="acceptCall()">Answer</button>
-      <button style="background:#ff4444; border:none; color:#fff; padding:12px 24px; border-radius:20px; font-weight:bold; cursor:pointer;" onclick="endCall()">End Call</button>
+  <!-- BIO MODAL -->
+  <div id="bio-modal" style="display:none;">
+    <div class="custom-box">
+      <h3>Update Status Bio</h3>
+      <input type="text" id="bio-input" placeholder="Enter status...">
+      <div class="btn-row">
+        <button class="cancel-btn" onclick="closeBioModal()">Cancel</button>
+        <button class="save-btn" onclick="saveBio()">Save</button>
+      </div>
     </div>
   </div>
 
@@ -117,29 +121,19 @@
   <div class="app-container" id="app">
     <div class="sidebar">
       <div class="sidebar-header">
-        <span>MikiConnect</span>
+        <span onclick="openBioModal()" style="cursor:pointer;" title="Tap to change status">MikiConnect ✏️</span>
         <button onclick="logout()" style="background:none; border:none; color:#ff4444; font-size:12px; cursor:pointer;">Logout</button>
       </div>
       <div class="active-users-bar" id="active-users"></div>
-      
-      <div class="chat-list" id="chat-friends-list">
-        <div class="chat-item" onclick="openChat('General Chat')">
-          <div class="avatar">G</div>
-          <div style="margin-left: 12px;">
-            <strong>General Chat</strong>
-            <p style="font-size: 12px; color: #888;">Public Room</p>
-          </div>
-        </div>
-      </div>
+      <div class="chat-list" id="chat-friends-list"></div>
     </div>
 
     <div class="chat-window">
       <div class="chat-header">
         <button onclick="closeChat()" style="background:none; border:none; color:#0084ff; font-size:16px; cursor:pointer;" id="back-btn">← Back</button>
-        <strong id="chat-title">General Chat</strong>
-        <div style="margin-left:auto; display:flex; gap:12px;">
-          <button onclick="startCall(false)" style="background:none; border:none; font-size:20px; cursor:pointer;">📞</button>
-          <button onclick="startCall(true)" style="background:none; border:none; font-size:20px; cursor:pointer;">📹</button>
+        <div>
+          <strong id="chat-title">General Chat</strong>
+          <p id="chat-subtitle" style="font-size:11px; color:#888;"></p>
         </div>
       </div>
 
@@ -151,7 +145,7 @@
         <input type="file" id="media-file" accept="image/*,video/*,audio/*" style="display:none;" onchange="uploadMedia()">
         
         <div class="input-wrapper">
-          <input type="text" id="msg-input" placeholder="Aa" oninput="emitTyping()" onkeydown="if(event.key==='Enter') sendMessage()">
+          <input type="text" id="msg-input" placeholder="Aa" oninput="handleTyping()" onkeydown="if(event.key==='Enter') sendMessage()">
           <button class="mic-inside-btn" id="record-btn" onclick="toggleVoiceRecord()">🎙️</button>
         </div>
 
@@ -163,20 +157,16 @@
   <script>
     let socket;
     let currentUser = localStorage.getItem('username');
-    let token = localStorage.getItem('token');
     let activeChatTarget = 'General Chat';
     let mediaRecorder = null;
     let audioChunks = [];
-    let peerConnection;
-    let localStream;
-    let callTargetUser = '';
     let selectedMsgId = null;
     let longPressTimer;
-    let onlineUsersList = [];
+    let typingTimer;
+    let unreadCounts = {};
+    let lastDateStr = '';
 
-    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-
-    if (token && currentUser) {
+    if (currentUser) {
       document.getElementById('auth-modal').style.display = 'none';
       initApp();
     }
@@ -194,7 +184,6 @@
       const data = await res.json();
 
       if (data.username) {
-        localStorage.setItem('token', data.token || 'demo-token');
         localStorage.setItem('username', data.username);
         currentUser = data.username;
         document.getElementById('auth-modal').style.display = 'none';
@@ -212,16 +201,14 @@
     async function initApp() {
       socket = io();
       socket.emit('user_connected', currentUser);
-      initCallSocketListeners();
 
+      await fetchUnreadCounts();
       await loadFriendsList();
 
       socket.on('active_users', (users) => {
-        onlineUsersList = users;
+        window.onlineUsers = users;
         renderUsersBar();
       });
-
-      loadChatHistory('General Chat');
 
       socket.on('chat message', (msg) => {
         if (msg.recipient === activeChatTarget || (msg.recipient === currentUser && msg.sender === activeChatTarget) || (activeChatTarget === 'General Chat' && msg.recipient === 'General Chat')) {
@@ -230,12 +217,27 @@
         }
       });
 
+      socket.on('new_unread_notification', ({ sender }) => {
+        if (sender !== activeChatTarget) {
+          unreadCounts[sender] = (unreadCounts[sender] || 0) + 1;
+          renderFriendsList();
+        }
+      });
+
+      socket.on('messages_marked_read', ({ byUser }) => {
+        if (byUser === activeChatTarget) {
+          document.querySelectorAll('.read-mark').forEach(el => el.innerText = '✓✓');
+        }
+      });
+
       socket.on('user_typing', (data) => {
         if (data.username === activeChatTarget || activeChatTarget === 'General Chat') {
-          const el = document.getElementById('typing-status');
-          el.innerText = `${data.username} is typing...`;
-          setTimeout(() => { el.innerText = ''; }, 3000);
+          document.getElementById('typing-status').innerText = `${data.username} is typing...`;
         }
+      });
+
+      socket.on('user_stopped_typing', () => {
+        document.getElementById('typing-status').innerText = '';
       });
 
       socket.on('message_edited', (msg) => {
@@ -250,53 +252,68 @@
         const el = document.getElementById(`msg-${id}`);
         if (el) el.remove();
       });
+
+      loadChatHistory('General Chat');
+    }
+
+    async function fetchUnreadCounts() {
+      const res = await fetch(`/api/unread-counts/${encodeURIComponent(currentUser)}`);
+      const data = await res.json();
+      unreadCounts = {};
+      data.forEach(item => { unreadCounts[item._id] = item.count; });
     }
 
     async function loadFriendsList() {
-      try {
-        const res = await fetch('/api/users');
-        const users = await res.json();
-        
-        const friendsList = document.getElementById('chat-friends-list');
-        let html = `<div class="chat-item" onclick="openChat('General Chat')">
+      const res = await fetch('/api/users');
+      window.allRegisteredUsers = await res.json();
+      renderFriendsList();
+      renderUsersBar();
+    }
+
+    function renderFriendsList() {
+      const friendsList = document.getElementById('chat-friends-list');
+      let html = `<div class="chat-item" onclick="openChat('General Chat')">
+        <div style="display:flex; align-items:center;">
           <div class="avatar">G</div>
           <div style="margin-left: 12px;">
             <strong>General Chat</strong>
             <p style="font-size: 12px; color: #888;">Public Room</p>
           </div>
-        </div>`;
+        </div>
+      </div>`;
 
-        users.forEach(u => {
-          if (u !== currentUser) {
-            html += `<div class="chat-item" onclick="openChat('${u}')">
-              <div class="avatar">${u[0].toUpperCase()}</div>
-              <div style="margin-left: 12px;">
-                <strong>${u}</strong>
-                <p style="font-size: 12px; color: #888;">Tap to chat</p>
+      if (window.allRegisteredUsers) {
+        window.allRegisteredUsers.forEach(u => {
+          if (u.username !== currentUser) {
+            const count = unreadCounts[u.username] || 0;
+            html += `<div class="chat-item" onclick="openChat('${u.username}')">
+              <div style="display:flex; align-items:center;">
+                <div class="avatar">${u.username[0].toUpperCase()}</div>
+                <div style="margin-left: 12px;">
+                  <strong>${u.username}</strong>
+                  <p style="font-size: 12px; color: #888;">${u.bio || 'Tap to chat'}</p>
+                </div>
               </div>
+              ${count > 0 ? `<span class="unread-badge">${count}</span>` : ''}
             </div>`;
           }
         });
-
-        friendsList.innerHTML = html;
-        window.allRegisteredUsers = users;
-        renderUsersBar();
-      } catch (err) {
-        console.error('Error loading friends list', err);
       }
+
+      friendsList.innerHTML = html;
     }
 
     function renderUsersBar() {
       const container = document.getElementById('active-users');
-      if (!window.allRegisteredUsers) return;
+      if (!window.allRegisteredUsers || !window.onlineUsers) return;
 
-      container.innerHTML = window.allRegisteredUsers.filter(u => u !== currentUser).map(u => {
-        const isOnline = onlineUsersList.includes(u);
+      container.innerHTML = window.allRegisteredUsers.filter(u => u.username !== currentUser).map(u => {
+        const isOnline = window.onlineUsers.includes(u.username);
         return `
-          <div class="user-avatar-wrap" onclick="openChat('${u}')">
-            <div class="avatar">${u[0].toUpperCase()}</div>
+          <div class="user-avatar-wrap" onclick="openChat('${u.username}')">
+            <div class="avatar">${u.username[0].toUpperCase()}</div>
             <div class="online-indicator ${isOnline ? 'is-online' : ''}"></div>
-            <span>${u}</span>
+            <span>${u.username}</span>
           </div>
         `;
       }).join('');
@@ -304,7 +321,13 @@
 
     async function loadChatHistory(chatTarget) {
       activeChatTarget = chatTarget;
+      unreadCounts[chatTarget] = 0;
+      renderFriendsList();
+
+      document.getElementById('chat-title').innerText = chatTarget;
       document.getElementById('messages').innerHTML = '';
+      lastDateStr = '';
+
       socket.emit('join_room', { user1: currentUser, user2: chatTarget });
 
       const res = await fetch(`/api/messages/${encodeURIComponent(chatTarget)}/${encodeURIComponent(currentUser)}`);
@@ -315,20 +338,36 @@
 
     function appendMessage(msg) {
       const isSent = msg.sender === currentUser;
+      const date = new Date(msg.createdAt || Date.now());
+      const dateStr = date.toLocaleDateString();
+      const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const container = document.getElementById('messages');
+
+      if (dateStr !== lastDateStr) {
+        const divider = document.createElement('div');
+        divider.className = 'date-divider';
+        divider.innerText = dateStr;
+        container.appendChild(divider);
+        lastDateStr = dateStr;
+      }
+
       const div = document.createElement('div');
       div.id = `msg-${msg._id}`;
       div.className = `message ${isSent ? 'sent' : 'received'}`;
       
       let html = '';
-      if (!isSent) {
-        html += `<div class="sender-name">${msg.sender}</div>`;
-      }
+      if (!isSent) html += `<div class="sender-name">${msg.sender}</div>`;
       if (msg.text) html += `<div class="msg-text">${msg.text} ${msg.isEdited ? '(edited)' : ''}</div>`;
       if (msg.mediaUrl) {
         if (msg.mediaType === 'video') html += `<video src="${msg.mediaUrl}" controls></video>`;
         else if (msg.mediaType === 'audio') html += `<audio src="${msg.mediaUrl}" controls></audio>`;
         else html += `<img src="${msg.mediaUrl}" />`;
       }
+
+      // Read Receipts (Single Green Check = Sent/Unread, Double Green Check = Read)
+      const readMarkHtml = isSent ? `<span class="read-mark">${msg.isRead ? '✓✓' : '✓'}</span>` : '';
+      html += `<div class="msg-meta"><span>${timeStr}</span> ${readMarkHtml}</div>`;
 
       div.innerHTML = html;
 
@@ -343,11 +382,12 @@
         });
       }
 
-      document.getElementById('messages').appendChild(div);
+      container.appendChild(div);
     }
 
     function startLongPress(e, id) {
       longPressTimer = setTimeout(() => {
+        if (navigator.vibrate) navigator.vibrate(50);
         const touch = e.touches ? e.touches[0] : e;
         showActionMenu(touch.clientX, touch.clientY, id);
       }, 500);
@@ -372,7 +412,6 @@
     function openEditModal() {
       hideActionMenu();
       if (!selectedMsgId) return;
-      
       const msgDiv = document.getElementById(`msg-${selectedMsgId}`);
       if (msgDiv) {
         const textEl = msgDiv.querySelector('.msg-text');
@@ -407,8 +446,34 @@
       selectedMsgId = null;
     }
 
-    function emitTyping() {
-      if (socket) socket.emit('typing', { username: currentUser, recipient: activeChatTarget });
+    function handleTyping() {
+      socket.emit('typing', { username: currentUser, recipient: activeChatTarget });
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => {
+        socket.emit('stop_typing', { username: currentUser, recipient: activeChatTarget });
+      }, 1500);
+    }
+
+    function openBioModal() {
+      document.getElementById('bio-modal').style.display = 'flex';
+    }
+
+    function closeBioModal() {
+      document.getElementById('bio-modal').style.display = 'none';
+    }
+
+    async function saveBio() {
+      const bio = document.getElementById('bio-input').value.trim();
+      if (!bio) return;
+
+      await fetch('/api/users/bio', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser, bio })
+      });
+
+      closeBioModal();
+      loadFriendsList();
     }
 
     async function uploadMedia() {
@@ -430,8 +495,6 @@
 
           socket.emit('chat message', { sender: currentUser, recipient: activeChatTarget, mediaUrl: data.url, mediaType: type });
           fileInput.value = '';
-        } else {
-          alert('Upload failed');
         }
       } catch (err) {
         alert('File upload error');
@@ -442,10 +505,6 @@
       const btn = document.getElementById('record-btn');
       
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          return alert('Microphone access not supported on this browser.');
-        }
-
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           mediaRecorder = new MediaRecorder(stream);
@@ -469,7 +528,7 @@
           mediaRecorder.start();
           btn.classList.add('mic-recording');
         } catch (err) {
-          alert('Could not start recording. Check microphone permissions.');
+          alert('Microphone access denied');
         }
       } else {
         mediaRecorder.stop();
@@ -482,104 +541,7 @@
       if (!text) return;
       socket.emit('chat message', { sender: currentUser, recipient: activeChatTarget, text });
       input.value = '';
-    }
-
-    async function startCall(isVideo) {
-      if (activeChatTarget === 'General Chat') {
-        return alert('Calls are only available in 1-on-1 private chats.');
-      }
-
-      callTargetUser = activeChatTarget;
-
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        return alert('Camera/Mic not accessible. Ensure HTTPS is enabled.');
-      }
-
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
-        document.getElementById('call-modal').style.display = 'flex';
-        document.getElementById('call-status').innerText = `Calling ${callTargetUser}...`;
-        document.getElementById('local-video').srcObject = localStream;
-
-        peerConnection = new RTCPeerConnection(rtcConfig);
-        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-        peerConnection.ontrack = e => {
-          document.getElementById('remote-video').srcObject = e.streams[0];
-        };
-
-        peerConnection.onicecandidate = e => {
-          if (e.candidate) {
-            socket.emit('call_user', { userToCall: callTargetUser, signalData: peerConnection.localDescription, from: currentUser, isVideo });
-          }
-        };
-
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-      } catch (err) {
-        alert('Could not access camera or microphone.');
-      }
-    }
-
-    function initCallSocketListeners() {
-      socket.on('incoming_call', async (data) => {
-        callTargetUser = data.from;
-        document.getElementById('call-modal').style.display = 'flex';
-        document.getElementById('call-status').innerText = `Incoming ${data.isVideo ? 'Video' : 'Voice'} Call from ${data.from}`;
-        document.getElementById('accept-call-btn').style.display = 'block';
-
-        window.incomingSignal = data.signal;
-        window.incomingIsVideo = data.isVideo;
-      });
-
-      socket.on('call_accepted', async (signal) => {
-        document.getElementById('call-status').innerText = 'Connected';
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
-      });
-
-      socket.on('call_ended', () => {
-        cleanupCall();
-      });
-    }
-
-    async function acceptCall() {
-      document.getElementById('accept-call-btn').style.display = 'none';
-      document.getElementById('call-status').innerText = 'Connected';
-
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: window.incomingIsVideo, audio: true });
-        document.getElementById('local-video').srcObject = localStream;
-
-        peerConnection = new RTCPeerConnection(rtcConfig);
-        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-        peerConnection.ontrack = e => {
-          document.getElementById('remote-video').srcObject = e.streams[0];
-        };
-
-        peerConnection.onicecandidate = e => {
-          if (e.candidate) {
-            socket.emit('answer_call', { to: callTargetUser, signal: peerConnection.localDescription });
-          }
-        };
-
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingSignal));
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-      } catch (err) {
-        alert('Could not open device media for answering call.');
-      }
-    }
-
-    function endCall() {
-      socket.emit('end_call', { to: callTargetUser });
-      cleanupCall();
-    }
-
-    function cleanupCall() {
-      if (peerConnection) peerConnection.close();
-      if (localStream) localStream.getTracks().forEach(track => track.stop());
-      document.getElementById('call-modal').style.display = 'none';
+      socket.emit('stop_typing', { username: currentUser, recipient: activeChatTarget });
     }
 
     function scrollToBottom() {
@@ -588,7 +550,6 @@
     }
 
     function openChat(title) {
-      document.getElementById('chat-title').innerText = title;
       document.getElementById('app').classList.add('active-chat');
       loadChatHistory(title);
     }
