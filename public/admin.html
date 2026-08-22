@@ -8,50 +8,32 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
     body { background: #0c0c0c; color: #fff; padding: 24px; }
     h1 { color: #0084ff; margin-bottom: 20px; }
-    
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 30px; }
     .stat-card { background: #181818; padding: 20px; border-radius: 12px; border: 1px solid #282828; }
-    .stat-card h3 { color: #888; font-size: 13px; font-weight: normal; margin-bottom: 6px; }
+    .stat-card h3 { color: #888; font-size: 13px; margin-bottom: 6px; }
     .stat-card p { font-size: 24px; font-weight: bold; color: #00e676; }
-
     .section { background: #181818; border: 1px solid #282828; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
-    .section h2 { font-size: 18px; margin-bottom: 16px; color: #fff; }
-
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 12px; border-bottom: 1px solid #282828; font-size: 14px; }
-    th { color: #888; font-weight: 500; }
-
     .btn { padding: 6px 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 12px; }
     .btn-ban { background: #ff4444; color: #fff; }
     .btn-unban { background: #00e676; color: #000; }
     .btn-promote { background: #0084ff; color: #fff; }
-
-    .broadcast-box { display: flex; gap: 12px; }
-    .broadcast-box input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #111; color: #fff; outline: none; }
-    .broadcast-box button { background: #0084ff; color: #fff; padding: 0 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
-    .nav-btn { background: #222; color: #fff; border: 1px solid #333; padding: 8px 16px; border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 14px; }
+    .nav-btn { background: #222; color: #fff; border: 1px solid #333; padding: 8px 16px; border-radius: 8px; cursor: pointer; text-decoration: none; }
   </style>
 </head>
 <body>
 
-  <div style="display:flex; justify-space-between; align-items:center; margin-bottom:20px;">
+  <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
     <h1>🛡️ MikiConnect Control Panel</h1>
     <a href="/" class="nav-btn">← Back to Chat</a>
   </div>
 
   <div class="stats-grid">
     <div class="stat-card"><h3>Total Registered Users</h3><p id="stat-users">0</p></div>
-    <div class="stat-card"><h3>Active Socket Connections</h3><p id="stat-active">0</p></div>
-    <div class="stat-card"><h3>Total Messages Sent</h3><p id="stat-messages">0</p></div>
+    <div class="stat-card"><h3>Active Sockets</h3><p id="stat-active">0</p></div>
+    <div class="stat-card"><h3>Total Messages</h3><p id="stat-messages">0</p></div>
     <div class="stat-card"><h3>Banned Accounts</h3><p id="stat-banned">0</p></div>
-  </div>
-
-  <div class="section">
-    <h2>System-Wide Broadcast</h2>
-    <div class="broadcast-box">
-      <input type="text" id="broadcast-text" placeholder="Type a message to send to General Chat...">
-      <button onclick="sendBroadcast()">Broadcast</button>
-    </div>
   </div>
 
   <div class="section">
@@ -70,34 +52,17 @@
   </div>
 
   <script>
-    const adminUser = localStorage.getItem('username');
-    const userRole = localStorage.getItem('role');
-
     async function loadAdminData() {
-      if (!adminUser || userRole !== 'admin') {
-        alert('Access denied: Please log in as an Admin account first.');
-        window.location.href = '/';
-        return;
-      }
-
-      const headers = { 'x-admin-user': adminUser, 'Content-Type': 'application/json' };
-
       try {
-        const statsRes = await fetch('/api/admin/stats', { headers });
+        const statsRes = await fetch('/api/admin/stats');
         const stats = await statsRes.json();
-        
-        if (stats.error) {
-          alert(stats.error);
-          window.location.href = '/';
-          return;
-        }
 
-        document.getElementById('stat-users').innerText = stats.totalUsers;
-        document.getElementById('stat-active').innerText = stats.activeSockets;
-        document.getElementById('stat-messages').innerText = stats.totalMessages;
-        document.getElementById('stat-banned').innerText = stats.bannedUsers;
+        document.getElementById('stat-users').innerText = stats.totalUsers || 0;
+        document.getElementById('stat-active').innerText = stats.activeSockets || 0;
+        document.getElementById('stat-messages').innerText = stats.totalMessages || 0;
+        document.getElementById('stat-banned').innerText = stats.bannedUsers || 0;
 
-        const usersRes = await fetch('/api/admin/users', { headers });
+        const usersRes = await fetch('/api/admin/users');
         const users = await usersRes.json();
 
         const tbody = document.getElementById('user-table-body');
@@ -115,14 +80,14 @@
           </tr>
         `).join('');
       } catch(e) {
-        alert('Failed loading admin data.');
+        console.error('Failed loading admin data:', e);
       }
     }
 
     async function toggleBan(username, isBanned) {
       await fetch('/api/admin/users/ban', {
         method: 'PUT',
-        headers: { 'x-admin-user': adminUser, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, isBanned })
       });
       loadAdminData();
@@ -131,22 +96,10 @@
     async function promoteAdmin(username) {
       await fetch('/api/admin/users/role', {
         method: 'PUT',
-        headers: { 'x-admin-user': adminUser, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, role: 'admin' })
       });
       loadAdminData();
-    }
-
-    async function sendBroadcast() {
-      const text = document.getElementById('broadcast-text').value.trim();
-      if (!text) return;
-      await fetch('/api/admin/broadcast', {
-        method: 'POST',
-        headers: { 'x-admin-user': adminUser, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
-      document.getElementById('broadcast-text').value = '';
-      alert('Broadcast sent!');
     }
 
     loadAdminData();
