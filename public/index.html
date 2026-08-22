@@ -9,30 +9,25 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #000; color: #fff; height: 100vh; display: flex; overflow: hidden; }
 
-    /* Auth Modal */
     #auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 999; }
     .auth-box { background: #111; padding: 24px; border-radius: 12px; width: 90%; max-width: 360px; border: 1px solid #222; text-align: center; }
     .auth-box h2 { color: #0084ff; margin-bottom: 16px; }
     .auth-box input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; outline: none; }
     .auth-box button { width: 100%; padding: 12px; background: #0084ff; border: none; color: #fff; font-weight: bold; border-radius: 8px; cursor: pointer; }
 
-    /* App Layout */
     .app-container { display: flex; width: 100%; height: 100%; }
     .sidebar { width: 320px; border-right: 1px solid #222; display: flex; flex-direction: column; background: #000; }
     .sidebar-header { padding: 16px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #222; color: #0084ff; display: flex; justify-content: space-between; align-items: center; }
     
-    /* Active Users Row */
     .active-users-bar { display: flex; gap: 12px; padding: 12px 16px; overflow-x: auto; border-bottom: 1px solid #111; }
     .user-avatar-wrap { position: relative; display: flex; flex-direction: column; align-items: center; font-size: 11px; }
     .avatar { width: 44px; height: 44px; border-radius: 50%; background: #0084ff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
     .online-indicator { position: absolute; bottom: 14px; right: 0; width: 12px; height: 12px; background: #00e676; border-radius: 50%; border: 2px solid #000; }
 
-    /* Chat Window */
     .chat-window { flex: 1; display: flex; flex-direction: column; background: #000; }
     .chat-header { height: 60px; padding: 0 16px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; }
     .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
     
-    /* Bubbles */
     .message { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; position: relative; }
     .message.received { background: #222; align-self: flex-start; border-bottom-left-radius: 4px; }
     .message.sent { background: #0084ff; align-self: flex-end; border-bottom-right-radius: 4px; }
@@ -40,7 +35,6 @@
     .sender-name { font-size: 11px; opacity: 0.6; margin-bottom: 2px; }
     .msg-actions { font-size: 10px; margin-top: 4px; opacity: 0.7; cursor: pointer; display: flex; gap: 8px; justify-content: flex-end; }
 
-    /* Input Bar */
     .input-bar { padding: 12px; border-top: 1px solid #222; display: flex; gap: 8px; align-items: center; }
     .input-bar input[type="text"] { flex: 1; background: #181818; border: none; padding: 12px 16px; border-radius: 20px; color: #fff; font-size: 15px; outline: none; }
     .btn-icon { background: none; border: none; color: #0084ff; font-size: 20px; cursor: pointer; padding: 0 4px; }
@@ -55,7 +49,9 @@
     }
   </style>
 </head>
-<body>  <!-- CALL MODAL -->
+<body>
+
+  <!-- CALL MODAL -->
   <div id="call-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:1000; flex-direction:column; align-items:center; justify-content:center;">
     <h3 id="call-status" style="margin-bottom:20px; color:#fff;">Calling...</h3>
     <div style="display:flex; gap:10px; position:relative; width:90%; max-width:500px; height:300px; background:#111; border-radius:12px; overflow:hidden;">
@@ -67,7 +63,6 @@
       <button style="background:#ff4444; border:none; color:#fff; padding:12px 24px; border-radius:20px; font-weight:bold; cursor:pointer;" onclick="endCall()">End Call</button>
     </div>
   </div>
-
 
   <!-- AUTH MODAL -->
   <div id="auth-modal">
@@ -86,11 +81,10 @@
         <span>MikiConnect</span>
         <button onclick="logout()" style="background:none; border:none; color:#ff4444; font-size:12px; cursor:pointer;">Logout</button>
       </div>
-      <!-- Active Online Users Row -->
       <div class="active-users-bar" id="active-users"></div>
       
       <div class="chat-list">
-        <div class="chat-item" style="padding:16px;" onclick="openChat('General Chat')">
+        <div class="chat-item" style="padding:16px; cursor:pointer;" onclick="openChat('General Chat')">
           <div class="avatar">G</div>
           <div style="margin-left: 12px;">
             <strong>General Chat</strong>
@@ -98,9 +92,10 @@
           </div>
         </div>
       </div>
+    </div>
 
     <div class="chat-window">
-            <div class="chat-header">
+      <div class="chat-header">
         <button onclick="closeChat()" style="background:none; border:none; color:#0084ff; font-size:16px; cursor:pointer;" id="back-btn">← Back</button>
         <strong id="chat-title">General Chat</strong>
         <div style="margin-left:auto; display:flex; gap:12px;">
@@ -109,7 +104,6 @@
         </div>
       </div>
       <div class="messages-container" id="messages"></div>
-
       <div id="typing-status"></div>
       <div class="input-bar">
         <label for="media-file" class="btn-icon">📁</label>
@@ -166,13 +160,11 @@
       location.reload();
     }
 
-       function initApp() {
+    function initApp() {
       socket = io();
       socket.emit('user_connected', currentUser);
-      initCallSocketListeners(); // <-- Add this line here
+      initCallSocketListeners();
 
-
-      // Render Online Users
       socket.on('active_users', (users) => {
         const container = document.getElementById('active-users');
         container.innerHTML = users.map(u => `
@@ -184,7 +176,6 @@
         `).join('');
       });
 
-      // Load Messages
       fetch('/api/messages')
         .then(res => res.json())
         .then(messages => {
@@ -192,20 +183,17 @@
           scrollToBottom();
         });
 
-      // Realtime Incoming Message
       socket.on('chat message', (msg) => {
         appendMessage(msg);
         scrollToBottom();
       });
 
-      // Typing Indicator
       socket.on('user_typing', (data) => {
         const el = document.getElementById('typing-status');
         el.innerText = `${data.username} is typing...`;
         setTimeout(() => { el.innerText = ''; }, 3000);
       });
 
-      // Message Edit & Delete Updates
       socket.on('message_edited', (msg) => {
         const el = document.getElementById(`msg-${msg._id}`);
         if (el) el.querySelector('.msg-text').innerText = `${msg.text} (edited)`;
@@ -318,20 +306,7 @@
       await fetch(`/api/messages/${id}`, { method: 'DELETE' });
     }
 
-    function scrollToBottom() {
-      const container = document.getElementById('messages');
-      container.scrollTop = container.scrollHeight;
-    }
-
-    function openChat(title) {
-      document.getElementById('chat-title').innerText = title;
-      document.getElementById('app').classList.add('active-chat');
-    }
-
-    function closeChat() {
-      document.getElementById('app').classList.remove('active-chat');
-    }
-     async function startCall(isVideo) {
+    async function startCall(isVideo) {
       callTargetUser = prompt('Enter username to call:');
       if (!callTargetUser) return;
 
@@ -399,7 +374,7 @@
         }
       };
 
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingSignal));
+      await peerConnection.setRemoteDescription(window.incomingSignal);
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
     }
@@ -414,6 +389,20 @@
       if (localStream) localStream.getTracks().forEach(track => track.stop());
       document.getElementById('call-modal').style.display = 'none';
     }
-</script>
+
+    function scrollToBottom() {
+      const container = document.getElementById('messages');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function openChat(title) {
+      document.getElementById('chat-title').innerText = title;
+      document.getElementById('app').classList.add('active-chat');
+    }
+
+    function closeChat() {
+      document.getElementById('app').classList.remove('active-chat');
+    }
+  </script>
 </body>
 </html>
