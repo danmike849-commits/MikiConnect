@@ -23,6 +23,22 @@ app.use((req, res, next) => {
 
 app.use(cors());
 app.use(express.json());
+
+// EMERGENCY ADMIN ROUTE (Visit /api/make-me-admin/YOUR_USERNAME in browser)
+app.get('/api/make-me-admin/:username', async (req, res) => {
+  try {
+    const user = await User.findOneAndUpdate(
+      { username: req.params.username },
+      { role: 'admin', isBanned: false },
+      { new: true }
+    );
+    if (!user) return res.status(404).send('User not found. Register on the main app first!');
+    res.send(`Success! ${user.username} is now an Admin. Log out and log back in on the app.`);
+  } catch (err) {
+    res.status(500).send('Database error');
+  }
+});
+
 app.use(express.static('public'));
 
 // MongoDB
@@ -48,7 +64,7 @@ const upload = multer({ storage });
 const vapidKeys = webpush.generateVAPIDKeys();
 webpush.setVapidDetails('mailto:admin@mikiconnect.com', vapidKeys.publicKey, vapidKeys.privateKey);
 
-// Database Schemas
+// Schemas
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
@@ -76,13 +92,13 @@ function getRoomId(user1, user2) {
   return [user1, user2].sort().join('_');
 }
 
-// Middleware: Admin Guard
+// Middleware
 async function isAdmin(req, res, next) {
   const adminUsername = req.headers['x-admin-user'];
   if (!adminUsername) return res.status(401).json({ error: 'Unauthorized' });
   const user = await User.findOne({ username: adminUsername });
   if (user && user.role === 'admin') return next();
-  res.status(403).json({ error: 'Access denied: Admin permissions required' });
+  res.status(403).json({ error: 'Access denied' });
 }
 
 // Auth API
@@ -170,7 +186,7 @@ app.put('/api/users/bio', async (req, res) => {
   }
 });
 
-// ADMIN ROUTES
+// Admin Routes
 app.get('/api/admin/stats', isAdmin, async (req, res) => {
   const totalUsers = await User.countDocuments();
   const totalMessages = await Message.countDocuments();
@@ -209,7 +225,7 @@ app.post('/api/admin/broadcast', isAdmin, async (req, res) => {
   res.json({ success: true });
 });
 
-// Push Subscription Route
+// Push Subscription
 app.get('/api/push/key', (req, res) => res.json({ publicKey: vapidKeys.publicKey }));
 app.post('/api/push/subscribe', async (req, res) => {
   const { username, subscription } = req.body;
@@ -217,7 +233,7 @@ app.post('/api/push/subscribe', async (req, res) => {
   res.json({ success: true });
 });
 
-// Socket.io Setup
+// Socket.io
 const activeUsers = new Map();
 
 io.on('connection', (socket) => {
@@ -246,7 +262,6 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('chat message', newMsg);
       io.to(data.recipient).emit('new_unread_notification', { sender: data.sender });
 
-      // Web Push Notification to offline target user
       if (data.recipient !== 'General Chat') {
         const recipientUser = await User.findOne({ username: data.recipient });
         if (recipientUser && recipientUser.pushSubscription) {
@@ -255,7 +270,7 @@ io.on('connection', (socket) => {
         }
       }
     } catch (err) {
-      console.error('Socket message error:', err);
+      console.error('Socket error:', err);
     }
   });
 
