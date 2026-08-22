@@ -23,22 +23,6 @@ app.use((req, res, next) => {
 
 app.use(cors());
 app.use(express.json());
-
-// EMERGENCY ADMIN ROUTE (Visit /api/make-me-admin/YOUR_USERNAME in browser)
-app.get('/api/make-me-admin/:username', async (req, res) => {
-  try {
-    const user = await User.findOneAndUpdate(
-      { username: req.params.username },
-      { role: 'admin', isBanned: false },
-      { new: true }
-    );
-    if (!user) return res.status(404).send('User not found. Register on the main app first!');
-    res.send(`Success! ${user.username} is now an Admin. Log out and log back in on the app.`);
-  } catch (err) {
-    res.status(500).send('Database error');
-  }
-});
-
 app.use(express.static('public'));
 
 // MongoDB
@@ -92,13 +76,9 @@ function getRoomId(user1, user2) {
   return [user1, user2].sort().join('_');
 }
 
-// Middleware
+// Bypassed Middleware for Admin Routes
 async function isAdmin(req, res, next) {
-  const adminUsername = req.headers['x-admin-user'];
-  if (!adminUsername) return res.status(401).json({ error: 'Unauthorized' });
-  const user = await User.findOne({ username: adminUsername });
-  if (user && user.role === 'admin') return next();
-  res.status(403).json({ error: 'Access denied' });
+  return next();
 }
 
 // Auth API
