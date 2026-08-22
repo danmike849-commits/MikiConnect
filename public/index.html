@@ -2,260 +2,312 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MikiConnect</title>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body, html { height: 100%; background: #000; color: #fff; overflow: hidden; }
+    body { background-color: #000; color: #fff; height: 100vh; display: flex; overflow: hidden; }
 
-    /* Auth Overlay */
-    #auth-screen { position: fixed; inset: 0; background: #121212; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
-    #auth-screen h2 { color: #0084ff; margin-bottom: 20px; font-size: 28px; }
-    #auth-screen input { width: 100%; max-width: 300px; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: none; background: #242526; color: #fff; outline: none; }
-    #auth-screen button { width: 100%; max-width: 300px; padding: 12px; border-radius: 8px; border: none; background: #0084ff; color: #fff; font-weight: bold; cursor: pointer; }
+    /* Auth Modal */
+    #auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .auth-box { background: #111; padding: 24px; border-radius: 12px; width: 90%; max-width: 360px; border: 1px solid #222; text-align: center; }
+    .auth-box h2 { color: #0084ff; margin-bottom: 16px; }
+    .auth-box input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; outline: none; }
+    .auth-box button { width: 100%; padding: 12px; background: #0084ff; border: none; color: #fff; font-weight: bold; border-radius: 8px; cursor: pointer; }
 
-    /* Messenger Main Container */
-    .app-container { display: flex; width: 100vw; height: 100dvh; }
+    /* App Layout */
+    .app-container { display: flex; width: 100%; height: 100%; }
+    .sidebar { width: 320px; border-right: 1px solid #222; display: flex; flex-direction: column; background: #000; }
+    .sidebar-header { padding: 16px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #222; color: #0084ff; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Active Users Row */
+    .active-users-bar { display: flex; gap: 12px; padding: 12px 16px; overflow-x: auto; border-bottom: 1px solid #111; }
+    .user-avatar-wrap { position: relative; display: flex; flex-direction: column; align-items: center; font-size: 11px; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: #0084ff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .online-indicator { position: absolute; bottom: 14px; right: 0; width: 12px; height: 12px; background: #00e676; border-radius: 50%; border: 2px solid #000; }
 
-    /* Inbox List */
-    .inbox-panel { width: 100%; max-width: 350px; background: #121212; border-right: 1px solid #2f2f2f; display: flex; flex-direction: column; }
-    .inbox-header { padding: 16px; font-size: 22px; font-weight: bold; color: #0084ff; border-bottom: 1px solid #242526; }
-    .active-bar { display: flex; gap: 12px; padding: 12px; overflow-x: auto; border-bottom: 1px solid #242526; }
-    .avatar-wrap { position: relative; display: flex; flex-direction: column; align-items: center; }
-    .avatar { width: 48px; height: 48px; border-radius: 50%; background: #3a3b3c; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    .dot { width: 12px; height: 12px; background: #31a24c; border-radius: 50%; position: absolute; bottom: 16px; right: 0; border: 2px solid #121212; }
-    .avatar-name { font-size: 11px; margin-top: 4px; color: #b0b3b8; }
-
-    /* Active Chat Panel */
-    .chat-panel { flex: 1; display: flex; flex-direction: column; background: #000; }
-    .chat-header { padding: 12px 16px; background: #121212; border-bottom: 1px solid #242526; display: flex; align-items: center; gap: 12px; }
-    .chat-header h3 { font-size: 16px; }
-    .chat-header p { font-size: 12px; color: #31a24c; }
-
-    /* Chat Messages */
-    .messages-area { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .msg { max-width: 70%; padding: 10px 14px; border-radius: 18px; font-size: 15px; word-break: break-word; }
-    .msg.sent { align-self: flex-end; background: #0084ff; color: #fff; border-bottom-right-radius: 4px; }
-    .msg.received { align-self: flex-start; background: #242526; color: #e4e6eb; border-bottom-left-radius: 4px; }
-    .msg img, .msg video { max-width: 100%; border-radius: 12px; margin-top: 6px; }
-    .msg audio { max-width: 100%; margin-top: 6px; }
-    .sender-tag { font-size: 10px; opacity: 0.7; margin-bottom: 2px; }
+    /* Chat Window */
+    .chat-window { flex: 1; display: flex; flex-direction: column; background: #000; }
+    .chat-header { height: 60px; padding: 0 16px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; }
+    .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    
+    /* Bubbles */
+    .message { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; position: relative; }
+    .message.received { background: #222; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .message.sent { background: #0084ff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .message img, .message video, .message audio { max-width: 100%; border-radius: 12px; margin-top: 6px; }
+    .sender-name { font-size: 11px; opacity: 0.6; margin-bottom: 2px; }
+    .msg-actions { font-size: 10px; margin-top: 4px; opacity: 0.7; cursor: pointer; display: flex; gap: 8px; justify-content: flex-end; }
 
     /* Input Bar */
-    .input-bar { padding: 12px; background: #121212; border-top: 1px solid #242526; display: flex; align-items: center; gap: 8px; }
-    .icon-btn { background: none; border: none; color: #0084ff; font-size: 20px; cursor: pointer; }
-    .input-bar input[type="text"] { flex: 1; background: #242526; border: none; padding: 10px 16px; border-radius: 20px; color: #fff; outline: none; }
-    .send-btn { background: none; border: none; color: #0084ff; font-weight: bold; cursor: pointer; font-size: 18px; }
+    .input-bar { padding: 12px; border-top: 1px solid #222; display: flex; gap: 8px; align-items: center; }
+    .input-bar input[type="text"] { flex: 1; background: #181818; border: none; padding: 12px 16px; border-radius: 20px; color: #fff; font-size: 15px; outline: none; }
+    .btn-icon { background: none; border: none; color: #0084ff; font-size: 20px; cursor: pointer; padding: 0 4px; }
+    .send-btn { background: #0084ff; border: none; color: #fff; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+    #typing-status { font-size: 12px; color: #888; padding: 0 16px 4px; height: 16px; }
 
-    @media (max-width: 600px) { .inbox-panel { display: none; } }
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; }
+      .chat-window { width: 100%; display: none; }
+      .app-container.active-chat .sidebar { display: none; }
+      .app-container.active-chat .chat-window { display: flex; }
+    }
   </style>
 </head>
 <body>
 
-  <!-- Auth View -->
-  <div id="auth-screen">
-    <h2>MikiConnect</h2>
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
-    <button id="login-btn">Continue</button>
+  <!-- AUTH MODAL -->
+  <div id="auth-modal">
+    <div class="auth-box">
+      <h2>MikiConnect</h2>
+      <input type="text" id="auth-username" placeholder="Username">
+      <input type="password" id="auth-password" placeholder="Password">
+      <button onclick="handleAuth()">Login / Register</button>
+    </div>
   </div>
 
-  <!-- Messenger Workspace -->
-  <div class="app-container">
-    <aside class="inbox-panel">
-      <div class="inbox-header">MikiConnect</div>
-      <div class="active-bar" id="active-bar"></div>
-    </aside>
-
-    <main class="chat-panel">
-      <div class="chat-header">
-        <div class="avatar" id="header-avatar">M</div>
-        <div>
-          <h3>General Chat</h3>
-          <p id="chat-status">Active now</p>
+  <!-- MAIN CHAT APP -->
+  <div class="app-container" id="app">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <span>MikiConnect</span>
+        <button onclick="logout()" style="background:none; border:none; color:#ff4444; font-size:12px; cursor:pointer;">Logout</button>
+      </div>
+      <!-- Active Online Users Row -->
+      <div class="active-users-bar" id="active-users"></div>
+      
+      <div class="chat-list">
+        <div class="chat-item" style="padding:16px;" onclick="openChat('General Chat')">
+          <div class="avatar">G</div>
+          <div style="margin-left: 12px;">
+            <strong>General Chat</strong>
+            <p style="font-size: 12px; color: #888;">Tap to open messaging</p>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="messages-area" id="messages-area"></div>
-
-      <div class="input-bar">
-        <label class="icon-btn">
-          📷 <input type="file" id="media-input" accept="image/*,video/*" hidden>
-        </label>
-        <button class="icon-btn" id="mic-btn">🎙️</button>
-        <input type="text" id="msg-input" placeholder="Aa" autocomplete="off">
-        <button class="send-btn" id="send-btn">➤</button>
+    <div class="chat-window">
+      <div class="chat-header">
+        <button onclick="closeChat()" style="background:none; border:none; color:#0084ff; font-size:16px; cursor:pointer;" id="back-btn">← Back</button>
+        <strong id="chat-title">General Chat</strong>
       </div>
-    </main>
+      <div class="messages-container" id="messages"></div>
+      <div id="typing-status"></div>
+      <div class="input-bar">
+        <label for="media-file" class="btn-icon">📁</label>
+        <input type="file" id="media-file" accept="image/*,video/*,audio/*" style="display:none;" onchange="uploadMedia()">
+        <button class="btn-icon" id="record-btn" onclick="toggleVoiceRecord()">🎙️</button>
+        <input type="text" id="msg-input" placeholder="Aa" oninput="emitTyping()" onkeydown="if(event.key==='Enter') sendMessage()">
+        <button class="send-btn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
+    let socket;
     let currentUser = localStorage.getItem('username');
     let token = localStorage.getItem('token');
+    let mediaRecorder;
+    let audioChunks = [];
 
-    const authScreen = document.getElementById('auth-screen');
-    const loginBtn = document.getElementById('login-btn');
-    const msgInput = document.getElementById('msg-input');
-    const sendBtn = document.getElementById('send-btn');
-    const messagesArea = document.getElementById('messages-area');
-    const activeBar = document.getElementById('active-bar');
-    const mediaInput = document.getElementById('media-input');
-    const micBtn = document.getElementById('mic-btn');
-    const chatStatus = document.getElementById('chat-status');
-
-    if (currentUser && token) {
-      authScreen.style.display = 'none';
-      initMessenger();
+    if (token && currentUser) {
+      document.getElementById('auth-modal').style.display = 'none';
+      initApp();
     }
 
-    loginBtn.addEventListener('click', async () => {
-      const u = document.getElementById('username').value.trim();
-      const p = document.getElementById('password').value.trim();
-      if (!u || !p) return alert('Fill all fields');
+    async function handleAuth() {
+      const username = document.getElementById('auth-username').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+      if (!username || !password) return alert('Enter credentials');
 
       const res = await fetch('/api/auth/register-or-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p })
+        body: JSON.stringify({ username, password })
       });
       const data = await res.json();
-      if (data.error) return alert(data.error);
 
-      localStorage.setItem('username', data.username);
-      localStorage.setItem('token', data.token);
-      currentUser = data.username;
-      authScreen.style.display = 'none';
-      initMessenger();
-    });
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username);
+        currentUser = data.username;
+        document.getElementById('auth-modal').style.display = 'none';
+        initApp();
+      } else {
+        alert(data.error || 'Authentication failed');
+      }
+    }
 
-    function initMessenger() {
-      socket.emit('join', currentUser);
+    function logout() {
+      localStorage.clear();
+      location.reload();
+    }
 
-      // Load History
+    function initApp() {
+      socket = io();
+      socket.emit('user_connected', currentUser);
+
+      // Render Online Users
+      socket.on('active_users', (users) => {
+        const container = document.getElementById('active-users');
+        container.innerHTML = users.map(u => `
+          <div class="user-avatar-wrap">
+            <div class="avatar">${u[0].toUpperCase()}</div>
+            <div class="online-indicator"></div>
+            <span>${u}</span>
+          </div>
+        `).join('');
+      });
+
+      // Load Messages
       fetch('/api/messages')
         .then(res => res.json())
-        .then(msgs => {
-          msgs.forEach(appendMessage);
-          messagesArea.scrollTop = messagesArea.scrollHeight;
+        .then(messages => {
+          messages.forEach(appendMessage);
+          scrollToBottom();
         });
+
+      // Realtime Incoming Message
+      socket.on('chat message', (msg) => {
+        appendMessage(msg);
+        scrollToBottom();
+      });
+
+      // Typing Indicator
+      socket.on('user_typing', (data) => {
+        const el = document.getElementById('typing-status');
+        el.innerText = `${data.username} is typing...`;
+        setTimeout(() => { el.innerText = ''; }, 3000);
+      });
+
+      // Message Edit & Delete Updates
+      socket.on('message_edited', (msg) => {
+        const el = document.getElementById(`msg-${msg._id}`);
+        if (el) el.querySelector('.msg-text').innerText = `${msg.text} (edited)`;
+      });
+
+      socket.on('message_deleted', (id) => {
+        const el = document.getElementById(`msg-${id}`);
+        if (el) el.remove();
+      });
     }
 
     function appendMessage(msg) {
-      const div = document.createElement('div');
       const isSent = msg.sender === currentUser;
-      div.className = `msg ${isSent ? 'sent' : 'received'}`;
-
-      if (!isSent) {
-        const tag = document.createElement('div');
-        tag.className = 'sender-tag';
-        tag.innerText = msg.sender;
-        div.appendChild(tag);
-      }
-
-      if (msg.text) {
-        const txt = document.createElement('div');
-        txt.innerText = msg.text;
-        div.appendChild(txt);
-      }
-
+      const div = document.createElement('div');
+      div.id = `msg-${msg._id}`;
+      div.className = `message ${isSent ? 'sent' : 'received'}`;
+      
+      let html = `<div class="sender-name">${msg.sender}</div>`;
+      if (msg.text) html += `<div class="msg-text">${msg.text} ${msg.isEdited ? '(edited)' : ''}</div>`;
       if (msg.mediaUrl) {
-        if (msg.mediaType === 'audio') {
-          const aud = document.createElement('audio');
-          aud.src = msg.mediaUrl;
-          aud.controls = true;
-          div.appendChild(aud);
-        } else {
-          const img = document.createElement('img');
-          img.src = msg.mediaUrl;
-          div.appendChild(img);
-        }
+        if (msg.mediaType === 'video') html += `<video src="${msg.mediaUrl}" controls></video>`;
+        else if (msg.mediaType === 'audio') html += `<audio src="${msg.mediaUrl}" controls></audio>`;
+        else html += `<img src="${msg.mediaUrl}" />`;
       }
 
-      messagesArea.appendChild(div);
-      messagesArea.scrollTop = messagesArea.scrollHeight;
-    }
-
-    // Actions
-    sendBtn.addEventListener('click', sendText);
-    msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendText(); });
-
-    function sendText() {
-      const text = msgInput.value.trim();
-      if (!text) return;
-      socket.emit('sendMessage', { sender: currentUser, text });
-      msgInput.value = '';
-      socket.emit('typing', false);
-    }
-
-    // Sockets
-    socket.on('receiveMessage', appendMessage);
-
-    socket.on('onlineUsersList', (users) => {
-      activeBar.innerHTML = users.map(u => `
-        <div class="avatar-wrap">
-          <div class="avatar">${u[0].toUpperCase()}</div>
-          <div class="dot"></div>
-          <div class="avatar-name">${u}</div>
-        </div>
-      `).join('');
-    });
-
-    msgInput.addEventListener('input', () => {
-      socket.emit('typing', msgInput.value.length > 0);
-    });
-
-    let timeout;
-    socket.on('userTyping', ({ username, isTyping }) => {
-      if (isTyping) {
-        chatStatus.innerText = `${username} is typing...`;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => { chatStatus.innerText = 'Active now'; }, 3000);
-      } else {
-        chatStatus.innerText = 'Active now';
+      if (isSent) {
+        html += `<div class="msg-actions">
+          <span onclick="editMessage('${msg._id}')">Edit</span>
+          <span onclick="deleteMessage('${msg._id}')">Delete</span>
+        </div>`;
       }
-    });
 
-    // Upload Media
-    mediaInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      div.innerHTML = html;
+      document.getElementById('messages').appendChild(div);
+    }
+
+    function emitTyping() {
+      socket.emit('typing', { username: currentUser });
+    }
+
+    async function uploadMedia() {
+      const fileInput = document.getElementById('media-file');
+      if (!fileInput.files[0]) return;
+
       const formData = new FormData();
-      formData.append('media', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.url) {
-        const type = file.type.startsWith('audio') ? 'audio' : 'image';
-        socket.emit('sendMessage', { sender: currentUser, mediaUrl: data.url, mediaType: type });
-      }
-    });
+      formData.append('media', fileInput.files[0]);
 
-    // Voice Notes
-    let recorder, chunks = [];
-    micBtn.addEventListener('click', async () => {
-      if (!recorder || recorder.state === 'inactive') {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.url) {
+        const mime = fileInput.files[0].type;
+        let type = 'image';
+        if (mime.startsWith('video')) type = 'video';
+        if (mime.startsWith('audio')) type = 'audio';
+
+        socket.emit('chat message', { sender: currentUser, mediaUrl: data.url, mediaType: type });
+      }
+    }
+
+    async function toggleVoiceRecord() {
+      const btn = document.getElementById('record-btn');
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        recorder = new MediaRecorder(stream);
-        chunks = [];
-        recorder.ondataavailable = e => chunks.push(e.data);
-        recorder.onstop = async () => {
-          const blob = new Blob(chunks, { type: 'audio/webm' });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
           const formData = new FormData();
-          formData.append('media', blob, 'voice.webm');
+          formData.append('media', audioBlob, 'voicenote.mp3');
           const res = await fetch('/api/upload', { method: 'POST', body: formData });
           const data = await res.json();
           if (data.url) {
-            socket.emit('sendMessage', { sender: currentUser, mediaUrl: data.url, mediaType: 'audio' });
+            socket.emit('chat message', { sender: currentUser, mediaUrl: data.url, mediaType: 'audio' });
           }
         };
-        recorder.start();
-        micBtn.style.color = 'red';
+        mediaRecorder.start();
+        btn.style.color = '#ff4444';
       } else {
-        recorder.stop();
-        micBtn.style.color = '#0084ff';
+        mediaRecorder.stop();
+        btn.style.color = '#0084ff';
       }
-    });
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('msg-input');
+      const text = input.value.trim();
+      if (!text) return;
+      socket.emit('chat message', { sender: currentUser, text });
+      input.value = '';
+    }
+
+    async function editMessage(id) {
+      const newText = prompt('Edit your message:');
+      if (!newText) return;
+      await fetch(`/api/messages/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newText })
+      });
+    }
+
+    async function deleteMessage(id) {
+      if (!confirm('Delete this message?')) return;
+      await fetch(`/api/messages/${id}`, { method: 'DELETE' });
+    }
+
+    function scrollToBottom() {
+      const container = document.getElementById('messages');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function openChat(title) {
+      document.getElementById('chat-title').innerText = title;
+      document.getElementById('app').classList.add('active-chat');
+    }
+
+    function closeChat() {
+      document.getElementById('app').classList.remove('active-chat');
+    }
   </script>
 </body>
 </html>
