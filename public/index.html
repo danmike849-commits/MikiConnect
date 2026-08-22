@@ -331,7 +331,7 @@
     function closeChat() {
       document.getElementById('app').classList.remove('active-chat');
     }
-  </script>    async function startCall(isVideo) {
+     async function startCall(isVideo) {
       callTargetUser = prompt('Enter username to call:');
       if (!callTargetUser) return;
 
@@ -414,6 +414,6 @@
       if (localStream) localStream.getTracks().forEach(track => track.stop());
       document.getElementById('call-modal').style.display = 'none';
     }
-
+</script>
 </body>
 </html>
