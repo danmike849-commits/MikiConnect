@@ -188,16 +188,18 @@
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
+    if (data.username) {
+      if (data.token) localStorage.setItem('token', data.token);
+      localStorage.setItem('username', data.username);
+      localStorage.setItem('role', data.role);
+      currentUser = data.username;
+      userRole = data.role;
+      document.getElementById('auth-modal').style.display = 'none';
+      if (userRole === 'admin') document.getElementById('admin-btn').style.display = 'inline-block';
+      initApp();
+    }
 
-      if (data.username) {
-        localStorage.setItem('username', data.username);
-        localStorage.setItem('role', data.role);
-        currentUser = data.username;
-        userRole = data.role;
-        document.getElementById('auth-modal').style.display = 'none';
-        if (userRole === 'admin') document.getElementById('admin-link').style.display = 'inline';
-        initApp();
-      } else {
+       else {
         alert(data.error || 'Authentication failed');
       }
     }

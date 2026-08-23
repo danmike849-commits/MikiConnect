@@ -81,13 +81,24 @@
   </div>
 
   <script>
-    const adminUser = localStorage.getItem('username') || 'Official';
-    const authHeader = { 'Content-Type': 'application/json', 'x-admin-user': adminUser };
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      alert('Access Denied: Please log in as an Admin first.');
+      window.location.href = '/';
+    }
+
+    const authHeader = { 
+      'Content-Type': 'application/json', 
+      'Authorization': `Bearer ${token}` 
+    };
 
     async function loadAdminData() {
       try {
         const statsRes = await fetch('/api/admin/stats', { headers: authHeader });
+        if (!statsRes.ok) throw new Error('Unauthorized');
         const stats = await statsRes.json();
+        
         document.getElementById('stat-users').innerText = stats.totalUsers || 0;
         document.getElementById('stat-active').innerText = stats.activeSockets || 0;
         document.getElementById('stat-messages').innerText = stats.totalMessages || 0;
@@ -118,7 +129,8 @@
           </tr>
         `).join('');
       } catch(e) {
-        console.error('Failed fetching admin data', e);
+        alert('Admin Session Invalid. Redirecting...');
+        window.location.href = '/';
       }
     }
 
