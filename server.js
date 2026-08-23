@@ -138,7 +138,7 @@ app.post('/api/auth/register-or-login', async (req, res) => {
       await user.save();
       
       const token = jwt.sign({ id: user._id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
-      return res.json({ token, username: user.username, role: user.role, bio: user.bio });
+      return res.json({ role: user.role, token, username: user.username, role: user.role, bio: user.bio });
     }
 
     if (user.isBanned) return res.status(403).json({ error: 'Account is banned' });
@@ -147,7 +147,7 @@ app.post('/api/auth/register-or-login', async (req, res) => {
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = jwt.sign({ id: user._id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
-    res.json({ token, username: user.username, role: user.role, bio: user.bio });
+    res.json({ role: user.role, token, username: user.username, role: user.role, bio: user.bio });
 
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
