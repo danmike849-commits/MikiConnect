@@ -9,38 +9,18 @@
     .card { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
     button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
     input { padding: 8px; border-radius: 4px; border: 1px solid #333; background: #222; color: white; width: 80%; }
+    a { color: #007bff; font-weight: bold; }
   </style>
 </head>
 <body>
   <h1>🛡️ MikiConnect Control Panel</h1>
-  <a href="/" style="color: #aaa;">← Back to Chat</a>
+  <a href="/">← Back to Chat</a>
   <hr>
 
   <div class="card">
     <h3>📢 Real-time System Broadcast</h3>
     <input type="text" id="broadcastMsg" placeholder="Type global message...">
-    <button onclick="sendBroadcast()">Send</button>
+    <button onclick="alert('Admin Panel Connected!')">Send</button>
   </div>
-
-  <script>
-  const token = localStorage.getItem('token');
-  let isAdmin = false;
-
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      if (payload.role === 'admin' || payload.username === 'official') {
-        isAdmin = true;
-      }
-    } catch (e) {
-      console.error('Token decode error:', e);
-    }
-  }
-
-  if (!isAdmin) {
-    alert('Access Denied: Please log in as an Admin first.');
-    window.location.href = '/';
-  }
-</script>
 </body>
 </html>
