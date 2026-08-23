@@ -3,168 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MikiConnect Control Panel</title>
+  <title>Admin Control Panel - MikiConnect</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-    body { background: #0c0c0c; color: #fff; padding: 20px; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    h1 { font-size: 20px; color: #0084ff; }
-    .nav-btn { background: #222; color: #fff; border: 1px solid #333; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
-    .stat-card { background: #181818; padding: 16px; border-radius: 12px; border: 1px solid #282828; }
-    .stat-card h3 { color: #888; font-size: 12px; margin-bottom: 4px; }
-    .stat-card p { font-size: 22px; font-weight: bold; color: #00e676; }
-    .section { background: #181818; border: 1px solid #282828; border-radius: 12px; padding: 18px; margin-bottom: 24px; }
-    .section h2 { font-size: 16px; margin-bottom: 12px; color: #ddd; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #282828; font-size: 13px; word-break: break-all; }
-    th { color: #888; }
-    .btn { padding: 6px 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 11px; margin-right: 4px; }
-    .btn-ban { background: #ff4444; color: #fff; }
-    .btn-unban { background: #00e676; color: #000; }
-    .btn-promote { background: #0084ff; color: #fff; }
-    .btn-delete { background: #333; color: #ff4444; border: 1px solid #ff4444; }
-    .input-group { display: flex; gap: 8px; }
-    input[type="text"] { flex: 1; background: #000; border: 1px solid #333; padding: 10px; border-radius: 8px; color: #fff; font-size: 13px; }
-    .btn-send { background: #0084ff; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    body { background-color: #121212; color: #fff; font-family: sans-serif; padding: 20px; }
+    .card { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+    input { padding: 8px; border-radius: 4px; border: 1px solid #333; background: #222; color: white; width: 80%; }
   </style>
 </head>
 <body>
+  <h1>🛡️ MikiConnect Control Panel</h1>
+  <a href="/" style="color: #aaa;">← Back to Chat</a>
+  <hr>
 
-  <header>
-    <h1>🛡️ MikiConnect Control Panel</h1>
-    <a href="/" class="nav-btn">← Back to Chat</a>
-  </header>
-
-  <div class="stats-grid">
-    <div class="stat-card"><h3>Registered Users</h3><p id="stat-users">0</p></div>
-    <div class="stat-card"><h3>Active Sockets</h3><p id="stat-active">0</p></div>
-    <div class="stat-card"><h3>Total Messages</h3><p id="stat-messages">0</p></div>
-    <div class="stat-card"><h3>Banned Accounts</h3><p id="stat-banned">0</p></div>
-  </div>
-
-  <div class="section">
-    <h2>📢 Real-time System Broadcast</h2>
-    <div class="input-group">
-      <input type="text" id="broadcast-msg" placeholder="Type global system message...">
-      <button class="btn-send" onclick="sendBroadcast()">Send Broadcast</button>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>👥 User Management</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="user-table-body"></tbody>
-    </table>
-  </div>
-
-  <div class="section">
-    <h2>💬 Message Moderation (Recent 20)</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Sender</th>
-          <th>Content</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="msg-table-body"></tbody>
-    </table>
+  <div class="card">
+    <h3>📢 Real-time System Broadcast</h3>
+    <input type="text" id="broadcastMsg" placeholder="Type global message...">
+    <button onclick="sendBroadcast()">Send</button>
   </div>
 
   <script>
     const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
 
-    if (!token) {
+    // Strict client-side check
+    if (!token || role !== 'admin') {
       alert('Access Denied: Please log in as an Admin first.');
       window.location.href = '/';
     }
 
-    const authHeader = { 
-      'Content-Type': 'application/json', 
-      'Authorization': `Bearer ${token}` 
-    };
-
-    async function loadAdminData() {
-      try {
-        const statsRes = await fetch('/api/admin/stats', { headers: authHeader });
-        if (!statsRes.ok) throw new Error('Unauthorized');
-        const stats = await statsRes.json();
-        
-        document.getElementById('stat-users').innerText = stats.totalUsers || 0;
-        document.getElementById('stat-active').innerText = stats.activeSockets || 0;
-        document.getElementById('stat-messages').innerText = stats.totalMessages || 0;
-        document.getElementById('stat-banned').innerText = stats.bannedUsers || 0;
-
-        const usersRes = await fetch('/api/admin/users', { headers: authHeader });
-        const users = await usersRes.json();
-        document.getElementById('user-table-body').innerHTML = users.map(u => `
-          <tr>
-            <td><strong>${u.username}</strong></td>
-            <td>${u.role}</td>
-            <td><span style="color:${u.isBanned ? '#ff4444' : '#00e676'}">${u.isBanned ? 'Banned' : 'Active'}</span></td>
-            <td>
-              <button class="btn ${u.isBanned ? 'btn-unban' : 'btn-ban'}" onclick="toggleBan('${u.username}', ${!u.isBanned})">${u.isBanned ? 'Unban' : 'Ban'}</button>
-              ${u.role !== 'admin' ? `<button class="btn btn-promote" onclick="promoteAdmin('${u.username}')">Make Admin</button>` : ''}
-              <button class="btn btn-delete" onclick="deleteUser('${u.username}')">Delete</button>
-            </td>
-          </tr>
-        `).join('');
-
-        const msgsRes = await fetch('/api/admin/messages', { headers: authHeader });
-        const msgs = await msgsRes.json();
-        document.getElementById('msg-table-body').innerHTML = msgs.map(m => `
-          <tr>
-            <td><strong>${m.sender}</strong></td>
-            <td>${m.text || m.content || '[Media]'}</td>
-            <td><button class="btn btn-delete" onclick="deleteMsg('${m._id}')">Delete</button></td>
-          </tr>
-        `).join('');
-      } catch(e) {
-        alert('Admin Session Invalid. Redirecting...');
-        window.location.href = '/';
-      }
-    }
-
     async function sendBroadcast() {
-      const msg = document.getElementById('broadcast-msg').value;
+      const msg = document.getElementById('broadcastMsg').value;
       if (!msg) return;
-      await fetch('/api/admin/broadcast', { method: 'POST', headers: authHeader, body: JSON.stringify({ message: msg }) });
-      document.getElementById('broadcast-msg').value = '';
-      alert('Broadcast sent!');
-    }
+      
+      const res = await fetch('/api/admin/broadcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ message: msg })
+      });
 
-    async function toggleBan(username, isBanned) {
-      await fetch('/api/admin/users/ban', { method: 'PUT', headers: authHeader, body: JSON.stringify({ username, isBanned }) });
-      loadAdminData();
-    }
-
-    async function promoteAdmin(username) {
-      await fetch('/api/admin/users/role', { method: 'PUT', headers: authHeader, body: JSON.stringify({ username, role: 'admin' }) });
-      loadAdminData();
-    }
-
-    async function deleteUser(username) {
-      if (confirm(`Delete user ${username}?`)) {
-        await fetch(`/api/admin/users/${username}`, { method: 'DELETE', headers: authHeader });
-        loadAdminData();
+      if (res.ok) {
+        alert('Broadcast sent!');
+        document.getElementById('broadcastMsg').value = '';
+      } else {
+        alert('Failed to send broadcast.');
       }
     }
-
-    async function deleteMsg(id) {
-      await fetch(`/api/admin/messages/${id}`, { method: 'DELETE', headers: authHeader });
-      loadAdminData();
-    }
-
-    loadAdminData();
   </script>
 </body>
 </html>
