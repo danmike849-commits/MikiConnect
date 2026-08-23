@@ -2,184 +2,75 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#000000">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MikiConnect</title>
-  <script src="/socket.io/socket.io.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100%; width: 100%; background-color: #000; color: #fff; overflow: hidden; position: fixed; }
-
-    #auth-modal, #edit-modal, #bio-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 2500; }
-    .custom-box { background: #121212; padding: 20px; border-radius: 16px; width: 85%; max-width: 320px; border: 1px solid #282828; text-align: center; }
-    .custom-box h3 { color: #fff; font-size: 16px; margin-bottom: 14px; text-align: left; }
-    .custom-box input { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #fff; outline: none; font-size: 15px; }
-    .custom-box .btn-row { display: flex; justify-content: flex-end; gap: 12px; }
-    .custom-box button { padding: 8px 16px; background: none; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 14px; }
-    .custom-box .cancel-btn { color: #888; }
-    .custom-box .save-btn { background: #0084ff; color: #fff; }
-
-    .app-container { display: flex; width: 100vw; height: 100dvh; overflow: hidden; }
-    .sidebar { width: 320px; border-right: 1px solid #222; display: flex; flex-direction: column; background: #000; height: 100%; }
-    .sidebar-header { padding: 16px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #222; color: #0084ff; display: flex; justify-content: space-between; align-items: center; }
-    
-    .active-users-bar { display: flex; gap: 12px; padding: 12px 16px; overflow-x: auto; border-bottom: 1px solid #111; }
-    .user-avatar-wrap { position: relative; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; }
-    .avatar { width: 44px; height: 44px; border-radius: 50%; background: #0084ff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    .online-indicator { position: absolute; bottom: 14px; right: 0; width: 12px; height: 12px; background: #333; border-radius: 50%; border: 2px solid #000; }
-    .online-indicator.is-online { background: #00e676; }
-
-    .chat-list { flex: 1; overflow-y: auto; }
-    .chat-item { padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #111; display: flex; align-items: center; justify-content: space-between; }
-    .chat-item:hover { background: #111; }
-    .unread-badge { background: #00e676; color: #000; font-weight: bold; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
-
-    .chat-window { flex: 1; display: flex; flex-direction: column; background: #000; height: 100dvh; position: relative; overflow: hidden; }
-    .chat-header { height: 60px; min-height: 60px; padding: 0 16px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; background: #000; }
-    .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #000; }
-    
-    .date-divider { align-self: center; background: #1a1a1a; color: #888; font-size: 11px; padding: 4px 12px; border-radius: 10px; margin: 8px 0; }
-    
-    .message { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; position: relative; user-select: none; }
-    .message.received { background: #222; align-self: flex-start; border-bottom-left-radius: 4px; }
-    .message.sent { background: #0084ff; align-self: flex-end; border-bottom-right-radius: 4px; }
-    .message img, .message video { max-width: 100%; border-radius: 12px; display: block; }
-    .sender-name { font-size: 11px; opacity: 0.6; margin-bottom: 4px; }
-
-    .voice-note-card { display: flex; align-items: center; gap: 8px; width: 200px; padding: 4px 0; }
-    .waveform { flex: 1; height: 24px; display: flex; align-items: center; gap: 2px; }
-    .wave-bar { flex: 1; background: rgba(255,255,255,0.4); border-radius: 2px; height: 100%; animation: pulseWave 1.2s infinite ease-in-out; }
-    @keyframes pulseWave { 0%, 100% { height: 30%; } 50% { height: 100%; } }
-
-    .msg-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 10px; opacity: 0.8; margin-top: 4px; }
-    .read-mark { color: #00e676; font-weight: bold; font-size: 12px; }
-
-    #action-menu { display: none; position: fixed; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); overflow: hidden; }
-    #action-menu button { display: block; width: 100%; padding: 12px 20px; background: none; border: none; color: #fff; text-align: left; font-size: 14px; cursor: pointer; }
-    #action-menu button:hover { background: #333; }
-    #action-menu button.delete-btn { color: #ff4444; border-top: 1px solid #2a2a2a; }
-
-    .input-bar { height: 65px; min-height: 65px; padding: 10px 12px; border-top: 1px solid #222; display: flex; gap: 8px; align-items: center; justify-content: center; background: #000; z-index: 10; }
-    .input-wrapper { width: 65%; max-width: 240px; position: relative; display: flex; align-items: center; }
-    .input-wrapper input[type="text"] { width: 100%; background: #181818; border: none; padding: 10px 38px 10px 14px; border-radius: 20px; color: #fff; font-size: 15px; outline: none; }
-    .mic-inside-btn { position: absolute; right: 10px; background: none; border: none; color: #0084ff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .mic-recording { color: #ff4444 !important; animation: blink 1s infinite; }
-
-    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-
-    .btn-icon { background: none; border: none; color: #0084ff; font-size: 20px; cursor: pointer; padding: 0 4px; display: flex; align-items: center; justify-content: center; }
-    .send-btn { background: #0084ff; border: none; color: #fff; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-    #typing-status { font-size: 12px; color: #888; padding: 0 16px; min-height: 16px; background: #000; }
-
-    @media (max-width: 768px) {
-      .sidebar { width: 100%; }
-      .chat-window { width: 100%; display: none; }
-      .app-container.active-chat .sidebar { display: none; }
-      .app-container.active-chat .chat-window { display: flex; }
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { background: #000; color: #fff; display: flex; flex-direction: column; height: 100vh; }
+    header { background: #121212; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
+    .logo { font-size: 18px; font-weight: bold; color: #0084ff; }
+    .nav-actions { display: flex; align-items: center; gap: 8px; }
+    .nav-btn { background: none; border: none; color: #00e676; font-size: 13px; cursor: pointer; padding: 6px 10px; border-radius: 6px; text-decoration: none; }
+    .btn-logout { color: #ff4444; }
+    #chat-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .message { max-width: 75%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; word-break: break-word; }
+    .message.sent { background: #0084ff; align-self: flex-end; color: #fff; }
+    .message.received { background: #222; align-self: flex-start; color: #eee; }
+    .message .sender { font-size: 11px; opacity: 0.7; margin-bottom: 3px; display: block; }
+    footer { padding: 12px; background: #121212; border-top: 1px solid #222; display: flex; gap: 8px; }
+    input[type="text"] { flex: 1; background: #222; border: 1px solid #333; color: #fff; padding: 10px 14px; border-radius: 20px; font-size: 14px; outline: none; }
+    button.send-btn { background: #0084ff; color: #fff; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+    #auth-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; }
+    .auth-box { background: #181818; padding: 24px; border-radius: 12px; width: 90%; max-width: 320px; border: 1px solid #282828; }
+    .auth-box h2 { margin-bottom: 16px; font-size: 18px; text-align: center; }
+    .auth-box input { width: 100%; margin-bottom: 12px; }
+    .auth-box button { width: 100%; background: #0084ff; color: #fff; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
-<body onclick="hideActionMenu()">
-
-  <div id="action-menu">
-    <button onclick="openEditModal()">✏️ Edit</button>
-    <button class="delete-btn" onclick="triggerDelete()">🗑️ Delete</button>
-  </div>
-
-  <div id="edit-modal" style="display:none;">
-    <div class="custom-box">
-      <h3>Edit Message</h3>
-      <input type="text" id="edit-msg-input">
-      <div class="btn-row">
-        <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
-        <button class="save-btn" onclick="saveEditedMessage()">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="bio-modal" style="display:none;">
-    <div class="custom-box">
-      <h3>Update Status Bio</h3>
-      <input type="text" id="bio-input" placeholder="Enter status...">
-      <div class="btn-row">
-        <button class="cancel-btn" onclick="closeBioModal()">Cancel</button>
-        <button class="save-btn" onclick="saveBio()">Save</button>
-      </div>
-    </div>
-  </div>
+<body>
 
   <div id="auth-modal">
-    <div class="custom-box" style="text-align:center;">
-      <h2 style="color:#0084ff; margin-bottom:16px;">MikiConnect</h2>
+    <div class="auth-box">
+      <h2>Welcome to MikiConnect</h2>
       <input type="text" id="auth-username" placeholder="Username">
       <input type="password" id="auth-password" placeholder="Password">
-      <button class="save-btn" style="width:100%; padding:12px; border-radius:10px;" onclick="handleAuth()">Login / Register</button>
+      <button onclick="handleAuth()">Login / Register</button>
     </div>
   </div>
 
-  <div class="app-container" id="app">
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <span onclick="openBioModal()" style="cursor:pointer;" title="Tap to change status">MikiConnect ✏️</span>
-        <div>
-          <button id="admin-link" onclick="location.href='/admin.html'" style="display:none; background:none; border:none; color:#00e676; font-size:12px; margin-right:8px; cursor:pointer;">Admin</button>
-          <button onclick="logout()" style="background:none; border:none; color:#ff4444; font-size:12px; cursor:pointer;">Logout</button>
-        </div>
-      </div>
-      <div class="active-users-bar" id="active-users"></div>
-      <div class="chat-list" id="chat-friends-list"></div>
+  <header>
+    <div class="logo">MikiConnect</div>
+    <div class="nav-actions">
+      <button id="admin-link" onclick="location.href='/admin.html'" style="display:none;" class="nav-btn">⚙️ Admin</button>
+      <button onclick="logout()" class="nav-btn btn-logout">Logout</button>
     </div>
+  </header>
 
-    <div class="chat-window">
-      <div class="chat-header">
-        <button onclick="closeChat()" style="background:none; border:none; color:#0084ff; font-size:16px; cursor:pointer;" id="back-btn">← Back</button>
-        <div>
-          <strong id="chat-title">General Chat</strong>
-          <p id="chat-subtitle" style="font-size:11px; color:#888;"></p>
-        </div>
-      </div>
+  <div id="chat-container"></div>
 
-      <div class="messages-container" id="messages"></div>
-      <div id="typing-status"></div>
+  <footer>
+    <input type="text" id="msg-input" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') sendMsg()">
+    <button class="send-btn" onclick="sendMsg()">Send</button>
+  </footer>
 
-      <div class="input-bar">
-        <label for="media-file" class="btn-icon">📁</label>
-        <input type="file" id="media-file" accept="image/*,video/*,audio/*" style="display:none;" onchange="uploadMedia()">
-        
-        <div class="input-wrapper">
-          <input type="text" id="msg-input" placeholder="Aa" oninput="handleTyping()" onkeydown="if(event.key==='Enter') sendMessage()">
-          <button class="mic-inside-btn" id="record-btn" onclick="toggleVoiceRecord()">🎙️</button>
-        </div>
-
-        <button class="send-btn" onclick="sendMessage()">Send</button>
-      </div>
-    </div>
-  </div>
-
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     let socket;
+    const token = localStorage.getItem('token');
     let currentUser = localStorage.getItem('username');
     let userRole = localStorage.getItem('role');
-    let activeChatTarget = 'General Chat';
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let recordTimer = null;
-    let selectedMsgId = null;
-    let longPressTimer;
-    let typingTimer;
-    let unreadCounts = {};
-    let lastDateStr = '';
 
     if (currentUser) {
       document.getElementById('auth-modal').style.display = 'none';
-      if (userRole === 'admin') document.getElementById('admin-link').style.display = 'inline';
+      if (userRole === 'admin') {
+        document.getElementById('admin-link').style.display = 'inline-block';
+      }
       initApp();
     }
 
     async function handleAuth() {
-      const username = document.getElementById('auth-username').value.trim();
-      const password = document.getElementById('auth-password').value.trim();
+      const username = document.getElementById('auth-username').value;
+      const password = document.getElementById('auth-password').value;
       if (!username || !password) return alert('Enter credentials');
 
       const res = await fetch('/api/auth/register-or-login', {
@@ -188,432 +79,51 @@
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
-    if (data.username) {
-      if (data.token) localStorage.setItem('token', data.token);
-      localStorage.setItem('username', data.username);
-      localStorage.setItem('role', data.role);
-      currentUser = data.username;
-      userRole = data.role;
-      document.getElementById('auth-modal').style.display = 'none';
-      if (userRole === 'admin') document.getElementById('admin-link').style.display = 'inline-block';
-      initApp();
-    }
 
-       else {
+      if (data.username) {
+        if (data.token) localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('role', data.role);
+        currentUser = data.username;
+        userRole = data.role;
+        document.getElementById('auth-modal').style.display = 'none';
+        if (userRole === 'admin') {
+          document.getElementById('admin-link').style.display = 'inline-block';
+        }
+        initApp();
+      } else {
         alert(data.error || 'Authentication failed');
       }
+    }
+
+    function initApp() {
+      socket = io();
+      socket.on('receiveMessage', (msg) => {
+        appendMsg(msg);
+      });
+    }
+
+    function sendMsg() {
+      const input = document.getElementById('msg-input');
+      const text = input.value.trim();
+      if (!text || !socket) return;
+      socket.emit('sendMessage', { sender: currentUser, text });
+      input.value = '';
+    }
+
+    function appendMsg(msg) {
+      const container = document.getElementById('chat-container');
+      const div = document.createElement('div');
+      const isSent = msg.sender === currentUser;
+      div.className = `message ${isSent ? 'sent' : 'received'}`;
+      div.innerHTML = `<span class="sender">${msg.sender}</span>${msg.text}`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
     }
 
     function logout() {
       localStorage.clear();
       location.reload();
-    }
-
-    async function initApp() {
-      socket = io();
-      socket.emit('user_connected', currentUser);
-
-      setupWebPush();
-      await fetchUnreadCounts();
-      await loadFriendsList();
-
-      socket.on('active_users', (users) => {
-        window.onlineUsers = users;
-        renderUsersBar();
-      });
-
-      socket.on('chat message', (msg) => {
-        if (msg.recipient === activeChatTarget || (msg.recipient === currentUser && msg.sender === activeChatTarget) || (activeChatTarget === 'General Chat' && msg.recipient === 'General Chat')) {
-          appendMessage(msg);
-          scrollToBottom();
-        }
-      });
-
-      socket.on('new_unread_notification', ({ sender }) => {
-        if (sender !== activeChatTarget) {
-          unreadCounts[sender] = (unreadCounts[sender] || 0) + 1;
-          renderFriendsList();
-        }
-      });
-
-      socket.on('messages_marked_read', ({ byUser }) => {
-        if (byUser === activeChatTarget) {
-          document.querySelectorAll('.read-mark').forEach(el => el.innerText = '✓✓');
-        }
-      });
-
-      socket.on('user_typing', (data) => {
-        if (data.username === activeChatTarget || activeChatTarget === 'General Chat') {
-          document.getElementById('typing-status').innerText = `${data.username} is typing...`;
-        }
-      });
-
-      socket.on('user_stopped_typing', () => {
-        document.getElementById('typing-status').innerText = '';
-      });
-
-      socket.on('message_edited', (msg) => {
-        const el = document.getElementById(`msg-${msg._id}`);
-        if (el) {
-          const txt = el.querySelector('.msg-text');
-          if (txt) txt.innerText = `${msg.text} (edited)`;
-        }
-      });
-
-      socket.on('message_deleted', (id) => {
-        const el = document.getElementById(`msg-${id}`);
-        if (el) el.remove();
-      });
-
-      loadChatHistory('General Chat');
-    }
-
-    async function setupWebPush() {
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        try {
-          const keyRes = await fetch('/api/push/key');
-          const { publicKey } = await keyRes.json();
-          const reg = await navigator.serviceWorker.register('/sw.js');
-          const sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: publicKey
-          });
-          await fetch('/api/push/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: currentUser, subscription: sub })
-          });
-        } catch(e) {
-          console.log('Push notification registration skipped:', e);
-        }
-      }
-    }
-
-    async function fetchUnreadCounts() {
-      const res = await fetch(`/api/unread-counts/${encodeURIComponent(currentUser)}`);
-      const data = await res.json();
-      unreadCounts = {};
-      data.forEach(item => { unreadCounts[item._id] = item.count; });
-    }
-
-    async function loadFriendsList() {
-      const res = await fetch('/api/users');
-      window.allRegisteredUsers = await res.json();
-      renderFriendsList();
-      renderUsersBar();
-    }
-
-    function renderFriendsList() {
-      const friendsList = document.getElementById('chat-friends-list');
-      let html = `<div class="chat-item" onclick="openChat('General Chat')">
-        <div style="display:flex; align-items:center;">
-          <div class="avatar">G</div>
-          <div style="margin-left: 12px;">
-            <strong>General Chat</strong>
-            <p style="font-size: 12px; color: #888;">Public Room</p>
-          </div>
-        </div>
-      </div>`;
-
-      if (window.allRegisteredUsers) {
-        window.allRegisteredUsers.forEach(u => {
-          if (u.username !== currentUser) {
-            const count = unreadCounts[u.username] || 0;
-            html += `<div class="chat-item" onclick="openChat('${u.username}')">
-              <div style="display:flex; align-items:center;">
-                <div class="avatar">${u.username[0].toUpperCase()}</div>
-                <div style="margin-left: 12px;">
-                  <strong>${u.username}</strong>
-                  <p style="font-size: 12px; color: #888;">${u.bio || 'Tap to chat'}</p>
-                </div>
-              </div>
-              ${count > 0 ? `<span class="unread-badge">${count}</span>` : ''}
-            </div>`;
-          }
-        });
-      }
-
-      friendsList.innerHTML = html;
-    }
-
-    function renderUsersBar() {
-      const container = document.getElementById('active-users');
-      if (!window.allRegisteredUsers || !window.onlineUsers) return;
-
-      container.innerHTML = window.allRegisteredUsers.filter(u => u.username !== currentUser).map(u => {
-        const isOnline = window.onlineUsers.includes(u.username);
-        return `
-          <div class="user-avatar-wrap" onclick="openChat('${u.username}')">
-            <div class="avatar">${u.username[0].toUpperCase()}</div>
-            <div class="online-indicator ${isOnline ? 'is-online' : ''}"></div>
-            <span>${u.username}</span>
-          </div>
-        `;
-      }).join('');
-    }
-
-    async function loadChatHistory(chatTarget) {
-      activeChatTarget = chatTarget;
-      unreadCounts[chatTarget] = 0;
-      renderFriendsList();
-
-      document.getElementById('chat-title').innerText = chatTarget;
-      document.getElementById('messages').innerHTML = '';
-      lastDateStr = '';
-
-      socket.emit('join_room', { user1: currentUser, user2: chatTarget });
-
-      const res = await fetch(`/api/messages/${encodeURIComponent(chatTarget)}/${encodeURIComponent(currentUser)}`);
-      const messages = await res.json();
-      messages.forEach(appendMessage);
-      scrollToBottom();
-    }
-
-    function appendMessage(msg) {
-      const isSent = msg.sender === currentUser;
-      const date = new Date(msg.createdAt || Date.now());
-      const dateStr = date.toLocaleDateString();
-      const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      const container = document.getElementById('messages');
-
-      if (dateStr !== lastDateStr) {
-        const divider = document.createElement('div');
-        divider.className = 'date-divider';
-        divider.innerText = dateStr;
-        container.appendChild(divider);
-        lastDateStr = dateStr;
-      }
-
-      const div = document.createElement('div');
-      div.id = `msg-${msg._id}`;
-      div.className = `message ${isSent ? 'sent' : 'received'}`;
-      
-      let html = '';
-      if (!isSent) html += `<div class="sender-name">${msg.sender}</div>`;
-      if (msg.text) html += `<div class="msg-text">${msg.text} ${msg.isEdited ? '(edited)' : ''}</div>`;
-      
-      if (msg.mediaUrl) {
-        if (msg.mediaType === 'video') {
-          html += `<video src="${msg.mediaUrl}" controls></video>`;
-        } else if (msg.mediaType === 'audio') {
-          html += `
-            <div class="voice-note-card">
-              <audio src="${msg.mediaUrl}" controls style="width:100%;"></audio>
-              <div class="waveform">
-                <div class="wave-bar" style="animation-delay: 0s;"></div>
-                <div class="wave-bar" style="animation-delay: 0.2s;"></div>
-                <div class="wave-bar" style="animation-delay: 0.4s;"></div>
-                <div class="wave-bar" style="animation-delay: 0.1s;"></div>
-              </div>
-            </div>
-          `;
-        } else {
-          html += `<img src="${msg.mediaUrl}" />`;
-        }
-      }
-
-      const readMarkHtml = isSent ? `<span class="read-mark">${msg.isRead ? '✓✓' : '✓'}</span>` : '';
-      html += `<div class="msg-meta"><span>${timeStr}</span> ${readMarkHtml}</div>`;
-
-      div.innerHTML = html;
-
-      if (isSent || userRole === 'admin') {
-        div.addEventListener('touchstart', (e) => startLongPress(e, msg._id), { passive: true });
-        div.addEventListener('touchend', endLongPress);
-        div.addEventListener('mousedown', (e) => startLongPress(e, msg._id));
-        div.addEventListener('mouseup', endLongPress);
-        div.addEventListener('contextmenu', (e) => {
-          e.preventDefault();
-          showActionMenu(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY, msg._id);
-        });
-      }
-
-      container.appendChild(div);
-    }
-
-    function startLongPress(e, id) {
-      longPressTimer = setTimeout(() => {
-        if (navigator.vibrate) navigator.vibrate(50);
-        const touch = e.touches ? e.touches[0] : e;
-        showActionMenu(touch.clientX, touch.clientY, id);
-      }, 500);
-    }
-
-    function endLongPress() {
-      clearTimeout(longPressTimer);
-    }
-
-    function showActionMenu(x, y, id) {
-      selectedMsgId = id;
-      const menu = document.getElementById('action-menu');
-      menu.style.top = `${y}px`;
-      menu.style.left = `${Math.min(x, window.innerWidth - 120)}px`;
-      menu.style.display = 'block';
-    }
-
-    function hideActionMenu() {
-      document.getElementById('action-menu').style.display = 'none';
-    }
-
-    function openEditModal() {
-      hideActionMenu();
-      if (!selectedMsgId) return;
-      const msgDiv = document.getElementById(`msg-${selectedMsgId}`);
-      if (msgDiv) {
-        const textEl = msgDiv.querySelector('.msg-text');
-        const currentText = textEl ? textEl.innerText.replace(' (edited)', '') : '';
-        document.getElementById('edit-msg-input').value = currentText;
-        document.getElementById('edit-modal').style.display = 'flex';
-      }
-    }
-
-    function closeEditModal() {
-      document.getElementById('edit-modal').style.display = 'none';
-      selectedMsgId = null;
-    }
-
-    async function saveEditedMessage() {
-      const newText = document.getElementById('edit-msg-input').value.trim();
-      if (!newText || !selectedMsgId) return;
-
-      await fetch(`/api/messages/${selectedMsgId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: newText })
-      });
-
-      closeEditModal();
-    }
-
-    async function triggerDelete() {
-      hideActionMenu();
-      if (!selectedMsgId) return;
-      
-      const endpoint = (userRole === 'admin') ? `/api/admin/messages/${selectedMsgId}` : `/api/messages/${selectedMsgId}`;
-      const headers = (userRole === 'admin') ? { 'x-admin-user': currentUser } : {};
-
-      await fetch(endpoint, { method: 'DELETE', headers });
-      selectedMsgId = null;
-    }
-
-    function handleTyping() {
-      socket.emit('typing', { username: currentUser, recipient: activeChatTarget });
-      clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => {
-        socket.emit('stop_typing', { username: currentUser, recipient: activeChatTarget });
-      }, 1500);
-    }
-
-    function openBioModal() {
-      document.getElementById('bio-modal').style.display = 'flex';
-    }
-
-    function closeBioModal() {
-      document.getElementById('bio-modal').style.display = 'none';
-    }
-
-    async function saveBio() {
-      const bio = document.getElementById('bio-input').value.trim();
-      if (!bio) return;
-
-      await fetch('/api/users/bio', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser, bio })
-      });
-
-      closeBioModal();
-      loadFriendsList();
-    }
-
-    async function uploadMedia() {
-      const fileInput = document.getElementById('media-file');
-      if (!fileInput.files[0]) return;
-
-      const formData = new FormData();
-      formData.append('media', fileInput.files[0]);
-
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-
-        if (data.url) {
-          const mime = fileInput.files[0].type;
-          let type = 'image';
-          if (mime.startsWith('video')) type = 'video';
-          if (mime.startsWith('audio')) type = 'audio';
-
-          socket.emit('chat message', { sender: currentUser, recipient: activeChatTarget, mediaUrl: data.url, mediaType: type });
-          fileInput.value = '';
-        }
-      } catch (err) {
-        alert('File upload error');
-      }
-    }
-
-    async function toggleVoiceRecord() {
-      const btn = document.getElementById('record-btn');
-      
-      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
-          audioChunks = [];
-
-          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-          
-          mediaRecorder.onstop = async () => {
-            clearTimeout(recordTimer);
-            btn.classList.remove('mic-recording');
-            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-            const formData = new FormData();
-            formData.append('media', audioBlob, 'voicenote.mp3');
-            
-            const res = await fetch('/api/upload', { method: 'POST', body: formData });
-            const data = await res.json();
-            if (data.url) {
-              socket.emit('chat message', { sender: currentUser, recipient: activeChatTarget, mediaUrl: data.url, mediaType: 'audio' });
-            }
-          };
-
-          mediaRecorder.start();
-          btn.classList.add('mic-recording');
-
-          // Auto cap recording at 2 minutes (120,000 ms)
-          recordTimer = setTimeout(() => {
-            if (mediaRecorder.state === 'recording') mediaRecorder.stop();
-          }, 120000);
-
-        } catch (err) {
-          alert('Microphone access denied');
-        }
-      } else {
-        mediaRecorder.stop();
-      }
-    }
-
-    function sendMessage() {
-      const input = document.getElementById('msg-input');
-      const text = input.value.trim();
-      if (!text) return;
-      socket.emit('chat message', { sender: currentUser, recipient: activeChatTarget, text });
-      input.value = '';
-      socket.emit('stop_typing', { username: currentUser, recipient: activeChatTarget });
-    }
-
-    function scrollToBottom() {
-      const container = document.getElementById('messages');
-      container.scrollTop = container.scrollHeight;
-    }
-
-    function openChat(title) {
-      document.getElementById('app').classList.add('active-chat');
-      loadChatHistory(title);
-    }
-
-    function closeChat() {
-      document.getElementById('app').classList.remove('active-chat');
     }
   </script>
 </body>
