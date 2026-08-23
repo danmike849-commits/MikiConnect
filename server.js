@@ -11,11 +11,19 @@ const webpush = require('web-push');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'miki_super_secret_jwt_key_2026';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mikiconnect';
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { maxHttpBufferSize: 1e8 });
 
+// Database Connection
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('MongoDB Connected Successfully'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
+
+// HTTPS Redirect Middleware
 app.use((req, res, next) => {
   if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
     return res.redirect(`https://${req.headers.host}${req.url}`);
@@ -27,6 +35,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Models
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
@@ -45,11 +54,7 @@ const MessageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', MessageSchema);
 
-function getRoomId(user1, user2) {
-  if (user2 === 'General Chat') return 'General Chat';
-  return [user1, user2].sort().join('_');
-}
-
+// Admin Guard Middleware
 async function isAdmin(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -59,15 +64,20 @@ async function isAdmin(req, res, next) {
   jwt.verify(token, JWT_SECRET, async (err, decoded) => {
     if (err) return res.status(403).json({ error: 'Invalid or expired token' });
 
-    const user = await User.findById(decoded.id);
-    if (user && user.role === 'admin') {
-      req.user = user;
-      return next();
+    try {
+      const user = await User.findById(decoded.id);
+      if (user && user.role === 'admin') {
+        req.user = user;
+        return next();
+      }
+      res.status(403).json({ error: 'Admin access required' });
+    } catch (e) {
+      res.status(500).json({ error: 'Database verification failed' });
     }
-    res.status(403).json({ error: 'Admin access required' });
   });
 }
 
+// Admin APIs
 app.get('/api/admin/stats', isAdmin, async (req, res) => {
   const totalUsers = await User.countDocuments();
   const totalMessages = await Message.countDocuments();
@@ -114,6 +124,7 @@ app.post('/api/admin/broadcast', isAdmin, async (req, res) => {
   res.json({ success: true });
 });
 
+// Auth API
 app.post('/api/auth/register-or-login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
@@ -142,3 +153,15 @@ app.post('/api/auth/register-or-login', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// Socket Handler
+io.on('connection', (socket) => {
+  socket.on('sendMessage', async (data) => {
+    const msg = new Message(data);
+    await msg.save();
+    io.emit('receiveMessage', msg);
+  });
+});
+
+// Server Listener Required for Render
+server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
