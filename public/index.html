@@ -45,6 +45,17 @@
 
   <script>
     const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role === 'admin' || payload.username === 'official') {
+          setTimeout(() => {
+            const adminBtn = document.getElementById('admin-btn') || document.getElementById('admin-link');
+            if (adminBtn) adminBtn.style.display = 'inline-block';
+          }, 500);
+        }
+      } catch(e) {}
+    }
     const role = localStorage.getItem('role');
     const username = localStorage.getItem('username');
 

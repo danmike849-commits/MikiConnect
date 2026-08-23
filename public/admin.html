@@ -23,35 +23,24 @@
   </div>
 
   <script>
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
+  const token = localStorage.getItem('token');
+  let isAdmin = false;
 
-    // Strict client-side check
-    if (!token || role !== 'admin') {
-      alert('Access Denied: Please log in as an Admin first.');
-      window.location.href = '/';
-    }
-
-    async function sendBroadcast() {
-      const msg = document.getElementById('broadcastMsg').value;
-      if (!msg) return;
-      
-      const res = await fetch('/api/admin/broadcast', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ message: msg })
-      });
-
-      if (res.ok) {
-        alert('Broadcast sent!');
-        document.getElementById('broadcastMsg').value = '';
-      } else {
-        alert('Failed to send broadcast.');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.role === 'admin' || payload.username === 'official') {
+        isAdmin = true;
       }
+    } catch (e) {
+      console.error('Token decode error:', e);
     }
-  </script>
+  }
+
+  if (!isAdmin) {
+    alert('Access Denied: Please log in as an Admin first.');
+    window.location.href = '/';
+  }
+</script>
 </body>
 </html>
