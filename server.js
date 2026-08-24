@@ -232,6 +232,18 @@ app.post('/api/admin/broadcast', isAdmin, async (req, res) => {
   res.json({ success: true });
 });
 
+
+// --- PUBLIC USER LIST ROUTE ---
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'username createdAt avatar isOnline');
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
 // Auth API
 app.post('/api/auth/register-or-login', async (req, res) => {
   const { username, password } = req.body;
