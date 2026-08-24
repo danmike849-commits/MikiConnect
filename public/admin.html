@@ -3,36 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Control Panel - MikiConnect</title>
+  <title>MikiConnect Control Panel</title>
   <style>
-    body { background-color: #121212; color: #fff; font-family: sans-serif; padding: 20px; }
-    .card { background: #1e1e1e; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
-    button { background: #007bff; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    input { padding: 10px; border-radius: 4px; border: 1px solid #444; background: #222; color: white; width: 70%; margin-right: 10px; }
-    a { color: #007bff; text-decoration: none; font-weight: bold; }
-    .badge { background: #28a745; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; }
+    body { background-color: #121212; color: #fff; font-family: system-ui, sans-serif; padding: 20px; margin: 0; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; }
+    .card { background: #1e1e1e; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #333; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; }
+    .stat-box { background: #252525; padding: 15px; border-radius: 6px; text-align: center; }
+    .stat-number { font-size: 1.8em; font-weight: bold; color: #007bff; margin-top: 5px; }
+    input { width: 70%; padding: 10px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 4px; }
+    button { padding: 10px 16px; background: #007bff; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    a { color: #aaa; text-decoration: none; }
   </style>
 </head>
 <body>
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h1>🛡️ MikiConnect Admin Panel <span class="badge">Active</span></h1>
+
+  <div class="header">
+    <h2>🛡️ MikiConnect Control Panel</h2>
     <a href="/">← Back to App</a>
   </div>
-  <hr style="border-color: #333; margin-bottom: 20px;">
 
-  <div class="card">
-    <h3>📢 System Broadcast</h3>
-    <p style="color: #aaa; font-size: 0.9em;">Send a message to connected users.</p>
-    <div style="display: flex; margin-top: 10px;">
-      <input type="text" id="broadcastMsg" placeholder="Type global announcement...">
-      <button onclick="alert('Broadcast endpoint ready!')">Send Broadcast</button>
+  <div class="grid">
+    <div class="stat-box">
+      <div>Total Users</div>
+      <div class="stat-number" id="userCount">...</div>
+    </div>
+    <div class="stat-box">
+      <div>System Status</div>
+      <div class="stat-number" id="sysStatus" style="color: #28a745;">Active</div>
     </div>
   </div>
 
   <div class="card">
-    <h3>⚙️ System Status</h3>
-    <p>Logged in as: <strong>official</strong> (Admin)</p>
-    <p>Database Status: <strong>Connected (MongoDB Atlas)</strong></p>
+    <h3>📢 Real-time System Broadcast</h3>
+    <p style="color: #aaa; font-size: 0.85em;">Send a live global message to all online users.</p>
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+      <input type="text" id="broadcastMsg" placeholder="Type message here...">
+      <button onclick="sendBroadcast()">Send</button>
+    </div>
   </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/admin/stats');
+        const data = await res.json();
+        if (data.totalUsers !== undefined) {
+          document.getElementById('userCount').innerText = data.totalUsers;
+        }
+      } catch(e) {
+        document.getElementById('userCount').innerText = '1';
+      }
+    }
+
+    async function sendBroadcast() {
+      const msg = document.getElementById('broadcastMsg').value;
+      if (!msg) return alert('Enter a message first');
+
+      const res = await fetch('/api/admin/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg })
+      });
+
+      if (res.ok) {
+        alert('Broadcast successfully sent!');
+        document.getElementById('broadcastMsg').value = '';
+      } else {
+        alert('Failed to send broadcast');
+      }
+    }
+
+    loadStats();
+  </script>
 </body>
 </html>
