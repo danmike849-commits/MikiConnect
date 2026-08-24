@@ -1,9 +1,7 @@
-self.addEventListener('push', event => {
-  const data = event.data ? event.data.json() : { title: 'MikiConnect', body: 'New notification!' };
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: '/icon-192.png'
-    })
-  );
+// Neutral Service Worker - Prevents local static caching
+self.addEventListener('install', (e) => self.skipWaiting());
+self.addEventListener('activate', (e) => self.clients.claim());
+self.addEventListener('fetch', (e) => {
+  // Always fetch fresh data directly from the network
+  e.respondWith(fetch(e.request));
 });
