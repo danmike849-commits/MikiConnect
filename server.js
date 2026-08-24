@@ -1,7 +1,26 @@
 
+
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const bcrypt = require('bcryptjs');
+const webpush = require('web-push');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'miki_super_secret_jwt_key_2026';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mikiconnect';
+const PORT = process.env.PORT || 3000;
+
+const app = express();
+
+// --- TOP-PRIORITY CLEAN ADMIN ROUTE ---
 app.get('/admin.html', (req, res) => {
-  res.send(`
-<!DOCTYPE html>
+  res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -32,40 +51,28 @@ app.get('/admin.html', (req, res) => {
   </div>
 
   <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        for (let r of regs) r.unregister();
+      });
+    }
+
     async function sendBroadcast() {
       const msg = document.getElementById('broadcastMsg').value;
-      if(!msg) return alert('Enter a message first');
+      if (!msg) return alert('Enter a message first');
       const res = await fetch('/api/admin/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg })
       });
-      if(res.ok) { alert('Broadcast sent successfully!'); document.getElementById('broadcastMsg').value = ''; }
+      if (res.ok) { alert('Broadcast sent!'); document.getElementById('broadcastMsg').value = ''; }
       else { alert('Failed to send broadcast'); }
     }
   </script>
 </body>
-</html>
-  `);
+</html>`);
 });
 
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const multer = require('multer');
-const { v2: cloudinary } = require('cloudinary');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const bcrypt = require('bcryptjs');
-const webpush = require('web-push');
-const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'miki_super_secret_jwt_key_2026';
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mikiconnect';
-const PORT = process.env.PORT || 3000;
-
-const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { maxHttpBufferSize: 1e8 });
 
