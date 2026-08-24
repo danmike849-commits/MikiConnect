@@ -6,21 +6,33 @@
   <title>Admin Control Panel - MikiConnect</title>
   <style>
     body { background-color: #121212; color: #fff; font-family: sans-serif; padding: 20px; }
-    .card { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-    button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
-    input { padding: 8px; border-radius: 4px; border: 1px solid #333; background: #222; color: white; width: 80%; }
-    a { color: #007bff; font-weight: bold; }
+    .card { background: #1e1e1e; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
+    button { background: #007bff; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    input { padding: 10px; border-radius: 4px; border: 1px solid #444; background: #222; color: white; width: 70%; margin-right: 10px; }
+    a { color: #007bff; text-decoration: none; font-weight: bold; }
+    .badge { background: #28a745; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; }
   </style>
 </head>
 <body>
-  <h1>🛡️ MikiConnect Control Panel</h1>
-  <a href="/">← Back to Chat</a>
-  <hr>
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h1>🛡️ MikiConnect Admin Panel <span class="badge">Active</span></h1>
+    <a href="/">← Back to App</a>
+  </div>
+  <hr style="border-color: #333; margin-bottom: 20px;">
 
   <div class="card">
-    <h3>📢 Real-time System Broadcast</h3>
-    <input type="text" id="broadcastMsg" placeholder="Type global message...">
-    <button onclick="alert('Admin Panel Connected!')">Send</button>
+    <h3>📢 System Broadcast</h3>
+    <p style="color: #aaa; font-size: 0.9em;">Send a message to connected users.</p>
+    <div style="display: flex; margin-top: 10px;">
+      <input type="text" id="broadcastMsg" placeholder="Type global announcement...">
+      <button onclick="alert('Broadcast endpoint ready!')">Send Broadcast</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>⚙️ System Status</h3>
+    <p>Logged in as: <strong>official</strong> (Admin)</p>
+    <p>Database Status: <strong>Connected (MongoDB Atlas)</strong></p>
   </div>
 </body>
 </html>
