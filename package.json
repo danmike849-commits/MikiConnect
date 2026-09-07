@@ -1,33 +1,40 @@
 {
   "name": "mikiconnect",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "2.3.1",
+  "description": "MikiConnect \u2014 a production-oriented social community application with email verification, password recovery, secure authentication, posts, messaging, and moderation.",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check app.js && node --check server.js && node --check utils/validation.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/danmike849-commits/MikiConnect.git"
+    "url": "https://github.com/danmike849-commits/MikiConnect.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "social-network",
+    "community",
+    "chat",
+    "socket.io",
+    "mongodb",
+    "express",
+    "nodejs"
+  ],
+  "author": "Mika Daniel (MIKI)",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/danmike849-commits/MikiConnect/issues"
-  },
-  "homepage": "https://github.com/danmike849-commits/MikiConnect#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^1.41.3",
+    "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.3",
-    "multer": "^2.2.0",
-    "multer-storage-cloudinary": "^4.0.0",
-    "socket.io": "^4.8.3",
-    "web-push": "^3.6.7"
+    "socket.io": "^4.8.3"
   }
 }

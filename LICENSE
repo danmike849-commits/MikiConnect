@@ -1,0 +1,45 @@
+MikiConnect Proprietary Commercial License — DRAFT FOR LEGAL REVIEW
+
+Copyright (c) 2026 Mika Daniel (MIKI). All rights reserved.
+
+MikiConnect and the MikiConnect brand are proprietary to Mika Daniel (MIKI), subject
+to any third-party rights identified in the accompanying notices and dependency
+licenses.
+
+1. Grant of license
+A customer receives only the rights expressly granted in a signed purchase order,
+subscription, or written commercial license agreement issued by Mika Daniel. Unless
+the agreement says otherwise, the license is non-exclusive, non-transferable, and
+limited to the customer's authorized deployment/use.
+
+2. Restrictions
+Unless expressly authorized in writing, the customer may not resell, sublicense,
+publish, distribute, lease, offer as a competing hosted service, or provide source
+code access to third parties. The customer may not remove copyright, trademark, or
+proprietary notices.
+
+3. White-label and customization
+White-labeling, rebranding, source-code modification rights, and redistribution are
+separate commercial rights and are not included unless the applicable written
+agreement expressly grants them.
+
+4. Third-party components
+MikiConnect includes or depends on third-party software and assets. Those components
+remain subject to their own licenses. This license does not replace, restrict, or
+relicense third-party rights. See THIRD_PARTY_NOTICES.md and the package metadata.
+
+5. Intellectual property
+Except for third-party components and customer-provided materials, rights in the
+MikiConnect application and MikiConnect branding remain with Mika Daniel (MIKI).
+
+6. Warranty and liability
+The final commercial agreement must define warranty disclaimers, support obligations,
+service levels, refunds, limitation of liability, indemnity, governing law, and
+termination rights. These terms should be reviewed and completed by qualified legal
+counsel before commercial sale.
+
+7. Contact
+Owner/support contact: mikedan849@gmail.com
+
+IMPORTANT: This file is a commercial-license framework, not legal advice and not a
+substitute for a negotiated agreement or legal review in the applicable jurisdiction.
