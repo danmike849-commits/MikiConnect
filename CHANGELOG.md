@@ -38,3 +38,11 @@
 - Added owner-specific first-admin bootstrap guard using FIRST_ADMIN_EMAIL.
 - Added commercial-license framework for Mika Daniel (MIKI).
 - Added third-party notices and commercial-release ownership guidance.
+
+## Authentication UX polish
+- Removed the developer-facing Avatar URL field from registration.
+- Added a simple Confirm password field and client-side password checks.
+- Added clearer login/registration labels, guidance, and verification messaging.
+- Added show/hide password controls and Enter-key submission for auth forms.
+- Replaced intrusive auth alerts with inline status/error messaging where appropriate.
+- Avatar/profile image editing remains available after sign-in from the profile/settings area.
