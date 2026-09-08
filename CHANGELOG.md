@@ -1,3 +1,12 @@
+## 2.3.2 — Product UX polish
+
+- Simplified authentication with clearer labels, guidance, password controls and keyboard support.
+- Removed the developer-facing avatar URL field from registration; profile images remain editable after sign-in.
+- Improved mobile spacing, touch targets, form accessibility and inline status feedback.
+- Improved chat, people search, posting and notification interaction wording.
+- Added lightweight success/error toast feedback and reduced reliance on intrusive alerts.
+- Added clearer empty/loading-oriented presentation and more consistent light/dark appearance handling.
+
 ## 2.3.1 — Settings & UX completion
 
 - Added a visible in-app Settings center with Account, Security, Notifications, Appearance and Privacy sections.
@@ -7,6 +16,13 @@
 - Added clearer owner/support and privacy guidance.
 
 # Changelog
+
+## 2.3.3 - Email verification reliability
+- Improved verification email with a clear button and copy/paste fallback URL.
+- Added plain-text email fallback for clients that do not render HTML links.
+- Improved unverified-login guidance and spam-folder instructions.
+- Added resend-verification controls to the verification page.
+
 
 ## 2.2.0 — Commercial Release Candidate
 

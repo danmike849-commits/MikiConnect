@@ -124,7 +124,8 @@ function emailConfigured() {
 function sendResendEmail({ to, subject, html }) {
   return new Promise((resolve, reject) => {
     if (!emailConfigured()) return reject(new Error('Transactional email is not configured.'));
-    const payload = JSON.stringify({ from: config.emailFrom, to: [to], subject, html });
+    const text = String(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const payload = JSON.stringify({ from: config.emailFrom, to: [to], subject, html, text });
     const req = https.request({
       hostname: 'api.resend.com', path: '/emails', method: 'POST',
       headers: { Authorization: `Bearer ${config.resendApiKey}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }, timeout: 10000
@@ -151,7 +152,8 @@ async function issueVerificationEmail(user) {
   const token = makeToken();
   await User.updateOne({ _id: user._id }, { $set: { emailVerificationTokenHash: hashToken(token), emailVerificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) } });
   try {
-    await sendEmail({ to: user.email, subject: 'Verify your MikiConnect email', html: `<p>Hello @${user.username},</p><p>Welcome to MikiConnect. Verify your email address using the link below:</p><p><a href="${verificationUrl(token)}">Verify my email</a></p><p>This link expires in 24 hours.</p>` });
+    const url = verificationUrl(token);
+    await sendEmail({ to: user.email, subject: 'Verify your MikiConnect email', html: `<!doctype html><html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#172033"><h2>Welcome to MikiConnect</h2><p>Hello @${user.username},</p><p>Please verify your email address to activate your MikiConnect account.</p><p><a href="${url}" style="display:inline-block;padding:12px 20px;background:#4f7cff;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Verify my email</a></p><p>If the button does not work, copy and paste this link into your browser:</p><p style="word-break:break-all">${url}</p><p>This verification link expires in 24 hours and can only be used once.</p><p>If you did not create this account, you can ignore this email.</p></body></html>` });
   } catch (err) {
     await User.updateOne({ _id: user._id }, { $unset: { emailVerificationTokenHash: 1, emailVerificationExpiresAt: 1 } });
     throw err;
@@ -267,7 +269,7 @@ app.post('/api/login', rateLimit({ windowMs: 15*60*1000, max: 20, key: req => `$
   const user = await User.findOne({ $or: [{ username: identifier }, { email: cleanEmail(identifier) }] }).select('+password');
   if (!user || user.isBanned) return res.status(401).json({ error: 'Invalid credentials.' });
   if (!(await bcrypt.compare(password, user.password))) return res.status(401).json({ error: 'Invalid credentials.' });
-  if (!user.emailVerified) return res.status(403).json({ error: 'Please verify your email address before logging in.' });
+  if (!user.emailVerified) return res.status(403).json({ error: 'Your email is not verified yet. Check your inbox or spam folder for the MikiConnect verification email, then click the Verify my email button. You can also use Resend verification email below.' });
   res.json({ success: true, token: signToken(user), user: publicUser(user) });
 }));
 

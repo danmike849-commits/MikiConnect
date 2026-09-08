@@ -1,7 +1,7 @@
 {
   "name": "mikiconnect",
-  "version": "2.3.1",
-  "description": "MikiConnect \u2014 a production-oriented social community application with email verification, password recovery, secure authentication, posts, messaging, and moderation.",
+  "version": "2.3.2",
+  "description": "MikiConnect — a production-oriented social community application with email verification, password recovery, secure authentication, posts, messaging, moderation, and polished responsive UX.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
