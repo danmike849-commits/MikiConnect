@@ -1,3 +1,8 @@
+## 2.3.4
+
+- Improved post-verification handoff messaging for mobile/PWA users.
+- Added an explicit Email verified success state and clear return-to-app guidance.
+
 ## 2.3.2 — Product UX polish
 
 - Simplified authentication with clearer labels, guidance, password controls and keyboard support.
@@ -54,6 +59,13 @@
 - Added owner-specific first-admin bootstrap guard using FIRST_ADMIN_EMAIL.
 - Added commercial-license framework for Mika Daniel (MIKI).
 - Added third-party notices and commercial-release ownership guidance.
+
+## 2.3.5 — Authentication screen fix
+- Fixed a malformed authentication panel that caused registration fields to appear on the login screen.
+- Login and registration now render as mutually exclusive modes.
+- Switching modes clears the other mode's password fields to avoid confusing stale credentials.
+- Added clear mode-specific headings and subtitles for new and returning users.
+- Fixed the duplicated Password label visible on mobile.
 
 ## Authentication UX polish
 - Removed the developer-facing Avatar URL field from registration.
