@@ -1,3 +1,14 @@
+## 2.5.1
+- Surface the Admin Control Panel inside the authenticated app for admin users.
+- Keep admin navigation hidden for normal users while retaining server-side authorization.
+
+## 2.3.6 — Focused authentication flow
+- Simplified the initial authentication screen to show only Log in and Create account choices.
+- Login and registration fields remain hidden until the user selects the corresponding action.
+- Added clear Back controls and isolated each mode's fields to prevent stale credentials or mixed forms.
+- Preserved successful registration messaging when returning the user to Login.
+- Improved mobile-first spacing and touch targets for the authentication choice screen.
+
 ## 2.3.4
 
 - Improved post-verification handoff messaging for mobile/PWA users.
@@ -74,3 +85,41 @@
 - Added show/hide password controls and Enter-key submission for auth forms.
 - Replaced intrusive auth alerts with inline status/error messaging where appropriate.
 - Avatar/profile image editing remains available after sign-in from the profile/settings area.
+
+
+## v2.3.7
+- Fixed authentication entry state so a fresh/returned visitor always sees the minimal Welcome screen before choosing Log in or Create account.
+- Fixed logout and invalid-session recovery to return to the minimal Welcome screen instead of exposing the login form.
+- Added a pageshow guard for mobile/PWA back-forward-cache cases.
+- Bumped the service-worker cache name so the updated authentication shell is picked up after deployment.
+
+## 2.4.0 — Security & abuse-resistance hardening
+
+- Added bounded in-memory rate-limit storage with fail-closed behavior when capacity is exhausted.
+- Added rate limits to previously unprotected public read endpoints and authenticated message-history reads.
+- Added Socket.IO connection-attempt throttling and a per-account concurrent-session limit.
+- Added API `Cache-Control: no-store` and additional browser security headers.
+- Added duplicate-open-report protection and validation that reported users/posts/comments exist.
+- Made username validation consistent with the UI by allowing hyphens.
+- Improved the registration error when verification email delivery fails so users are not told that account creation itself is broken.
+- Existing JWT, email verification, password reset, admin authorization, and XSS escaping flows remain intact.
+
+
+## 2.4.1 — Authorization & Admin Control Hardening
+
+- Hardened administrator ban, role-change, and deletion actions.
+- Protected the configured owner/first-admin account from accidental ban, demotion, or deletion.
+- Prevented actions that would leave the platform without an active administrator.
+- Revoked active tokens when an administrator changes another user's role or ban state.
+- Added administrator audit logging for moderation and platform-control actions.
+- Added paginated/searchable admin user, report, and message APIs.
+- Expanded the admin control panel with user search, moderation messages, report status filters, platform statistics, and audit history.
+- Added cleanup of notifications, follows, likes, comments, messages, posts, and reports when an account is deleted.
+
+## 2.5.0 — Session & Private-Data Security
+- Replaced browser `localStorage` JWT storage with an HttpOnly `mc_session` cookie.
+- Added server-side logout that clears the session cookie.
+- Socket.IO now authenticates from the HttpOnly session cookie.
+- Added same-origin protection for browser state-changing API requests.
+- Admin panel now uses the secure session cookie instead of localStorage tokens.
+- Existing token-version invalidation continues to revoke sessions after password, ban, role, or account changes.

@@ -1,6 +1,6 @@
 # MikiConnect
 
-MikiConnect is a Node.js/Express/MongoDB/Socket.io community application with JWT authentication, user profiles, posts, likes, comments, public chat, private messaging, PWA support, and an admin moderation panel. This repository is a commercial-oriented release candidate owned by Mika Daniel (MIKI). It is designed for hosted SaaS, business licensing, optional white-label agreements, and other written commercial arrangements; production launch still requires the deployment, third-party licensing, email-provider, and legal checks listed below.
+MikiConnect is a Node.js/Express/MongoDB/Socket.io community application with JWT-backed HttpOnly cookie sessions, user profiles, posts, likes, comments, public chat, private messaging, PWA support, and an admin moderation panel. This repository is a commercial-oriented release candidate owned by Mika Daniel (MIKI). It is designed for hosted SaaS, business licensing, optional white-label agreements, and other written commercial arrangements; production launch still requires the deployment, third-party licensing, email-provider, and legal checks listed below.
 
 ## Stack
 - Node.js 20+

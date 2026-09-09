@@ -17,4 +17,6 @@ test('isValidUrl accepts http(s) and rejects unsafe schemes', () => {
   assert.equal(isValidUrl('http://example.com/avatar.png'), true);
   assert.equal(isValidUrl('javascript:alert(1)'), false);
   assert.equal(isValidUrl('data:text/html,test'), false);
+  assert.equal(isValidUrl('javascript://example.com'), false);
+  assert.equal(isValidUrl('ftp://example.com/file'), false);
 });

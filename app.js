@@ -14,7 +14,7 @@ const { cleanUsername, validatePassword, isValidUrl } = require('./utils/validat
 const app = express();
 const server = http.createServer(app);
 const allowedOrigins = String(process.env.CORS_ORIGIN || '').split(',').map(v => v.trim()).filter(Boolean);
-const corsOptions = allowedOrigins.length ? { origin: allowedOrigins, credentials: false } : undefined;
+const corsOptions = allowedOrigins.length ? { origin: allowedOrigins, credentials: true } : undefined;
 const io = new Server(server, {
   maxHttpBufferSize: 1e6,
   ...(corsOptions ? { cors: corsOptions } : {})
@@ -40,7 +40,7 @@ function validateConfig() {
 }
 
 const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true, trim: true, lowercase: true, minlength: 3, maxlength: 30, match: /^[a-z0-9_]+$/ },
+  username: { type: String, required: true, unique: true, trim: true, lowercase: true, minlength: 3, maxlength: 30, match: /^[a-z0-9_-]+$/ },
   email: { type: String, required: true, unique: true, trim: true, lowercase: true, maxlength: 254, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
   password: { type: String, required: true, select: false },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
@@ -90,6 +90,14 @@ const NotificationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now, index: true }
 }, { versionKey: false });
 
+const AdminAuditSchema = new mongoose.Schema({
+  actor: { type: String, required: true, maxlength: 30, index: true },
+  action: { type: String, required: true, maxlength: 80, index: true },
+  target: { type: String, default: '', maxlength: 100 },
+  details: { type: String, default: '', maxlength: 1000 },
+  createdAt: { type: Date, default: Date.now, index: true }
+}, { versionKey: false });
+
 const ReportSchema = new mongoose.Schema({
   reporter: { type: String, required: true, maxlength: 30, index: true },
   targetType: { type: String, enum: ['user', 'post', 'comment'], required: true },
@@ -104,6 +112,7 @@ const Post = mongoose.model('Post', PostSchema);
 const Message = mongoose.model('Message', MessageSchema);
 const Notification = mongoose.model('Notification', NotificationSchema);
 const Report = mongoose.model('Report', ReportSchema);
+const AdminAudit = mongoose.model('AdminAudit', AdminAuditSchema);
 
 function cleanEmail(value) { return String(value || '').trim().toLowerCase(); }
 function publicUser(user) {
@@ -173,9 +182,38 @@ async function issuePasswordResetEmail(user) {
 function signToken(user) {
   return jwt.sign({ sub: String(user._id), role: user.role, username: user.username, tv: user.tokenVersion ?? 0 }, config.jwtSecret, { expiresIn: config.jwtExpiresIn, issuer: 'mikiconnect', audience: 'mikiconnect-client' });
 }
+function parseCookies(header) {
+  const out = {};
+  for (const part of String(header || '').split(';')) {
+    const i = part.indexOf('=');
+    if (i < 0) continue;
+    const key = part.slice(0, i).trim();
+    const value = part.slice(i + 1).trim();
+    if (key) out[key] = decodeURIComponent(value);
+  }
+  return out;
+}
 function extractToken(req) {
-  const h = req.get('authorization') || '';
-  return h.startsWith('Bearer ') ? h.slice(7).trim() : null;
+  const cookies = parseCookies(req.get('cookie'));
+  return cookies.mc_session || null;
+}
+function setSessionCookie(res, token) {
+  const parts = [`mc_session=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
+  if (config.nodeEnv === 'production') parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+function clearSessionCookie(res) {
+  const parts = ['mc_session=', 'Path=/', 'HttpOnly', 'SameSite=Lax', 'Max-Age=0'];
+  if (config.nodeEnv === 'production') parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+function sameOriginGuard(req, res, next) {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) || !req.path.startsWith('/api/')) return next();
+  const origin = req.get('origin');
+  if (!origin) return next();
+  const allowed = new Set([config.appUrl, ...allowedOrigins].filter(Boolean).map(v => v.replace(/\/$/, '')));
+  if (!allowed.has(origin.replace(/\/$/, ''))) return res.status(403).json({ error: 'Cross-origin request blocked.' });
+  next();
 }
 async function getUserFromToken(token) {
   if (!token) return null;
@@ -196,25 +234,48 @@ function requireAdmin(req, res, next) {
   if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Admin access required.' });
   next();
 }
+function isProtectedOwner(user) {
+  return Boolean(config.firstAdminEmail && user?.email && cleanEmail(user.email) === config.firstAdminEmail);
+}
+async function recordAdminAction(actor, action, target = '', details = '') {
+  try { await AdminAudit.create({ actor, action, target, details: String(details).slice(0, 1000) }); }
+  catch (err) { console.error('Admin audit log error:', err.message); }
+}
 function asyncRoute(fn) { return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next); }
 
-// Basic in-memory rate limiting. For multi-instance deployments, replace with Redis-backed limiting.
+// Basic in-memory rate limiting for the current single-instance deployment.
+// Before scaling to multiple instances, replace this with a shared store (for example Redis).
 const buckets = new Map();
+const MAX_RATE_BUCKETS = 20000;
 function rateLimit({ windowMs, max, key = req => `${req.ip}:${req.path}` }) {
   return (req, res, next) => {
     const now = Date.now();
-    const k = key(req);
-    const current = buckets.get(k);
-    if (!current || current.reset <= now) buckets.set(k, { count: 1, reset: now + windowMs });
-    else current.count += 1;
-    const entry = buckets.get(k);
+    const k = String(key(req));
+    let current = buckets.get(k);
+    if (!current || current.reset <= now) {
+      current = { count: 1, reset: now + windowMs };
+      if (buckets.size >= MAX_RATE_BUCKETS) {
+        for (const [bucketKey, bucket] of buckets) {
+          if (bucket.reset <= now) buckets.delete(bucketKey);
+          if (buckets.size < MAX_RATE_BUCKETS) break;
+        }
+      }
+      if (buckets.size >= MAX_RATE_BUCKETS) return res.status(503).json({ error: 'Rate limiting capacity is temporarily unavailable. Please try again later.' });
+      buckets.set(k, current);
+    } else {
+      current.count += 1;
+    }
+    const entry = buckets.get(k) || current;
     res.setHeader('RateLimit-Limit', max);
     res.setHeader('RateLimit-Remaining', Math.max(0, max - entry.count));
     if (entry.count > max) return res.status(429).json({ error: 'Too many requests. Please try again later.' });
     next();
   };
 }
-setInterval(() => { const now = Date.now(); for (const [k, v] of buckets) if (v.reset <= now) buckets.delete(k); }, 60000).unref();
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of buckets) if (v.reset <= now) buckets.delete(k);
+}, 30000).unref();
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -225,12 +286,17 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('X-DNS-Prefetch-Control', 'off');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Origin-Agent-Cluster', '?1');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https: wss:");
+  if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   if (config.nodeEnv === 'production') res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
 if (corsOptions) app.use(cors({ ...corsOptions, methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] }));
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '50kb' }));
+app.use(sameOriginGuard);
 
 app.get('/health', (req, res) => {
   const dbReady = mongoose.connection.readyState === 1;
@@ -242,7 +308,7 @@ app.post('/api/register', rateLimit({ windowMs: 15*60*1000, max: 10 }), asyncRou
   const email = cleanEmail(req.body.email);
   const password = req.body.password;
   const avatar = String(req.body.avatar || '').trim();
-  if (!/^[a-z0-9_]{3,30}$/.test(username)) return res.status(400).json({ error: 'Username must be 3-30 characters: letters, numbers, underscore.' });
+  if (!/^[a-z0-9_-]{3,30}$/.test(username)) return res.status(400).json({ error: 'Username must be 3-30 characters: letters, numbers, underscores or hyphens.' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return res.status(400).json({ error: 'Enter a valid email address.' });
   if (!validatePassword(password)) return res.status(400).json({ error: 'Password must be 8-128 characters.' });
   if (!isValidUrl(avatar)) return res.status(400).json({ error: 'Avatar must be an http(s) URL.' });
@@ -257,7 +323,7 @@ app.post('/api/register', rateLimit({ windowMs: 15*60*1000, max: 10 }), asyncRou
   } catch (err) {
     await User.deleteOne({ _id: user._id });
     console.error('Verification email error:', err.message);
-    return res.status(503).json({ error: 'Account creation is temporarily unavailable because email delivery is not configured or reachable.' });
+    return res.status(503).json({ error: 'We could not send the verification email, so the account was not created. Please try again later or contact support.' });
   }
   res.status(201).json({ success: true, requiresEmailVerification: true, message: 'Account created. Check your email to verify your account before logging in.' });
 }));
@@ -270,8 +336,11 @@ app.post('/api/login', rateLimit({ windowMs: 15*60*1000, max: 20, key: req => `$
   if (!user || user.isBanned) return res.status(401).json({ error: 'Invalid credentials.' });
   if (!(await bcrypt.compare(password, user.password))) return res.status(401).json({ error: 'Invalid credentials.' });
   if (!user.emailVerified) return res.status(403).json({ error: 'Your email is not verified yet. Check your inbox or spam folder for the MikiConnect verification email, then click the Verify my email button. You can also use Resend verification email below.' });
-  res.json({ success: true, token: signToken(user), user: publicUser(user) });
+  setSessionCookie(res, signToken(user));
+  res.json({ success: true, user: publicUser(user) });
 }));
+
+app.post('/api/logout', (req, res) => { clearSessionCookie(res); res.json({ success: true }); });
 
 app.post('/api/verify-email', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), asyncRoute(async (req, res) => {
   const token = String(req.body.token || '').trim();
@@ -359,13 +428,13 @@ app.post('/api/users/:username/follow', authenticate, rateLimit({ windowMs: 60 *
   res.json({ success: true, following: !following, followersCount: other.followers.length, followingCount: meUser.following.length });
 }));
 
-app.get('/api/users/:username/followers', asyncRoute(async (req, res) => {
+app.get('/api/users/:username/followers', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(async (req, res) => {
   const user = await User.findOne({ username: cleanUsername(req.params.username), isBanned: false }).lean();
   if (!user) return res.status(404).json({ error: 'User not found.' });
   const users = await User.find({ username: { $in: user.followers }, isBanned: false }, 'username bio avatar createdAt').limit(500).lean();
   res.json({ success: true, users: users.map(safePublicUser) });
 }));
-app.get('/api/users/:username/following', asyncRoute(async (req, res) => {
+app.get('/api/users/:username/following', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(async (req, res) => {
   const user = await User.findOne({ username: cleanUsername(req.params.username), isBanned: false }).lean();
   if (!user) return res.status(404).json({ error: 'User not found.' });
   const users = await User.find({ username: { $in: user.following }, isBanned: false }, 'username bio avatar createdAt').limit(500).lean();
@@ -386,6 +455,16 @@ app.post('/api/reports', authenticate, rateLimit({ windowMs: 60 * 60 * 1000, max
   const targetId = String(req.body.targetId || '').trim();
   const reason = String(req.body.reason || '').trim();
   if (!['user', 'post', 'comment'].includes(targetType) || !targetId || reason.length < 3 || reason.length > 500) return res.status(400).json({ error: 'Valid target type, target id, and reason are required.' });
+  if (targetType === 'user') {
+    const target = await User.exists({ username: cleanUsername(targetId), isBanned: false });
+    if (!target) return res.status(404).json({ error: 'Reported user not found.' });
+  } else if (targetType === 'post') {
+    if (!mongoose.isValidObjectId(targetId) || !(await Post.exists({ _id: targetId }))) return res.status(404).json({ error: 'Reported post not found.' });
+  } else {
+    if (!mongoose.isValidObjectId(targetId) || !(await Post.exists({ 'comments._id': targetId }))) return res.status(404).json({ error: 'Reported comment not found.' });
+  }
+  const existing = await Report.exists({ reporter: req.user.username, targetType, targetId, status: 'open' });
+  if (existing) return res.status(409).json({ error: 'You already have an open report for this item.' });
   const report = await Report.create({ reporter: req.user.username, targetType, targetId, reason });
   res.status(201).json({ success: true, reportId: String(report._id) });
 }));
@@ -398,14 +477,14 @@ app.get('/api/users', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(as
   res.json({ success: true, users: users.map(safePublicUser) });
 }));
 
-app.get('/api/users/:username', asyncRoute(async (req, res) => {
+app.get('/api/users/:username', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(async (req, res) => {
   const user = await User.findOne({ username: cleanUsername(req.params.username), isBanned: false }).lean();
   if (!user) return res.status(404).json({ error: 'User not found.' });
   const posts = await Post.find({ author: user.username }).sort({ createdAt: -1 }).limit(20).lean();
   res.json({ success: true, user: safePublicUser(user), posts });
 }));
 
-app.get('/api/posts', asyncRoute(async (req, res) => {
+app.get('/api/posts', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(async (req, res) => {
   const page = Math.max(1, Math.min(1000, Number.parseInt(req.query.page, 10) || 1));
   const limit = Math.max(1, Math.min(50, Number.parseInt(req.query.limit, 10) || 20));
   const rows = await Post.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit + 1).lean();
@@ -462,11 +541,11 @@ app.delete('/api/posts/:id', authenticate, asyncRoute(async (req, res) => {
   res.json({ success: true });
 }));
 
-app.get('/api/messages/public', authenticate, asyncRoute(async (req, res) => {
+app.get('/api/messages/public', authenticate, rateLimit({ windowMs: 60 * 1000, max: 60, key: req => `${req.ip}:public-messages:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
   const messages = await Message.find({ roomId: 'public', recipient: '' }).sort({ createdAt: -1 }).limit(100).lean();
   res.json({ success: true, messages: messages.reverse() });
 }));
-app.get('/api/messages/dm/:username', authenticate, asyncRoute(async (req, res) => {
+app.get('/api/messages/dm/:username', authenticate, rateLimit({ windowMs: 60 * 1000, max: 60, key: req => `${req.ip}:dm-history:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
   const other = cleanUsername(req.params.username);
   if (!other || other === req.user.username) return res.status(400).json({ error: 'Invalid recipient.' });
   const messages = await Message.find({ recipient: { $in: [req.user.username, other] }, sender: { $in: [req.user.username, other] }, roomId: { $ne: 'public' } }).sort({ createdAt: -1 }).limit(100).lean();
@@ -474,45 +553,95 @@ app.get('/api/messages/dm/:username', authenticate, asyncRoute(async (req, res) 
 }));
 
 app.get('/api/admin/stats', authenticate, requireAdmin, asyncRoute(async (req, res) => {
-  const [totalUsers, totalPosts, totalMessages, bannedUsers] = await Promise.all([User.countDocuments(), Post.countDocuments(), Message.countDocuments(), User.countDocuments({ isBanned: true })]);
-  res.json({ success: true, totalUsers, totalPosts, totalMessages, bannedUsers, activeSockets: io.engine.clientsCount });
+  const [totalUsers, totalPosts, totalMessages, bannedUsers, openReports, adminCount] = await Promise.all([
+    User.countDocuments(), Post.countDocuments(), Message.countDocuments(), User.countDocuments({ isBanned: true }),
+    Report.countDocuments({ status: 'open' }), User.countDocuments({ role: 'admin', isBanned: false })
+  ]);
+  res.json({ success: true, totalUsers, totalPosts, totalMessages, bannedUsers, openReports, adminCount, activeSockets: io.engine.clientsCount });
 }));
+
 app.get('/api/admin/users', authenticate, requireAdmin, asyncRoute(async (req, res) => {
-  const users = await User.find({}, 'username email role isBanned avatar bio createdAt').sort({ createdAt: -1 }).limit(500).lean();
-  res.json({ success: true, users });
+  const q = String(req.query.q || '').trim().toLowerCase().slice(0, 50);
+  const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 50));
+  const filter = q ? { $or: [{ username: { $regex: `^${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } }, { email: { $regex: `^${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } }] } : {};
+  const [users, total] = await Promise.all([
+    User.find(filter, 'username email role isBanned emailVerified avatar bio createdAt').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    User.countDocuments(filter)
+  ]);
+  res.json({ success: true, users, page, limit, total, hasMore: page * limit < total, ownerUsername: config.firstAdminEmail ? (await User.findOne({ email: config.firstAdminEmail }, 'username').lean())?.username || '' : '' });
 }));
+
 app.put('/api/admin/users/ban', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   const username = cleanUsername(req.body.username);
   if (!username || typeof req.body.isBanned !== 'boolean') return res.status(400).json({ error: 'username and boolean isBanned are required.' });
   if (username === req.user.username) return res.status(400).json({ error: 'You cannot change your own ban status.' });
-  const result = await User.updateOne({ username }, { $set: { isBanned: req.body.isBanned } });
-  if (!result.matchedCount) return res.status(404).json({ error: 'User not found.' });
-  if (req.body.isBanned) disconnectUserSockets(username);
+  const target = await User.findOne({ username });
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  if (isProtectedOwner(target)) return res.status(403).json({ error: 'The protected owner account cannot be banned.' });
+  if (target.role === 'admin' && req.body.isBanned) {
+    const activeAdmins = await User.countDocuments({ role: 'admin', isBanned: false });
+    if (activeAdmins <= 1) return res.status(409).json({ error: 'You cannot ban the last active administrator.' });
+  }
+  target.isBanned = req.body.isBanned;
+  target.tokenVersion += 1;
+  await target.save();
+  if (target.isBanned) disconnectUserSockets(username);
+  await recordAdminAction(req.user.username, target.isBanned ? 'ban_user' : 'unban_user', username);
   res.json({ success: true });
 }));
+
 app.put('/api/admin/users/role', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   const username = cleanUsername(req.body.username); const role = req.body.role;
   if (!username || !['user','admin'].includes(role)) return res.status(400).json({ error: 'Valid username and role are required.' });
   if (username === req.user.username && role !== 'admin') return res.status(400).json({ error: 'You cannot remove your own admin role.' });
-  const result = await User.updateOne({ username }, { $set: { role } });
-  if (!result.matchedCount) return res.status(404).json({ error: 'User not found.' });
+  const target = await User.findOne({ username });
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  if (isProtectedOwner(target) && role !== 'admin') return res.status(403).json({ error: 'The protected owner account must remain an administrator.' });
+  if (target.role === 'admin' && role === 'user') {
+    const activeAdmins = await User.countDocuments({ role: 'admin', isBanned: false });
+    if (activeAdmins <= 1) return res.status(409).json({ error: 'You cannot remove the last active administrator.' });
+  }
+  target.role = role;
+  target.tokenVersion += 1;
+  await target.save();
+  await recordAdminAction(req.user.username, role === 'admin' ? 'grant_admin' : 'remove_admin', username);
   res.json({ success: true });
 }));
+
 app.delete('/api/admin/users/:username', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   const username = cleanUsername(req.params.username);
   if (username === req.user.username) return res.status(400).json({ error: 'You cannot delete yourself.' });
-  const result = await User.deleteOne({ username });
-  if (!result.deletedCount) return res.status(404).json({ error: 'User not found.' });
-  await Post.deleteMany({ author: username });
-  await Message.deleteMany({ $or: [{ sender: username }, { recipient: username }] });
+  const target = await User.findOne({ username });
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  if (isProtectedOwner(target)) return res.status(403).json({ error: 'The protected owner account cannot be deleted.' });
+  if (target.role === 'admin') {
+    const activeAdmins = await User.countDocuments({ role: 'admin', isBanned: false });
+    if (activeAdmins <= 1) return res.status(409).json({ error: 'You cannot delete the last active administrator.' });
+  }
+  await User.deleteOne({ _id: target._id });
+  await Promise.all([
+    Post.deleteMany({ author: username }),
+    Message.deleteMany({ $or: [{ sender: username }, { recipient: username }] }),
+    Notification.deleteMany({ $or: [{ recipient: username }, { actor: username }] }),
+    Report.deleteMany({ reporter: username })
+  ]);
+  await Post.updateMany({}, { $pull: { likes: username, comments: { username } } });
+  await User.updateMany({}, { $pull: { followers: username, following: username } });
   disconnectUserSockets(username);
+  await recordAdminAction(req.user.username, 'delete_user', username, 'Deleted account and associated content/references.');
   res.json({ success: true });
 }));
 
 app.get('/api/admin/reports', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   const status = ['open', 'resolved', 'dismissed'].includes(req.query.status) ? req.query.status : 'open';
-  const reports = await Report.find({ status }).sort({ createdAt: -1 }).limit(200).lean();
-  res.json({ success: true, reports });
+  const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 50));
+  const [reports, total] = await Promise.all([
+    Report.find({ status }).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Report.countDocuments({ status })
+  ]);
+  res.json({ success: true, reports, page, limit, total, hasMore: page * limit < total });
 }));
 app.put('/api/admin/reports/:id', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Invalid report id.' });
@@ -520,23 +649,38 @@ app.put('/api/admin/reports/:id', authenticate, requireAdmin, asyncRoute(async (
   if (!['open', 'resolved', 'dismissed'].includes(status)) return res.status(400).json({ error: 'Invalid status.' });
   const report = await Report.findByIdAndUpdate(req.params.id, { status }, { new: true, runValidators: true }).lean();
   if (!report) return res.status(404).json({ error: 'Report not found.' });
+  await recordAdminAction(req.user.username, `report_${status}`, String(report._id), `${report.targetType}:${report.targetId}`);
   res.json({ success: true, report });
 }));
 
 app.get('/api/admin/messages', authenticate, requireAdmin, asyncRoute(async (req, res) => {
-  const messages = await Message.find().sort({ createdAt: -1 }).limit(200).lean();
-  res.json({ success: true, messages });
+  const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 50));
+  const [messages, total] = await Promise.all([
+    Message.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), Message.countDocuments()
+  ]);
+  res.json({ success: true, messages, page, limit, total, hasMore: page * limit < total });
 }));
 app.delete('/api/admin/messages/:id', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Invalid message id.' });
   const result = await Message.findByIdAndDelete(req.params.id);
   if (!result) return res.status(404).json({ error: 'Message not found.' });
+  await recordAdminAction(req.user.username, 'delete_message', String(result._id), `${result.sender}->${result.recipient || 'public'}`);
   res.json({ success: true });
 }));
-app.post('/api/admin/broadcast', authenticate, requireAdmin, asyncRoute(async (req, res) => {
+app.get('/api/admin/audit-log', authenticate, requireAdmin, asyncRoute(async (req, res) => {
+  const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 50));
+  const [entries, total] = await Promise.all([
+    AdminAudit.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), AdminAudit.countDocuments()
+  ]);
+  res.json({ success: true, entries, page, limit, total, hasMore: page * limit < total });
+}));
+app.post('/api/admin/broadcast', authenticate, requireAdmin, rateLimit({ windowMs: 60 * 1000, max: 10, key: req => `${req.ip}:admin-broadcast:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
   const message = String(req.body.message || '').trim();
   if (!message || message.length > 2000) return res.status(400).json({ error: 'Message must be 1-2000 characters.' });
   io.emit('systemAnnouncement', { text: message, sender: 'SYSTEM', id: crypto.randomUUID(), createdAt: new Date().toISOString() });
+  await recordAdminAction(req.user.username, 'broadcast', '', message);
   res.json({ success: true });
 }));
 
@@ -546,14 +690,42 @@ function disconnectUserSockets(username) {
   for (const socketId of room) io.sockets.sockets.get(socketId)?.disconnect(true);
 }
 
+const socketConnectionBuckets = new Map();
+const MAX_SOCKET_CONNECTION_BUCKETS = 10000;
+function allowSocketConnection(ip) {
+  const now = Date.now();
+  let entry = socketConnectionBuckets.get(ip);
+  if (!entry || entry.reset <= now) {
+    entry = { count: 0, reset: now + 5 * 60 * 1000 };
+    if (socketConnectionBuckets.size >= MAX_SOCKET_CONNECTION_BUCKETS) {
+      for (const [key, value] of socketConnectionBuckets) {
+        if (value.reset <= now) socketConnectionBuckets.delete(key);
+        if (socketConnectionBuckets.size < MAX_SOCKET_CONNECTION_BUCKETS) break;
+      }
+    }
+    if (socketConnectionBuckets.size < MAX_SOCKET_CONNECTION_BUCKETS) socketConnectionBuckets.set(ip, entry);
+  }
+  entry.count += 1;
+  return entry.count <= 30;
+}
+
 io.use(async (socket, next) => {
   try {
-    const user = await getUserFromToken(socket.handshake.auth?.token);
+    const ip = String(socket.handshake.address || 'unknown');
+    if (!allowSocketConnection(ip)) return next(new Error('Too many connection attempts. Please try again later.'));
+    const cookies = parseCookies(socket.handshake.headers.cookie);
+    const user = await getUserFromToken(cookies.mc_session);
     if (!user) return next(new Error('Authentication required or account unavailable.'));
+    const room = io.sockets.adapter.rooms.get(`user:${user.username}`);
+    if (room && room.size >= 5) return next(new Error('Too many active sessions for this account.'));
     socket.user = user;
     next();
   } catch { next(new Error('Invalid or expired token.')); }
 });
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of socketConnectionBuckets) if (v.reset <= now) socketConnectionBuckets.delete(k);
+}, 60000).unref();
 
 io.on('connection', socket => {
   socket.join(`user:${socket.user.username}`);
@@ -578,7 +750,7 @@ io.on('connection', socket => {
       if (!allowSocketMessage()) return callback?.({ success: false, error: 'Too many messages. Please slow down.' });
       const recipient = cleanUsername(data?.recipient);
       const text = String(data?.content || data?.text || '').trim();
-      if (!/^[a-z0-9_]{3,30}$/.test(recipient) || recipient === socket.user.username) return callback?.({ success: false, error: 'Invalid recipient.' });
+      if (!/^[a-z0-9_-]{3,30}$/.test(recipient) || recipient === socket.user.username) return callback?.({ success: false, error: 'Invalid recipient.' });
       if (!text || text.length > 2000) return callback?.({ success: false, error: 'Message must be 1-2000 characters.' });
       const exists = await User.exists({ username: recipient, isBanned: false });
       if (!exists) return callback?.({ success: false, error: 'Recipient not found.' });
@@ -607,4 +779,4 @@ async function shutdown(signal) {
   await new Promise(resolve => server.close(() => resolve()));
   process.exit(0);
 }
-module.exports = { app, server, io, User, Post, Message, Notification, Report, signToken, cleanUsername, validatePassword, isValidUrl, safePublicUser, config, start, shutdown };
+module.exports = { app, server, io, User, Post, Message, Notification, Report, AdminAudit, signToken, cleanUsername, validatePassword, isValidUrl, safePublicUser, isProtectedOwner, config, start, shutdown };

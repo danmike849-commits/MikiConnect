@@ -47,3 +47,52 @@ The included legal documents are drafts/frameworks, not legal advice. They must 
 - Added a visible Settings center so backend capabilities are discoverable in the app.
 - Added account/email verification status, security controls, notifications, appearance preference, and privacy guidance.
 - Removed duplicate password controls from the main profile card.
+
+
+## Step 3 — Security / Abuse-Resistance Review (v2.4.0)
+
+### Findings addressed
+- **Rate-limit memory growth:** bounded in-memory buckets and fail-closed capacity handling.
+- **Unprotected read endpoints:** feed, profile, follower/following, and message history reads now have request limits.
+- **WebSocket abuse:** connection-attempt throttling plus a maximum of five active sessions per account.
+- **API caching:** API responses are marked `no-store` to reduce accidental caching of authenticated data.
+- **Browser hardening:** CSP baseline, CORP, Origin-Agent-Cluster, existing HSTS/frame/referrer protections retained.
+- **Report abuse:** duplicate open reports are rejected and targets are checked before a report is stored.
+- **Validation consistency:** username rules now match the product UI and DM validation.
+
+### Remaining architectural risks / next hardening targets
+1. In-memory rate limiting is suitable for the current single Render instance only; production horizontal scaling should use a shared rate-limit store.
+2. JWT-backed authentication now uses an HttpOnly, Secure-in-production, SameSite=Lax session cookie; the browser UI no longer stores the access token in localStorage.
+3. Posts embed comments and likes in one MongoDB document; high-volume growth should eventually normalize these collections or introduce bounded/paginated interaction storage.
+4. WebSocket message throttling is per socket; account/IP-level message quotas should be moved to shared storage when scaling.
+5. Add automated integration tests against a disposable MongoDB/CI environment before commercial launch.
+
+
+## Step 3 follow-up — Authorization & Admin Control
+
+### Completed in v2.4.1
+- Admin API authorization continues to be enforced server-side using a fresh database user lookup; client-supplied role claims are not trusted for authorization.
+- Protected owner account (configured by `FIRST_ADMIN_EMAIL`) from ban, demotion, or deletion.
+- Prevented removal/deletion/ban of the last active administrator.
+- Role and ban changes increment `tokenVersion`, invalidating existing sessions for the affected account.
+- Added `AdminAudit` records for privileged actions.
+- Admin list/search/report/message endpoints have bounded pagination.
+- Account deletion now removes associated content and relationship references.
+
+### Remaining architecture items
+- Browser authentication now uses the HttpOnly `mc_session` cookie; the next scaling step is shared session/rate-limit infrastructure if multiple app instances are introduced.
+- In-memory rate limiting remains suitable for the current single-instance deployment but should move to a shared store before multi-instance scaling.
+- Message moderation access should be covered by an explicit privacy/moderation policy before commercial launch.
+- Larger-scale social interactions may eventually require normalized collections rather than growing arrays inside post/user documents.
+
+### v2.5.0 — Session Security
+- Replaced browser token storage with an HttpOnly `mc_session` cookie.
+- Added server-side logout and secure cookie clearing.
+- Socket.IO authenticates from the session cookie rather than client-supplied JWT auth data.
+- Added same-origin protection for browser state-changing API requests.
+- Admin control panel no longer reads or stores authentication tokens in localStorage.
+
+
+## v2.5.1 admin UI visibility
+- Added an authenticated Settings > Admin entry and direct Control Panel action.
+- Admin visibility is driven by the server-returned role; backend admin middleware remains authoritative.
