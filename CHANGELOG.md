@@ -1,3 +1,7 @@
+## 2.5.2
+- Fixed authentication controls becoming unresponsive due to a missing Admin Settings element causing frontend initialization to stop.
+- Added the Admin Control Panel entry inside Settings for admin users.
+
 ## 2.5.1
 - Surface the Admin Control Panel inside the authenticated app for admin users.
 - Keep admin navigation hidden for normal users while retaining server-side authorization.

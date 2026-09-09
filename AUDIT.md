@@ -1,3 +1,7 @@
+## v2.5.2 hotfix
+- Fixed a frontend runtime initialization error caused by referencing `openAdminPanel` before the element existed. This prevented later click handlers, including Login, from being attached.
+- Added the missing admin settings panel/button.
+
 # MikiConnect V2.3 Security / Commercial Audit
 
 Owner: **Mika Daniel (MIKI)**
