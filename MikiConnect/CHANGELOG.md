@@ -111,3 +111,11 @@
 - Added paginated/searchable admin user, report, and message APIs.
 - Expanded the admin control panel with user search, moderation messages, report status filters, platform statistics, and audit history.
 - Added cleanup of notifications, follows, likes, comments, messages, posts, and reports when an account is deleted.
+
+## 2.5.0 — Session & Private-Data Security
+- Replaced browser `localStorage` JWT storage with an HttpOnly `mc_session` cookie.
+- Added server-side logout that clears the session cookie.
+- Socket.IO now authenticates from the HttpOnly session cookie.
+- Added same-origin protection for browser state-changing API requests.
+- Admin panel now uses the secure session cookie instead of localStorage tokens.
+- Existing token-version invalidation continues to revoke sessions after password, ban, role, or account changes.

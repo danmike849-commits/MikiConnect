@@ -14,7 +14,7 @@ const { cleanUsername, validatePassword, isValidUrl } = require('./utils/validat
 const app = express();
 const server = http.createServer(app);
 const allowedOrigins = String(process.env.CORS_ORIGIN || '').split(',').map(v => v.trim()).filter(Boolean);
-const corsOptions = allowedOrigins.length ? { origin: allowedOrigins, credentials: false } : undefined;
+const corsOptions = allowedOrigins.length ? { origin: allowedOrigins, credentials: true } : undefined;
 const io = new Server(server, {
   maxHttpBufferSize: 1e6,
   ...(corsOptions ? { cors: corsOptions } : {})
@@ -182,9 +182,38 @@ async function issuePasswordResetEmail(user) {
 function signToken(user) {
   return jwt.sign({ sub: String(user._id), role: user.role, username: user.username, tv: user.tokenVersion ?? 0 }, config.jwtSecret, { expiresIn: config.jwtExpiresIn, issuer: 'mikiconnect', audience: 'mikiconnect-client' });
 }
+function parseCookies(header) {
+  const out = {};
+  for (const part of String(header || '').split(';')) {
+    const i = part.indexOf('=');
+    if (i < 0) continue;
+    const key = part.slice(0, i).trim();
+    const value = part.slice(i + 1).trim();
+    if (key) out[key] = decodeURIComponent(value);
+  }
+  return out;
+}
 function extractToken(req) {
-  const h = req.get('authorization') || '';
-  return h.startsWith('Bearer ') ? h.slice(7).trim() : null;
+  const cookies = parseCookies(req.get('cookie'));
+  return cookies.mc_session || null;
+}
+function setSessionCookie(res, token) {
+  const parts = [`mc_session=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
+  if (config.nodeEnv === 'production') parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+function clearSessionCookie(res) {
+  const parts = ['mc_session=', 'Path=/', 'HttpOnly', 'SameSite=Lax', 'Max-Age=0'];
+  if (config.nodeEnv === 'production') parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+function sameOriginGuard(req, res, next) {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) || !req.path.startsWith('/api/')) return next();
+  const origin = req.get('origin');
+  if (!origin) return next();
+  const allowed = new Set([config.appUrl, ...allowedOrigins].filter(Boolean).map(v => v.replace(/\/$/, '')));
+  if (!allowed.has(origin.replace(/\/$/, ''))) return res.status(403).json({ error: 'Cross-origin request blocked.' });
+  next();
 }
 async function getUserFromToken(token) {
   if (!token) return null;
@@ -267,6 +296,7 @@ app.use((req, res, next) => {
 if (corsOptions) app.use(cors({ ...corsOptions, methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] }));
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '50kb' }));
+app.use(sameOriginGuard);
 
 app.get('/health', (req, res) => {
   const dbReady = mongoose.connection.readyState === 1;
@@ -306,8 +336,11 @@ app.post('/api/login', rateLimit({ windowMs: 15*60*1000, max: 20, key: req => `$
   if (!user || user.isBanned) return res.status(401).json({ error: 'Invalid credentials.' });
   if (!(await bcrypt.compare(password, user.password))) return res.status(401).json({ error: 'Invalid credentials.' });
   if (!user.emailVerified) return res.status(403).json({ error: 'Your email is not verified yet. Check your inbox or spam folder for the MikiConnect verification email, then click the Verify my email button. You can also use Resend verification email below.' });
-  res.json({ success: true, token: signToken(user), user: publicUser(user) });
+  setSessionCookie(res, signToken(user));
+  res.json({ success: true, user: publicUser(user) });
 }));
+
+app.post('/api/logout', (req, res) => { clearSessionCookie(res); res.json({ success: true }); });
 
 app.post('/api/verify-email', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), asyncRoute(async (req, res) => {
   const token = String(req.body.token || '').trim();
@@ -680,7 +713,8 @@ io.use(async (socket, next) => {
   try {
     const ip = String(socket.handshake.address || 'unknown');
     if (!allowSocketConnection(ip)) return next(new Error('Too many connection attempts. Please try again later.'));
-    const user = await getUserFromToken(socket.handshake.auth?.token);
+    const cookies = parseCookies(socket.handshake.headers.cookie);
+    const user = await getUserFromToken(cookies.mc_session);
     if (!user) return next(new Error('Authentication required or account unavailable.'));
     const room = io.sockets.adapter.rooms.get(`user:${user.username}`);
     if (room && room.size >= 5) return next(new Error('Too many active sessions for this account.'));

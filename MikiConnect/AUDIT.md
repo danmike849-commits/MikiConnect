@@ -62,7 +62,7 @@ The included legal documents are drafts/frameworks, not legal advice. They must 
 
 ### Remaining architectural risks / next hardening targets
 1. In-memory rate limiting is suitable for the current single Render instance only; production horizontal scaling should use a shared rate-limit store.
-2. JWTs are currently stored in browser localStorage. This is workable for the current SPA/PWA but an httpOnly secure session-cookie architecture would reduce token theft impact from XSS.
+2. JWT-backed authentication now uses an HttpOnly, Secure-in-production, SameSite=Lax session cookie; the browser UI no longer stores the access token in localStorage.
 3. Posts embed comments and likes in one MongoDB document; high-volume growth should eventually normalize these collections or introduce bounded/paginated interaction storage.
 4. WebSocket message throttling is per socket; account/IP-level message quotas should be moved to shared storage when scaling.
 5. Add automated integration tests against a disposable MongoDB/CI environment before commercial launch.
@@ -80,7 +80,14 @@ The included legal documents are drafts/frameworks, not legal advice. They must 
 - Account deletion now removes associated content and relationship references.
 
 ### Remaining architecture items
-- Browser access tokens still use `localStorage`; a future httpOnly secure-cookie session model would reduce token exposure to XSS.
+- Browser authentication now uses the HttpOnly `mc_session` cookie; the next scaling step is shared session/rate-limit infrastructure if multiple app instances are introduced.
 - In-memory rate limiting remains suitable for the current single-instance deployment but should move to a shared store before multi-instance scaling.
 - Message moderation access should be covered by an explicit privacy/moderation policy before commercial launch.
 - Larger-scale social interactions may eventually require normalized collections rather than growing arrays inside post/user documents.
+
+### v2.5.0 — Session Security
+- Replaced browser token storage with an HttpOnly `mc_session` cookie.
+- Added server-side logout and secure cookie clearing.
+- Socket.IO authenticates from the session cookie rather than client-supplied JWT auth data.
+- Added same-origin protection for browser state-changing API requests.
+- Admin control panel no longer reads or stores authentication tokens in localStorage.
