@@ -40,7 +40,7 @@ function validateConfig() {
 }
 
 const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true, trim: true, lowercase: true, minlength: 3, maxlength: 30, match: /^[a-z0-9_]+$/ },
+  username: { type: String, required: true, unique: true, trim: true, lowercase: true, minlength: 3, maxlength: 30, match: /^[a-z0-9_-]+$/ },
   email: { type: String, required: true, unique: true, trim: true, lowercase: true, maxlength: 254, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
   password: { type: String, required: true, select: false },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
@@ -198,23 +198,39 @@ function requireAdmin(req, res, next) {
 }
 function asyncRoute(fn) { return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next); }
 
-// Basic in-memory rate limiting. For multi-instance deployments, replace with Redis-backed limiting.
+// Basic in-memory rate limiting for the current single-instance deployment.
+// Before scaling to multiple instances, replace this with a shared store (for example Redis).
 const buckets = new Map();
+const MAX_RATE_BUCKETS = 20000;
 function rateLimit({ windowMs, max, key = req => `${req.ip}:${req.path}` }) {
   return (req, res, next) => {
     const now = Date.now();
-    const k = key(req);
-    const current = buckets.get(k);
-    if (!current || current.reset <= now) buckets.set(k, { count: 1, reset: now + windowMs });
-    else current.count += 1;
-    const entry = buckets.get(k);
+    const k = String(key(req));
+    let current = buckets.get(k);
+    if (!current || current.reset <= now) {
+      current = { count: 1, reset: now + windowMs };
+      if (buckets.size >= MAX_RATE_BUCKETS) {
+        for (const [bucketKey, bucket] of buckets) {
+          if (bucket.reset <= now) buckets.delete(bucketKey);
+          if (buckets.size < MAX_RATE_BUCKETS) break;
+        }
+      }
+      if (buckets.size >= MAX_RATE_BUCKETS) return res.status(503).json({ error: 'Rate limiting capacity is temporarily unavailable. Please try again later.' });
+      buckets.set(k, current);
+    } else {
+      current.count += 1;
+    }
+    const entry = buckets.get(k) || current;
     res.setHeader('RateLimit-Limit', max);
     res.setHeader('RateLimit-Remaining', Math.max(0, max - entry.count));
     if (entry.count > max) return res.status(429).json({ error: 'Too many requests. Please try again later.' });
     next();
   };
 }
-setInterval(() => { const now = Date.now(); for (const [k, v] of buckets) if (v.reset <= now) buckets.delete(k); }, 60000).unref();
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of buckets) if (v.reset <= now) buckets.delete(k);
+}, 30000).unref();
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -225,6 +241,10 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('X-DNS-Prefetch-Control', 'off');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Origin-Agent-Cluster', '?1');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https: wss:");
+  if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   if (config.nodeEnv === 'production') res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
@@ -242,7 +262,7 @@ app.post('/api/register', rateLimit({ windowMs: 15*60*1000, max: 10 }), asyncRou
   const email = cleanEmail(req.body.email);
   const password = req.body.password;
   const avatar = String(req.body.avatar || '').trim();
-  if (!/^[a-z0-9_]{3,30}$/.test(username)) return res.status(400).json({ error: 'Username must be 3-30 characters: letters, numbers, underscore.' });
+  if (!/^[a-z0-9_-]{3,30}$/.test(username)) return res.status(400).json({ error: 'Username must be 3-30 characters: letters, numbers, underscores or hyphens.' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return res.status(400).json({ error: 'Enter a valid email address.' });
   if (!validatePassword(password)) return res.status(400).json({ error: 'Password must be 8-128 characters.' });
   if (!isValidUrl(avatar)) return res.status(400).json({ error: 'Avatar must be an http(s) URL.' });
@@ -257,7 +277,7 @@ app.post('/api/register', rateLimit({ windowMs: 15*60*1000, max: 10 }), asyncRou
   } catch (err) {
     await User.deleteOne({ _id: user._id });
     console.error('Verification email error:', err.message);
-    return res.status(503).json({ error: 'Account creation is temporarily unavailable because email delivery is not configured or reachable.' });
+    return res.status(503).json({ error: 'We could not send the verification email, so the account was not created. Please try again later or contact support.' });
   }
   res.status(201).json({ success: true, requiresEmailVerification: true, message: 'Account created. Check your email to verify your account before logging in.' });
 }));
@@ -359,13 +379,13 @@ app.post('/api/users/:username/follow', authenticate, rateLimit({ windowMs: 60 *
   res.json({ success: true, following: !following, followersCount: other.followers.length, followingCount: meUser.following.length });
 }));
 
-app.get('/api/users/:username/followers', asyncRoute(async (req, res) => {
+app.get('/api/users/:username/followers', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(async (req, res) => {
   const user = await User.findOne({ username: cleanUsername(req.params.username), isBanned: false }).lean();
   if (!user) return res.status(404).json({ error: 'User not found.' });
   const users = await User.find({ username: { $in: user.followers }, isBanned: false }, 'username bio avatar createdAt').limit(500).lean();
   res.json({ success: true, users: users.map(safePublicUser) });
 }));
-app.get('/api/users/:username/following', asyncRoute(async (req, res) => {
+app.get('/api/users/:username/following', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(async (req, res) => {
   const user = await User.findOne({ username: cleanUsername(req.params.username), isBanned: false }).lean();
   if (!user) return res.status(404).json({ error: 'User not found.' });
   const users = await User.find({ username: { $in: user.following }, isBanned: false }, 'username bio avatar createdAt').limit(500).lean();
@@ -386,6 +406,16 @@ app.post('/api/reports', authenticate, rateLimit({ windowMs: 60 * 60 * 1000, max
   const targetId = String(req.body.targetId || '').trim();
   const reason = String(req.body.reason || '').trim();
   if (!['user', 'post', 'comment'].includes(targetType) || !targetId || reason.length < 3 || reason.length > 500) return res.status(400).json({ error: 'Valid target type, target id, and reason are required.' });
+  if (targetType === 'user') {
+    const target = await User.exists({ username: cleanUsername(targetId), isBanned: false });
+    if (!target) return res.status(404).json({ error: 'Reported user not found.' });
+  } else if (targetType === 'post') {
+    if (!mongoose.isValidObjectId(targetId) || !(await Post.exists({ _id: targetId }))) return res.status(404).json({ error: 'Reported post not found.' });
+  } else {
+    if (!mongoose.isValidObjectId(targetId) || !(await Post.exists({ 'comments._id': targetId }))) return res.status(404).json({ error: 'Reported comment not found.' });
+  }
+  const existing = await Report.exists({ reporter: req.user.username, targetType, targetId, status: 'open' });
+  if (existing) return res.status(409).json({ error: 'You already have an open report for this item.' });
   const report = await Report.create({ reporter: req.user.username, targetType, targetId, reason });
   res.status(201).json({ success: true, reportId: String(report._id) });
 }));
@@ -398,14 +428,14 @@ app.get('/api/users', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(as
   res.json({ success: true, users: users.map(safePublicUser) });
 }));
 
-app.get('/api/users/:username', asyncRoute(async (req, res) => {
+app.get('/api/users/:username', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(async (req, res) => {
   const user = await User.findOne({ username: cleanUsername(req.params.username), isBanned: false }).lean();
   if (!user) return res.status(404).json({ error: 'User not found.' });
   const posts = await Post.find({ author: user.username }).sort({ createdAt: -1 }).limit(20).lean();
   res.json({ success: true, user: safePublicUser(user), posts });
 }));
 
-app.get('/api/posts', asyncRoute(async (req, res) => {
+app.get('/api/posts', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(async (req, res) => {
   const page = Math.max(1, Math.min(1000, Number.parseInt(req.query.page, 10) || 1));
   const limit = Math.max(1, Math.min(50, Number.parseInt(req.query.limit, 10) || 20));
   const rows = await Post.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit + 1).lean();
@@ -462,11 +492,11 @@ app.delete('/api/posts/:id', authenticate, asyncRoute(async (req, res) => {
   res.json({ success: true });
 }));
 
-app.get('/api/messages/public', authenticate, asyncRoute(async (req, res) => {
+app.get('/api/messages/public', authenticate, rateLimit({ windowMs: 60 * 1000, max: 60, key: req => `${req.ip}:public-messages:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
   const messages = await Message.find({ roomId: 'public', recipient: '' }).sort({ createdAt: -1 }).limit(100).lean();
   res.json({ success: true, messages: messages.reverse() });
 }));
-app.get('/api/messages/dm/:username', authenticate, asyncRoute(async (req, res) => {
+app.get('/api/messages/dm/:username', authenticate, rateLimit({ windowMs: 60 * 1000, max: 60, key: req => `${req.ip}:dm-history:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
   const other = cleanUsername(req.params.username);
   if (!other || other === req.user.username) return res.status(400).json({ error: 'Invalid recipient.' });
   const messages = await Message.find({ recipient: { $in: [req.user.username, other] }, sender: { $in: [req.user.username, other] }, roomId: { $ne: 'public' } }).sort({ createdAt: -1 }).limit(100).lean();
@@ -546,14 +576,41 @@ function disconnectUserSockets(username) {
   for (const socketId of room) io.sockets.sockets.get(socketId)?.disconnect(true);
 }
 
+const socketConnectionBuckets = new Map();
+const MAX_SOCKET_CONNECTION_BUCKETS = 10000;
+function allowSocketConnection(ip) {
+  const now = Date.now();
+  let entry = socketConnectionBuckets.get(ip);
+  if (!entry || entry.reset <= now) {
+    entry = { count: 0, reset: now + 5 * 60 * 1000 };
+    if (socketConnectionBuckets.size >= MAX_SOCKET_CONNECTION_BUCKETS) {
+      for (const [key, value] of socketConnectionBuckets) {
+        if (value.reset <= now) socketConnectionBuckets.delete(key);
+        if (socketConnectionBuckets.size < MAX_SOCKET_CONNECTION_BUCKETS) break;
+      }
+    }
+    if (socketConnectionBuckets.size < MAX_SOCKET_CONNECTION_BUCKETS) socketConnectionBuckets.set(ip, entry);
+  }
+  entry.count += 1;
+  return entry.count <= 30;
+}
+
 io.use(async (socket, next) => {
   try {
+    const ip = String(socket.handshake.address || 'unknown');
+    if (!allowSocketConnection(ip)) return next(new Error('Too many connection attempts. Please try again later.'));
     const user = await getUserFromToken(socket.handshake.auth?.token);
     if (!user) return next(new Error('Authentication required or account unavailable.'));
+    const room = io.sockets.adapter.rooms.get(`user:${user.username}`);
+    if (room && room.size >= 5) return next(new Error('Too many active sessions for this account.'));
     socket.user = user;
     next();
   } catch { next(new Error('Invalid or expired token.')); }
 });
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of socketConnectionBuckets) if (v.reset <= now) socketConnectionBuckets.delete(k);
+}, 60000).unref();
 
 io.on('connection', socket => {
   socket.join(`user:${socket.user.username}`);
@@ -578,7 +635,7 @@ io.on('connection', socket => {
       if (!allowSocketMessage()) return callback?.({ success: false, error: 'Too many messages. Please slow down.' });
       const recipient = cleanUsername(data?.recipient);
       const text = String(data?.content || data?.text || '').trim();
-      if (!/^[a-z0-9_]{3,30}$/.test(recipient) || recipient === socket.user.username) return callback?.({ success: false, error: 'Invalid recipient.' });
+      if (!/^[a-z0-9_-]{3,30}$/.test(recipient) || recipient === socket.user.username) return callback?.({ success: false, error: 'Invalid recipient.' });
       if (!text || text.length > 2000) return callback?.({ success: false, error: 'Message must be 1-2000 characters.' });
       const exists = await User.exists({ username: recipient, isBanned: false });
       if (!exists) return callback?.({ success: false, error: 'Recipient not found.' });

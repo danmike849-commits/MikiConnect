@@ -47,3 +47,22 @@ The included legal documents are drafts/frameworks, not legal advice. They must 
 - Added a visible Settings center so backend capabilities are discoverable in the app.
 - Added account/email verification status, security controls, notifications, appearance preference, and privacy guidance.
 - Removed duplicate password controls from the main profile card.
+
+
+## Step 3 — Security / Abuse-Resistance Review (v2.4.0)
+
+### Findings addressed
+- **Rate-limit memory growth:** bounded in-memory buckets and fail-closed capacity handling.
+- **Unprotected read endpoints:** feed, profile, follower/following, and message history reads now have request limits.
+- **WebSocket abuse:** connection-attempt throttling plus a maximum of five active sessions per account.
+- **API caching:** API responses are marked `no-store` to reduce accidental caching of authenticated data.
+- **Browser hardening:** CSP baseline, CORP, Origin-Agent-Cluster, existing HSTS/frame/referrer protections retained.
+- **Report abuse:** duplicate open reports are rejected and targets are checked before a report is stored.
+- **Validation consistency:** username rules now match the product UI and DM validation.
+
+### Remaining architectural risks / next hardening targets
+1. In-memory rate limiting is suitable for the current single Render instance only; production horizontal scaling should use a shared rate-limit store.
+2. JWTs are currently stored in browser localStorage. This is workable for the current SPA/PWA but an httpOnly secure session-cookie architecture would reduce token theft impact from XSS.
+3. Posts embed comments and likes in one MongoDB document; high-volume growth should eventually normalize these collections or introduce bounded/paginated interaction storage.
+4. WebSocket message throttling is per socket; account/IP-level message quotas should be moved to shared storage when scaling.
+5. Add automated integration tests against a disposable MongoDB/CI environment before commercial launch.

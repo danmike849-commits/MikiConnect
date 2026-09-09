@@ -88,3 +88,14 @@
 - Fixed logout and invalid-session recovery to return to the minimal Welcome screen instead of exposing the login form.
 - Added a pageshow guard for mobile/PWA back-forward-cache cases.
 - Bumped the service-worker cache name so the updated authentication shell is picked up after deployment.
+
+## 2.4.0 — Security & abuse-resistance hardening
+
+- Added bounded in-memory rate-limit storage with fail-closed behavior when capacity is exhausted.
+- Added rate limits to previously unprotected public read endpoints and authenticated message-history reads.
+- Added Socket.IO connection-attempt throttling and a per-account concurrent-session limit.
+- Added API `Cache-Control: no-store` and additional browser security headers.
+- Added duplicate-open-report protection and validation that reported users/posts/comments exist.
+- Made username validation consistent with the UI by allowing hyphens.
+- Improved the registration error when verification email delivery fails so users are not told that account creation itself is broken.
+- Existing JWT, email verification, password reset, admin authorization, and XSS escaping flows remain intact.
