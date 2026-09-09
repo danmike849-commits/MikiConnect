@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: mikiconnect
+    runtime: node
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_URL
+        value: https://mikiconnect.onrender.com
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: CORS_ORIGIN
+        sync: false
+      - key: ALLOW_FIRST_ACCOUNT_ADMIN
+        value: "true"
+      - key: FIRST_ADMIN_EMAIL
+        value: mikedan849@gmail.com
+      - key: EMAIL_PROVIDER
+        value: resend
+      - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
