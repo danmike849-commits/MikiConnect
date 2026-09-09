@@ -90,6 +90,14 @@ const NotificationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now, index: true }
 }, { versionKey: false });
 
+const AdminAuditSchema = new mongoose.Schema({
+  actor: { type: String, required: true, maxlength: 30, index: true },
+  action: { type: String, required: true, maxlength: 80, index: true },
+  target: { type: String, default: '', maxlength: 100 },
+  details: { type: String, default: '', maxlength: 1000 },
+  createdAt: { type: Date, default: Date.now, index: true }
+}, { versionKey: false });
+
 const ReportSchema = new mongoose.Schema({
   reporter: { type: String, required: true, maxlength: 30, index: true },
   targetType: { type: String, enum: ['user', 'post', 'comment'], required: true },
@@ -104,6 +112,7 @@ const Post = mongoose.model('Post', PostSchema);
 const Message = mongoose.model('Message', MessageSchema);
 const Notification = mongoose.model('Notification', NotificationSchema);
 const Report = mongoose.model('Report', ReportSchema);
+const AdminAudit = mongoose.model('AdminAudit', AdminAuditSchema);
 
 function cleanEmail(value) { return String(value || '').trim().toLowerCase(); }
 function publicUser(user) {
@@ -195,6 +204,13 @@ async function authenticate(req, res, next) {
 function requireAdmin(req, res, next) {
   if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Admin access required.' });
   next();
+}
+function isProtectedOwner(user) {
+  return Boolean(config.firstAdminEmail && user?.email && cleanEmail(user.email) === config.firstAdminEmail);
+}
+async function recordAdminAction(actor, action, target = '', details = '') {
+  try { await AdminAudit.create({ actor, action, target, details: String(details).slice(0, 1000) }); }
+  catch (err) { console.error('Admin audit log error:', err.message); }
 }
 function asyncRoute(fn) { return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next); }
 
@@ -504,45 +520,95 @@ app.get('/api/messages/dm/:username', authenticate, rateLimit({ windowMs: 60 * 1
 }));
 
 app.get('/api/admin/stats', authenticate, requireAdmin, asyncRoute(async (req, res) => {
-  const [totalUsers, totalPosts, totalMessages, bannedUsers] = await Promise.all([User.countDocuments(), Post.countDocuments(), Message.countDocuments(), User.countDocuments({ isBanned: true })]);
-  res.json({ success: true, totalUsers, totalPosts, totalMessages, bannedUsers, activeSockets: io.engine.clientsCount });
+  const [totalUsers, totalPosts, totalMessages, bannedUsers, openReports, adminCount] = await Promise.all([
+    User.countDocuments(), Post.countDocuments(), Message.countDocuments(), User.countDocuments({ isBanned: true }),
+    Report.countDocuments({ status: 'open' }), User.countDocuments({ role: 'admin', isBanned: false })
+  ]);
+  res.json({ success: true, totalUsers, totalPosts, totalMessages, bannedUsers, openReports, adminCount, activeSockets: io.engine.clientsCount });
 }));
+
 app.get('/api/admin/users', authenticate, requireAdmin, asyncRoute(async (req, res) => {
-  const users = await User.find({}, 'username email role isBanned avatar bio createdAt').sort({ createdAt: -1 }).limit(500).lean();
-  res.json({ success: true, users });
+  const q = String(req.query.q || '').trim().toLowerCase().slice(0, 50);
+  const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 50));
+  const filter = q ? { $or: [{ username: { $regex: `^${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } }, { email: { $regex: `^${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } }] } : {};
+  const [users, total] = await Promise.all([
+    User.find(filter, 'username email role isBanned emailVerified avatar bio createdAt').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    User.countDocuments(filter)
+  ]);
+  res.json({ success: true, users, page, limit, total, hasMore: page * limit < total, ownerUsername: config.firstAdminEmail ? (await User.findOne({ email: config.firstAdminEmail }, 'username').lean())?.username || '' : '' });
 }));
+
 app.put('/api/admin/users/ban', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   const username = cleanUsername(req.body.username);
   if (!username || typeof req.body.isBanned !== 'boolean') return res.status(400).json({ error: 'username and boolean isBanned are required.' });
   if (username === req.user.username) return res.status(400).json({ error: 'You cannot change your own ban status.' });
-  const result = await User.updateOne({ username }, { $set: { isBanned: req.body.isBanned } });
-  if (!result.matchedCount) return res.status(404).json({ error: 'User not found.' });
-  if (req.body.isBanned) disconnectUserSockets(username);
+  const target = await User.findOne({ username });
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  if (isProtectedOwner(target)) return res.status(403).json({ error: 'The protected owner account cannot be banned.' });
+  if (target.role === 'admin' && req.body.isBanned) {
+    const activeAdmins = await User.countDocuments({ role: 'admin', isBanned: false });
+    if (activeAdmins <= 1) return res.status(409).json({ error: 'You cannot ban the last active administrator.' });
+  }
+  target.isBanned = req.body.isBanned;
+  target.tokenVersion += 1;
+  await target.save();
+  if (target.isBanned) disconnectUserSockets(username);
+  await recordAdminAction(req.user.username, target.isBanned ? 'ban_user' : 'unban_user', username);
   res.json({ success: true });
 }));
+
 app.put('/api/admin/users/role', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   const username = cleanUsername(req.body.username); const role = req.body.role;
   if (!username || !['user','admin'].includes(role)) return res.status(400).json({ error: 'Valid username and role are required.' });
   if (username === req.user.username && role !== 'admin') return res.status(400).json({ error: 'You cannot remove your own admin role.' });
-  const result = await User.updateOne({ username }, { $set: { role } });
-  if (!result.matchedCount) return res.status(404).json({ error: 'User not found.' });
+  const target = await User.findOne({ username });
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  if (isProtectedOwner(target) && role !== 'admin') return res.status(403).json({ error: 'The protected owner account must remain an administrator.' });
+  if (target.role === 'admin' && role === 'user') {
+    const activeAdmins = await User.countDocuments({ role: 'admin', isBanned: false });
+    if (activeAdmins <= 1) return res.status(409).json({ error: 'You cannot remove the last active administrator.' });
+  }
+  target.role = role;
+  target.tokenVersion += 1;
+  await target.save();
+  await recordAdminAction(req.user.username, role === 'admin' ? 'grant_admin' : 'remove_admin', username);
   res.json({ success: true });
 }));
+
 app.delete('/api/admin/users/:username', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   const username = cleanUsername(req.params.username);
   if (username === req.user.username) return res.status(400).json({ error: 'You cannot delete yourself.' });
-  const result = await User.deleteOne({ username });
-  if (!result.deletedCount) return res.status(404).json({ error: 'User not found.' });
-  await Post.deleteMany({ author: username });
-  await Message.deleteMany({ $or: [{ sender: username }, { recipient: username }] });
+  const target = await User.findOne({ username });
+  if (!target) return res.status(404).json({ error: 'User not found.' });
+  if (isProtectedOwner(target)) return res.status(403).json({ error: 'The protected owner account cannot be deleted.' });
+  if (target.role === 'admin') {
+    const activeAdmins = await User.countDocuments({ role: 'admin', isBanned: false });
+    if (activeAdmins <= 1) return res.status(409).json({ error: 'You cannot delete the last active administrator.' });
+  }
+  await User.deleteOne({ _id: target._id });
+  await Promise.all([
+    Post.deleteMany({ author: username }),
+    Message.deleteMany({ $or: [{ sender: username }, { recipient: username }] }),
+    Notification.deleteMany({ $or: [{ recipient: username }, { actor: username }] }),
+    Report.deleteMany({ reporter: username })
+  ]);
+  await Post.updateMany({}, { $pull: { likes: username, comments: { username } } });
+  await User.updateMany({}, { $pull: { followers: username, following: username } });
   disconnectUserSockets(username);
+  await recordAdminAction(req.user.username, 'delete_user', username, 'Deleted account and associated content/references.');
   res.json({ success: true });
 }));
 
 app.get('/api/admin/reports', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   const status = ['open', 'resolved', 'dismissed'].includes(req.query.status) ? req.query.status : 'open';
-  const reports = await Report.find({ status }).sort({ createdAt: -1 }).limit(200).lean();
-  res.json({ success: true, reports });
+  const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 50));
+  const [reports, total] = await Promise.all([
+    Report.find({ status }).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Report.countDocuments({ status })
+  ]);
+  res.json({ success: true, reports, page, limit, total, hasMore: page * limit < total });
 }));
 app.put('/api/admin/reports/:id', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Invalid report id.' });
@@ -550,23 +616,38 @@ app.put('/api/admin/reports/:id', authenticate, requireAdmin, asyncRoute(async (
   if (!['open', 'resolved', 'dismissed'].includes(status)) return res.status(400).json({ error: 'Invalid status.' });
   const report = await Report.findByIdAndUpdate(req.params.id, { status }, { new: true, runValidators: true }).lean();
   if (!report) return res.status(404).json({ error: 'Report not found.' });
+  await recordAdminAction(req.user.username, `report_${status}`, String(report._id), `${report.targetType}:${report.targetId}`);
   res.json({ success: true, report });
 }));
 
 app.get('/api/admin/messages', authenticate, requireAdmin, asyncRoute(async (req, res) => {
-  const messages = await Message.find().sort({ createdAt: -1 }).limit(200).lean();
-  res.json({ success: true, messages });
+  const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 50));
+  const [messages, total] = await Promise.all([
+    Message.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), Message.countDocuments()
+  ]);
+  res.json({ success: true, messages, page, limit, total, hasMore: page * limit < total });
 }));
 app.delete('/api/admin/messages/:id', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Invalid message id.' });
   const result = await Message.findByIdAndDelete(req.params.id);
   if (!result) return res.status(404).json({ error: 'Message not found.' });
+  await recordAdminAction(req.user.username, 'delete_message', String(result._id), `${result.sender}->${result.recipient || 'public'}`);
   res.json({ success: true });
 }));
-app.post('/api/admin/broadcast', authenticate, requireAdmin, asyncRoute(async (req, res) => {
+app.get('/api/admin/audit-log', authenticate, requireAdmin, asyncRoute(async (req, res) => {
+  const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
+  const limit = Math.max(1, Math.min(100, Number.parseInt(req.query.limit, 10) || 50));
+  const [entries, total] = await Promise.all([
+    AdminAudit.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), AdminAudit.countDocuments()
+  ]);
+  res.json({ success: true, entries, page, limit, total, hasMore: page * limit < total });
+}));
+app.post('/api/admin/broadcast', authenticate, requireAdmin, rateLimit({ windowMs: 60 * 1000, max: 10, key: req => `${req.ip}:admin-broadcast:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
   const message = String(req.body.message || '').trim();
   if (!message || message.length > 2000) return res.status(400).json({ error: 'Message must be 1-2000 characters.' });
   io.emit('systemAnnouncement', { text: message, sender: 'SYSTEM', id: crypto.randomUUID(), createdAt: new Date().toISOString() });
+  await recordAdminAction(req.user.username, 'broadcast', '', message);
   res.json({ success: true });
 }));
 
@@ -664,4 +745,4 @@ async function shutdown(signal) {
   await new Promise(resolve => server.close(() => resolve()));
   process.exit(0);
 }
-module.exports = { app, server, io, User, Post, Message, Notification, Report, signToken, cleanUsername, validatePassword, isValidUrl, safePublicUser, config, start, shutdown };
+module.exports = { app, server, io, User, Post, Message, Notification, Report, AdminAudit, signToken, cleanUsername, validatePassword, isValidUrl, safePublicUser, isProtectedOwner, config, start, shutdown };

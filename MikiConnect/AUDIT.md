@@ -66,3 +66,21 @@ The included legal documents are drafts/frameworks, not legal advice. They must 
 3. Posts embed comments and likes in one MongoDB document; high-volume growth should eventually normalize these collections or introduce bounded/paginated interaction storage.
 4. WebSocket message throttling is per socket; account/IP-level message quotas should be moved to shared storage when scaling.
 5. Add automated integration tests against a disposable MongoDB/CI environment before commercial launch.
+
+
+## Step 3 follow-up — Authorization & Admin Control
+
+### Completed in v2.4.1
+- Admin API authorization continues to be enforced server-side using a fresh database user lookup; client-supplied role claims are not trusted for authorization.
+- Protected owner account (configured by `FIRST_ADMIN_EMAIL`) from ban, demotion, or deletion.
+- Prevented removal/deletion/ban of the last active administrator.
+- Role and ban changes increment `tokenVersion`, invalidating existing sessions for the affected account.
+- Added `AdminAudit` records for privileged actions.
+- Admin list/search/report/message endpoints have bounded pagination.
+- Account deletion now removes associated content and relationship references.
+
+### Remaining architecture items
+- Browser access tokens still use `localStorage`; a future httpOnly secure-cookie session model would reduce token exposure to XSS.
+- In-memory rate limiting remains suitable for the current single-instance deployment but should move to a shared store before multi-instance scaling.
+- Message moderation access should be covered by an explicit privacy/moderation policy before commercial launch.
+- Larger-scale social interactions may eventually require normalized collections rather than growing arrays inside post/user documents.

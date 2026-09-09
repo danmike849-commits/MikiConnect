@@ -99,3 +99,15 @@
 - Made username validation consistent with the UI by allowing hyphens.
 - Improved the registration error when verification email delivery fails so users are not told that account creation itself is broken.
 - Existing JWT, email verification, password reset, admin authorization, and XSS escaping flows remain intact.
+
+
+## 2.4.1 — Authorization & Admin Control Hardening
+
+- Hardened administrator ban, role-change, and deletion actions.
+- Protected the configured owner/first-admin account from accidental ban, demotion, or deletion.
+- Prevented actions that would leave the platform without an active administrator.
+- Revoked active tokens when an administrator changes another user's role or ban state.
+- Added administrator audit logging for moderation and platform-control actions.
+- Added paginated/searchable admin user, report, and message APIs.
+- Expanded the admin control panel with user search, moderation messages, report status filters, platform statistics, and audit history.
+- Added cleanup of notifications, follows, likes, comments, messages, posts, and reports when an account is deleted.
