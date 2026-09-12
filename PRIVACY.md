@@ -1,7 +1,7 @@
 # MikiConnect Privacy Notice — Draft
 
 **Owner:** Mika Daniel (MIKI)
-**Contact:** mikedan849@gmail.com
+**Contact:** danmike849@gmail.com
 **Effective date:** To be completed before public launch
 
 This draft describes the categories of information MikiConnect may process. It must be reviewed and adapted to the actual business, hosting providers, legal requirements, retention practices, and jurisdiction before publication.
@@ -26,6 +26,6 @@ Retention periods should be documented before launch. Users should be given a cl
 MikiConnect uses password hashing, expiring single-use email tokens, JWT session controls, rate limiting, server-side authorization, and transport/security headers. No security system guarantees absolute security.
 
 ## Contact
-Privacy requests may be sent to mikedan849@gmail.com.
+Privacy requests may be sent to danmike849@gmail.com.
 
 **Legal review required before publication.**

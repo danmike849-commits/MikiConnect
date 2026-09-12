@@ -22,6 +22,8 @@ MikiConnect is a Node.js/Express/MongoDB/Socket.io community application with JW
 For development, `npm run dev` currently runs the same server command. Add a file-watching tool later if desired.
 
 ## Environment variables
+
+`OWNER_EMAIL` is the private platform-owner account. `PLATFORM_USERNAME` is the public official MikiConnect account used for platform announcements. These identities should be separate. The migration script does not automatically delete legacy accounts.
 - `NODE_ENV` — `development` or `production`.
 - `PORT` — server port; Render supplies this automatically.
 - `MONGO_URI` — MongoDB Atlas connection string.
@@ -29,7 +31,7 @@ For development, `npm run dev` currently runs the same server command. Add a fil
 - `JWT_EXPIRES_IN` — JWT lifetime, e.g. `24h`.
 - `CORS_ORIGIN` — optional comma-separated allowed origins. Prefer the production site URL rather than `*`.
 - `ALLOW_FIRST_ACCOUNT_ADMIN` — enables initial-admin bootstrap. Pair it with `FIRST_ADMIN_EMAIL` so only the owner email can receive the first-admin role.
-- `FIRST_ADMIN_EMAIL` — owner email allowed to receive the initial admin role (`mikedan849@gmail.com` in the owner configuration).
+- `FIRST_ADMIN_EMAIL` — owner email allowed to receive the initial admin role (`danmike849@gmail.com` in the owner configuration).
 - `APP_URL` — public application URL used in verification and password-reset links.
 - `EMAIL_PROVIDER` — currently `resend`.
 - `EMAIL_FROM` — verified sender identity for transactional mail.

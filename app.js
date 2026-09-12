@@ -28,6 +28,8 @@ const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   allowFirstAdmin: process.env.ALLOW_FIRST_ACCOUNT_ADMIN === 'true',
   firstAdminEmail: String(process.env.FIRST_ADMIN_EMAIL || '').trim().toLowerCase(),
+  ownerEmail: String(process.env.OWNER_EMAIL || process.env.FIRST_ADMIN_EMAIL || '').trim().toLowerCase(),
+  platformUsername: cleanEmail(process.env.PLATFORM_USERNAME || 'MikiConnect'),
   appUrl: String(process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, ''),
   emailProvider: String(process.env.EMAIL_PROVIDER || 'resend').toLowerCase(),
   emailFrom: process.env.EMAIL_FROM || '',
@@ -121,6 +123,9 @@ function publicUser(user) {
 function safePublicUser(user) {
   return { id: String(user._id), username: user.username, avatar: user.avatar || '', bio: user.bio || '', followersCount: user.followers?.length || 0, followingCount: user.following?.length || 0, createdAt: user.createdAt };
 }
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '': '&#39;', '"': '&quot;' }[ch]));
+}
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
@@ -130,11 +135,11 @@ function makeToken() {
 function emailConfigured() {
   return config.emailProvider === 'resend' && Boolean(config.resendApiKey) && Boolean(config.emailFrom);
 }
-function sendResendEmail({ to, subject, html }) {
+function sendResendEmail({ to, subject, html, text }) {
   return new Promise((resolve, reject) => {
     if (!emailConfigured()) return reject(new Error('Transactional email is not configured.'));
-    const text = String(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    const payload = JSON.stringify({ from: config.emailFrom, to: [to], subject, html, text });
+    const plainText = text || String(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const payload = JSON.stringify({ from: config.emailFrom, to: [to], subject, html, text: plainText });
     const req = https.request({
       hostname: 'api.resend.com', path: '/emails', method: 'POST',
       headers: { Authorization: `Bearer ${config.resendApiKey}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }, timeout: 10000
@@ -151,8 +156,8 @@ function sendResendEmail({ to, subject, html }) {
     req.write(payload); req.end();
   });
 }
-function sendEmail({ to, subject, html }) {
-  if (config.emailProvider === 'resend') return sendResendEmail({ to, subject, html });
+function sendEmail({ to, subject, html, text }) {
+  if (config.emailProvider === 'resend') return sendResendEmail({ to, subject, html, text });
   return Promise.reject(new Error(`Unsupported email provider: ${config.emailProvider}`));
 }
 function verificationUrl(token) { return `${config.appUrl}/verify.html?token=${encodeURIComponent(token)}`; }
@@ -162,7 +167,17 @@ async function issueVerificationEmail(user) {
   await User.updateOne({ _id: user._id }, { $set: { emailVerificationTokenHash: hashToken(token), emailVerificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) } });
   try {
     const url = verificationUrl(token);
-    await sendEmail({ to: user.email, subject: 'Verify your MikiConnect email', html: `<!doctype html><html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#172033"><h2>Welcome to MikiConnect</h2><p>Hello @${user.username},</p><p>Please verify your email address to activate your MikiConnect account.</p><p><a href="${url}" style="display:inline-block;padding:12px 20px;background:#4f7cff;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Verify my email</a></p><p>If the button does not work, copy and paste this link into your browser:</p><p style="word-break:break-all">${url}</p><p>This verification link expires in 24 hours and can only be used once.</p><p>If you did not create this account, you can ignore this email.</p></body></html>` });
+    await sendEmail({ to: user.email, subject: 'Verify your MikiConnect email', html: `<!doctype html><html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#172033"><h2>Welcome to MikiConnect</h2><p>Hello @${escapeHtml(user.username)},</p><p>Please verify your email address to activate your MikiConnect account.</p><p><a href="${url}" style="display:inline-block;padding:12px 20px;background:#4f7cff;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Verify my email</a></p><p>If the button does not work, copy and paste this link into your browser:</p><p style="word-break:break-all">${url}</p><p>This verification link expires in 24 hours and can only be used once.</p><p>If you did not create this account, you can ignore this email.</p></body></html>`, text: `Welcome to MikiConnect
+
+Hello @${user.username},
+
+Please verify your email address to activate your MikiConnect account.
+
+Verify your email: ${url}
+
+This verification link expires in 24 hours and can only be used once.
+
+If you did not create this account, you can ignore this email.` });
   } catch (err) {
     await User.updateOne({ _id: user._id }, { $unset: { emailVerificationTokenHash: 1, emailVerificationExpiresAt: 1 } });
     throw err;
@@ -172,7 +187,18 @@ async function issuePasswordResetEmail(user) {
   const token = makeToken();
   await User.updateOne({ _id: user._id }, { $set: { passwordResetTokenHash: hashToken(token), passwordResetExpiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
   try {
-    await sendEmail({ to: user.email, subject: 'Reset your MikiConnect password', html: `<p>Hello @${user.username},</p><p>A password reset was requested for your MikiConnect account.</p><p><a href="${resetUrl(token)}">Reset my password</a></p><p>This link expires in 1 hour and can only be used once.</p><p>If you did not request this, you can safely ignore this email.</p>` });
+    const url = resetUrl(token);
+    await sendEmail({ to: user.email, subject: 'Reset your MikiConnect password', html: `<!doctype html><html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#172033"><h2>Reset your MikiConnect password</h2><p>Hello @${escapeHtml(user.username)},</p><p>A password reset was requested for your MikiConnect account.</p><p><a href="${url}" style="display:inline-block;padding:12px 20px;background:#4f7cff;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Reset my password</a></p><p>If the button does not work, copy and paste this link into your browser:</p><p style="word-break:break-all">${url}</p><p>This link expires in 1 hour and can only be used once.</p><p>If you did not request this, you can safely ignore this email.</p></body></html>`, text: `Reset your MikiConnect password
+
+Hello @${user.username},
+
+A password reset was requested for your MikiConnect account.
+
+Reset your password: ${url}
+
+This link expires in 1 hour and can only be used once.
+
+If you did not request this, you can safely ignore this email.` });
   } catch (err) {
     await User.updateOne({ _id: user._id }, { $unset: { passwordResetTokenHash: 1, passwordResetExpiresAt: 1 } });
     throw err;
@@ -235,7 +261,9 @@ function requireAdmin(req, res, next) {
   next();
 }
 function isProtectedOwner(user) {
-  return Boolean(config.firstAdminEmail && user?.email && cleanEmail(user.email) === config.firstAdminEmail);
+  const emailProtected = Boolean(config.ownerEmail && user?.email && cleanEmail(user.email) === config.ownerEmail);
+  const platformProtected = Boolean(config.platformUsername && user?.username && cleanUsername(user.username) === config.platformUsername);
+  return emailProtected || platformProtected;
 }
 async function recordAdminAction(actor, action, target = '', details = '') {
   try { await AdminAudit.create({ actor, action, target, details: String(details).slice(0, 1000) }); }
@@ -315,7 +343,7 @@ app.post('/api/register', rateLimit({ windowMs: 15*60*1000, max: 10 }), asyncRou
   const [usernameExists, emailExists] = await Promise.all([User.exists({ username }), User.exists({ email })]);
   if (usernameExists || emailExists) return res.status(409).json({ error: 'Username or email is already in use.' });
   const firstAccount = (await User.countDocuments()) === 0;
-  const role = firstAccount && config.allowFirstAdmin && (!config.firstAdminEmail || email === config.firstAdminEmail) ? 'admin' : 'user';
+  const role = firstAccount && config.allowFirstAdmin && (!config.ownerEmail || email === config.ownerEmail) ? 'admin' : 'user';
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await User.create({ username, email, password: passwordHash, avatar, role, emailVerified: false });
   try {
@@ -569,7 +597,7 @@ app.get('/api/admin/users', authenticate, requireAdmin, asyncRoute(async (req, r
     User.find(filter, 'username email role isBanned emailVerified avatar bio createdAt').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
     User.countDocuments(filter)
   ]);
-  res.json({ success: true, users, page, limit, total, hasMore: page * limit < total, ownerUsername: config.firstAdminEmail ? (await User.findOne({ email: config.firstAdminEmail }, 'username').lean())?.username || '' : '' });
+  res.json({ success: true, users, page, limit, total, hasMore: page * limit < total, ownerUsername: config.ownerEmail ? (await User.findOne({ email: config.ownerEmail }, 'username').lean())?.username || '' : '', platformUsername: config.platformUsername });
 }));
 
 app.put('/api/admin/users/ban', authenticate, requireAdmin, asyncRoute(async (req, res) => {
@@ -679,7 +707,7 @@ app.get('/api/admin/audit-log', authenticate, requireAdmin, asyncRoute(async (re
 app.post('/api/admin/broadcast', authenticate, requireAdmin, rateLimit({ windowMs: 60 * 1000, max: 10, key: req => `${req.ip}:admin-broadcast:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
   const message = String(req.body.message || '').trim();
   if (!message || message.length > 2000) return res.status(400).json({ error: 'Message must be 1-2000 characters.' });
-  io.emit('systemAnnouncement', { text: message, sender: 'SYSTEM', id: crypto.randomUUID(), createdAt: new Date().toISOString() });
+  io.emit('systemAnnouncement', { text: message, sender: config.platformUsername || 'MikiConnect', id: crypto.randomUUID(), createdAt: new Date().toISOString() });
   await recordAdminAction(req.user.username, 'broadcast', '', message);
   res.json({ success: true });
 }));

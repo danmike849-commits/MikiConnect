@@ -1,3 +1,18 @@
+# MikiConnect v2.5.5
+
+- Hardened password-reset emails with a prominent reset button and visible fallback URL.
+- Added explicit plain-text reset and verification email bodies so email clients that strip HTML still provide a usable link.
+- Escapes usernames when inserting them into transactional email HTML.
+- Keeps password-reset tokens hashed, single-use and time-limited.
+
+# MikiConnect v2.5.4
+
+- Separates private platform owner identity from the public official MikiConnect account.
+- Protects both the configured owner account and the official platform account from admin ban/demotion/deletion.
+- Admin broadcasts are attributed to the configured official platform username instead of a generic SYSTEM sender.
+- Adds OWNER_EMAIL and PLATFORM_USERNAME configuration.
+- Keeps the owner migration non-destructive; the legacy email account is not deleted automatically.
+
 ## 2.5.2
 - Fixed authentication controls becoming unresponsive due to a missing Admin Settings element causing frontend initialization to stop.
 - Added the Admin Control Panel entry inside Settings for admin users.
@@ -127,3 +142,8 @@
 - Added same-origin protection for browser state-changing API requests.
 - Admin panel now uses the secure session cookie instead of localStorage tokens.
 - Existing token-version invalidation continues to revoke sessions after password, ban, role, or account changes.
+
+## 2.5.3 — Owner Email Migration Preparation
+- Updated MikiConnect owner/admin configuration and support contact to `danmike849@gmail.com`.
+- Added a one-time owner migration script that promotes the existing `danmike849@gmail.com` account, invalidates its existing sessions, and removes the old `mikedan849@gmail.com` account when present.
+- Kept third-party license boundaries unchanged.

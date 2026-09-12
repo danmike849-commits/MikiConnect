@@ -1,7 +1,7 @@
 # MikiConnect Terms of Use — Draft
 
 **Owner:** Mika Daniel (MIKI)
-**Contact:** mikedan849@gmail.com
+**Contact:** danmike849@gmail.com
 **Effective date:** To be completed before public launch
 
 This is a commercial product-policy draft, not legal advice. It must be reviewed by qualified counsel before publication or commercial licensing.

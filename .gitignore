@@ -15,5 +15,5 @@ build/
 .vscode/
 .idea/
 
-# Local database backups — never commit production/user data
+# Local database backups
 backups/

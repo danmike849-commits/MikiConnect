@@ -22,7 +22,11 @@ services:
       - key: ALLOW_FIRST_ACCOUNT_ADMIN
         value: "true"
       - key: FIRST_ADMIN_EMAIL
-        value: mikedan849@gmail.com
+        value: danmike849@gmail.com
+      - key: OWNER_EMAIL
+        value: danmike849@gmail.com
+      - key: PLATFORM_USERNAME
+        value: mikiconnect
       - key: EMAIL_PROVIDER
         value: resend
       - key: EMAIL_FROM

@@ -29,7 +29,7 @@ Product: **MikiConnect**
 1. Create/configure a transactional email provider account (Resend recommended).
 2. Verify a sending domain and set `EMAIL_FROM`.
 3. Add `RESEND_API_KEY`, `EMAIL_FROM`, `APP_URL`, `MONGO_URI`, and `JWT_SECRET` to Render environment variables. Render recommends environment variables/secrets for credentials rather than committing them.
-4. Keep `FIRST_ADMIN_EMAIL=mikedan849@gmail.com` if Mika should be the only person eligible for initial admin bootstrap.
+4. Keep `FIRST_ADMIN_EMAIL=danmike849@gmail.com` if Mika should be the only person eligible for initial admin bootstrap.
 5. Run `npm audit --omit=dev` from a networked environment and review the complete dependency tree.
 6. Review every third-party asset/source contribution and document its license.
 7. Have the commercial license, privacy notice, terms, and any data-processing disclosures reviewed by qualified Nigerian counsel before commercial launch.
