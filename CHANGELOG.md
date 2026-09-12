@@ -1,3 +1,9 @@
+# Changelog
+
+## 2.5.6 - Password reset request fix
+- Fixed the password reset form sending `password` instead of the API's expected `newPassword` field.
+- Verified the reset flow request matches the backend contract.
+
 # MikiConnect v2.5.5
 
 - Hardened password-reset emails with a prominent reset button and visible fallback URL.
