@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.7 - Password reset contract and timeout fix
+- Corrected the password reset form to send the backend's expected `password` field.
+- Added a regression test for the frontend/backend reset contract.
+- Added a 75-second request timeout with a clear recovery message for slow or sleeping production instances.
+
+
+
 ## 2.5.6 - Password reset request fix
 - Fixed the password reset form sending `password` instead of the API's expected `newPassword` field.
 - Verified the reset flow request matches the backend contract.
