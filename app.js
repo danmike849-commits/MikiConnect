@@ -408,11 +408,18 @@ app.post('/api/reset-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, k
   if (!/^[a-f0-9]{64}$/.test(token) || !validatePassword(password)) return res.status(400).json({ error: 'Invalid reset request or password.' });
   const user = await User.findOne({ passwordResetTokenHash: hashToken(token), passwordResetExpiresAt: { $gt: new Date() } }).select('+passwordResetTokenHash +passwordResetExpiresAt');
   if (!user || user.isBanned || !user.emailVerified) return res.status(400).json({ error: 'Invalid or expired reset link.' });
-  user.password = await bcrypt.hash(password, 12);
-  user.passwordResetTokenHash = '';
-  user.passwordResetExpiresAt = null;
-  user.tokenVersion += 1;
-  await user.save();
+  const hashed = await bcrypt.hash(password, 12);
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        password: hashed,
+        passwordResetTokenHash: '',
+        passwordResetExpiresAt: null,
+        tokenVersion: (user.tokenVersion || 0) + 1
+      }
+    }
+  );
   res.json({ success: true, message: 'Password reset successfully. Please log in with your new password.' });
 }));
 

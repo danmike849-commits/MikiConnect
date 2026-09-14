@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.8 - Password reset validation fix
+
+Fixed password reset failing on accounts with uppercase usernames (e.g. ADMIN) by using updateOne instead of save() to avoid re-validating the entire user document.
+
+
 ## 2.5.7 - Password reset contract and timeout fix
 - Corrected the password reset form to send the backend's expected `password` field.
 - Added a regression test for the frontend/backend reset contract.
