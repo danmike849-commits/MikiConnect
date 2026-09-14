@@ -611,7 +611,7 @@ app.put('/api/admin/users/ban', authenticate, requireAdmin, asyncRoute(async (re
   const username = cleanUsername(req.body.username);
   if (!username || typeof req.body.isBanned !== 'boolean') return res.status(400).json({ error: 'username and boolean isBanned are required.' });
   if (username === req.user.username) return res.status(400).json({ error: 'You cannot change your own ban status.' });
-  const target = await User.findOne({ username });
+  const target = await User.findOne({ username: new RegExp('^' + username + '$', 'i') });
   if (!target) return res.status(404).json({ error: 'User not found.' });
   if (isProtectedOwner(target)) return res.status(403).json({ error: 'The protected owner account cannot be banned.' });
   if (target.role === 'admin' && req.body.isBanned) {
@@ -630,7 +630,7 @@ app.put('/api/admin/users/role', authenticate, requireAdmin, asyncRoute(async (r
   const username = cleanUsername(req.body.username); const role = req.body.role;
   if (!username || !['user','admin'].includes(role)) return res.status(400).json({ error: 'Valid username and role are required.' });
   if (username === req.user.username && role !== 'admin') return res.status(400).json({ error: 'You cannot remove your own admin role.' });
-  const target = await User.findOne({ username });
+  const target = await User.findOne({ username: new RegExp('^' + username + '$', 'i') });
   if (!target) return res.status(404).json({ error: 'User not found.' });
   if (isProtectedOwner(target) && role !== 'admin') return res.status(403).json({ error: 'The protected owner account must remain an administrator.' });
   if (target.role === 'admin' && role === 'user') {
@@ -647,7 +647,7 @@ app.put('/api/admin/users/role', authenticate, requireAdmin, asyncRoute(async (r
 app.delete('/api/admin/users/:username', authenticate, requireAdmin, asyncRoute(async (req, res) => {
   const username = cleanUsername(req.params.username);
   if (username === req.user.username) return res.status(400).json({ error: 'You cannot delete yourself.' });
-  const target = await User.findOne({ username });
+  const target = await User.findOne({ username: new RegExp('^' + username + '$', 'i') });
   if (!target) return res.status(404).json({ error: 'User not found.' });
   if (isProtectedOwner(target)) return res.status(403).json({ error: 'The protected owner account cannot be deleted.' });
   if (target.role === 'admin') {
