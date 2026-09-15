@@ -357,13 +357,32 @@ app.post('/api/register', rateLimit({ windowMs: 15*60*1000, max: 10 }), asyncRou
 }));
 
 app.post('/api/login', rateLimit({ windowMs: 15*60*1000, max: 20, key: req => `${req.ip}:login` }), asyncRoute(async (req, res) => {
-  const identifier = cleanUsername(req.body.username || req.body.identifier);
+  const rawIdentifier = String(req.body.username || req.body.identifier || '').trim();
   const password = req.body.password;
-  if (!identifier || !validatePassword(password)) return res.status(400).json({ error: 'Username and password are required.' });
-  const user = await User.findOne({ $or: [{ username: identifier }, { email: cleanEmail(identifier) }] }).select('+password');
-  if (!user || user.isBanned) return res.status(401).json({ error: 'Invalid credentials.' });
-  if (!(await bcrypt.compare(password, user.password))) return res.status(401).json({ error: 'Invalid credentials.' });
-  if (!user.emailVerified) return res.status(403).json({ error: 'Your email is not verified yet. Check your inbox or spam folder for the MikiConnect verification email, then click the Verify my email button. You can also use Resend verification email below.' });
+
+  if (!rawIdentifier || !validatePassword(password)) {
+    return res.status(400).json({ error: 'Username and password are required.' });
+  }
+
+  const isEmailLogin = rawIdentifier.includes('@');
+  const lookup = isEmailLogin
+    ? { email: cleanEmail(rawIdentifier) }
+    : { username: cleanUsername(rawIdentifier) };
+
+  const user = await User.findOne(lookup).select('+password');
+
+  if (!user || user.isBanned) {
+    return res.status(401).json({ error: 'Invalid credentials.' });
+  }
+
+  if (!user.password || !(await bcrypt.compare(password, user.password))) {
+    return res.status(401).json({ error: 'Invalid credentials.' });
+  }
+
+  if (!user.emailVerified) {
+    return res.status(403).json({ error: 'Your email is not verified yet. Check your inbox or spam folder for the MikiConnect verification email, then click the Verify my email button. You can also use Resend verification email below.' });
+  }
+
   setSessionCookie(res, signToken(user));
   res.json({ success: true, user: publicUser(user) });
 }));
