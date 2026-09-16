@@ -354,7 +354,7 @@ app.post('/api/register', rateLimit({ windowMs: 15*60*1000, max: 10 }), asyncRou
     await issueVerificationEmail(user);
   } catch (err) {
     console.error('Verification email error (non-blocking):', err.message);
-    user.isVerified = true;
+    user.emailVerified = true;
     await user.save();
   }
   res.status(201).json({ success: true, requiresEmailVerification: true, message: 'Account created. Check your email to verify your account before logging in.' });
