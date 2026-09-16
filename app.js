@@ -371,7 +371,7 @@ app.post('/api/login', rateLimit({ windowMs: 15*60*1000, max: 20, key: req => `$
   const isEmailLogin = rawIdentifier.includes('@');
   const lookup = isEmailLogin
     ? { email: cleanEmail(rawIdentifier) }
-    : { username: new RegExp("^" + rawIdentifier.replace(/[.*+?^${}()|[\]\\]/g, "\\: { username: cleanUsername(rawIdentifier) };") + "$", "i") };
+    : { username: { $regex: "^" + rawIdentifier.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\: { username: new RegExp("^" + rawIdentifier.replace(/[.*+?^${}()|[\]\\]/g, "\\: { username: cleanUsername(rawIdentifier) };") + "$", $options: "i" } };") + "$", "i") };
 
   const user = await User.findOne(lookup).select('+password');
 
