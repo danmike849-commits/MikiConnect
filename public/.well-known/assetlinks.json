@@ -5,7 +5,7 @@
       "namespace": "android_app",
       "package_name": "com.mikiconnect.app",
       "sha256_cert_fingerprints": [
-        "YOUR_SHA256_FINGERPRINT_HERE"
+        "YOUR_ACTUAL_SHA256_FINGERPRINT"
       ]
     }
   }
