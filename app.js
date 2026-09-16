@@ -12,6 +12,7 @@ const https = require('https');
 const { cleanUsername, validatePassword, isValidUrl } = require('./utils/validation');
 
 const app = express();
+const paymentRoutes = require('./backend/routes/payment');
 const server = http.createServer(app);
 const allowedOrigins = String(process.env.CORS_ORIGIN || '').split(',').map(v => v.trim()).filter(Boolean);
 const corsOptions = allowedOrigins.length ? { origin: allowedOrigins, credentials: true } : undefined;
@@ -42,6 +43,9 @@ function validateConfig() {
 }
 
 const UserSchema = new mongoose.Schema({
+  subscriptionTier: { type: String, enum: ['Free', 'Pro', 'Business'], default: 'Free' },
+  subscriptionStatus: { type: String, enum: ['active', 'inactive', 'cancelled'], default: 'inactive' },
+  flutterwaveCustomerRef: { type: String, default: null },
   username: { type: String, required: true, unique: true, trim: true, lowercase: true, minlength: 3, maxlength: 30, match: /^[a-z0-9_-]+$/ },
   email: { type: String, required: true, unique: true, trim: true, lowercase: true, maxlength: 254, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
   password: { type: String, required: true, select: false },
@@ -367,7 +371,7 @@ app.post('/api/login', rateLimit({ windowMs: 15*60*1000, max: 20, key: req => `$
   const isEmailLogin = rawIdentifier.includes('@');
   const lookup = isEmailLogin
     ? { email: cleanEmail(rawIdentifier) }
-    : { username: cleanUsername(rawIdentifier) };
+    : { username: new RegExp("^" + rawIdentifier.replace(/[.*+?^${}()|[\]\\]/g, "\\: { username: cleanUsername(rawIdentifier) };") + "$", "i") };
 
   const user = await User.findOne(lookup).select('+password');
 
@@ -818,12 +822,15 @@ io.on('connection', socket => {
 });
 
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+app.use('/api/payments', paymentRoutes);
+app.use('/api/payment', paymentRoutes);
+
 app.use((req, res, next) => { if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found.' }); next(); });
 app.use((err, req, res, next) => { console.error('Unhandled error:', err); if (res.headersSent) return next(err); res.status(err.name === 'ValidationError' ? 400 : 500).json({ error: err.name === 'ValidationError' ? 'Invalid request data.' : 'Internal server error.' }); });
 
 async function start() {
   validateConfig();
-  await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 10000 });
+  await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 30000 });
   console.log('MongoDB connected.');
   return new Promise(resolve => server.listen(config.port, '0.0.0.0', () => { console.log(`MikiConnect listening on ${config.port}`); resolve(); }));
 }
