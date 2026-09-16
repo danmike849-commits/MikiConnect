@@ -353,9 +353,7 @@ app.post('/api/register', rateLimit({ windowMs: 15*60*1000, max: 10 }), asyncRou
   try {
     await issueVerificationEmail(user);
   } catch (err) {
-    await User.deleteOne({ _id: user._id });
-    console.error('Verification email error:', err.message);
-    return res.status(503).json({ error: 'We could not send the verification email, so the account was not created. Please try again later or contact support.' });
+    console.error('Verification email error (non-blocking):', err.message);
   }
   res.status(201).json({ success: true, requiresEmailVerification: true, message: 'Account created. Check your email to verify your account before logging in.' });
 }));
