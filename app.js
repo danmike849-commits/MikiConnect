@@ -821,7 +821,7 @@ io.on('connection', socket => {
   });
 });
 
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"], dotfiles: "allow" }));
 app.use('/api/payments', paymentRoutes);
 app.use('/api/payment', paymentRoutes);
 
