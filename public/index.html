@@ -329,31 +329,45 @@
     });
 
     async function requestForgotPassword() {
-      const identifier = document.getElementById('username').value.trim();
-      if (!identifier) return showStatus('Enter username or email above first', true);
+      const identifier = prompt("Enter the email address or username you used to register:");
+      if (!identifier) return;
 
-      showStatus('Sending password reset request...', false);
-      const res = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier })
-      });
-      const data = await res.json();
-      showStatus(data.message || data.error, !res.ok);
+      try {
+        const res = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`✅ Accepted!\n\n${data.message}`);
+        } else {
+          alert(`❌ Rejected!\n\n${data.error || 'Account not found or request failed.'}`);
+        }
+      } catch (err) {
+        alert("❌ Network Error: Unable to connect to server.");
+      }
     }
 
     async function requestResendVerification() {
-      const identifier = document.getElementById('username').value.trim();
-      if (!identifier) return showStatus('Enter username or email above first', true);
+      const identifier = prompt("Enter your email address to resend the verification link:");
+      if (!identifier) return;
 
-      showStatus('Sending verification request...', false);
-      const res = await fetch('/api/auth/resend-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier })
-      });
-      const data = await res.json();
-      showStatus(data.message || data.error, !res.ok);
+      try {
+        const res = await fetch('/api/auth/resend-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`✅ Accepted!\n\n${data.message}`);
+        } else {
+          alert(`❌ Rejected!\n\n${data.error || 'Verification request failed.'}`);
+        }
+      } catch (err) {
+        alert("❌ Network Error: Unable to connect to server.");
+      }
     }
 
     function initData() {
