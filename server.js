@@ -20,17 +20,17 @@ const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER || 'danmike849@gmail.com',
-    pass: process.env.EMAIL_PASS // Gmail App Password configured in Render env
+    pass: process.env.EMAIL_PASS
   }
 });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MONGOOSE SCHEMAS WITH VERIFICATION & RESET FIELDS
+// MONGOOSE SCHEMAS
 const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String },
+  username: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  email: { type: String, lowercase: true, trim: true },
   password: { type: String, required: true },
   isVerified: { type: Boolean, default: false },
   resetToken: { type: String },
@@ -60,17 +60,25 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// API ROUTES
+// API ROUTES WITH CASE-INSENSITIVE LOOKUPS
 app.post('/api/auth/register-or-login', async (req, res) => {
-  const { username, password } = req.body;
+  let { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username/Email and password required' });
 
+  username = username.toLowerCase().trim();
+
   try {
-    let user = await User.findOne({ $or: [{ username }, { email: username }] });
+    let user = await User.findOne({
+      $or: [
+        { username: new RegExp(`^${username}$`, 'i') },
+        { email: new RegExp(`^${username}$`, 'i') }
+      ]
+    });
+
     if (!user) {
       const hashedPassword = await bcrypt.hash(password, 10);
       user = new User({ 
-        username, 
+        username: username, 
         email: username.includes('@') ? username : `${username}@mikiconnect.app`, 
         password: hashedPassword 
       });
@@ -83,60 +91,76 @@ app.post('/api/auth/register-or-login', async (req, res) => {
     const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, username: user.username });
   } catch (err) {
-    res.status(500).json({ error: 'Database authentication error' });
+    res.status(500).json({ error: 'Database authentication error: ' + err.message });
   }
 });
 
-// FORGOT PASSWORD ENDPOINT
+// FORGOT PASSWORD ENDPOINT (CASE INSENSITIVE)
 app.post('/api/auth/forgot-password', async (req, res) => {
-  const { identifier } = req.body;
+  let { identifier } = req.body;
   if (!identifier) return res.status(400).json({ error: 'Provide username or email' });
 
+  identifier = identifier.toLowerCase().trim();
+
   try {
-    const user = await User.findOne({ $or: [{ username: identifier }, { email: identifier }] });
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await User.findOne({
+      $or: [
+        { username: new RegExp(`^${identifier}$`, 'i') },
+        { email: new RegExp(`^${identifier}$`, 'i') }
+      ]
+    });
+
+    if (!user) return res.status(404).json({ error: 'User account not found' });
 
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetToken = resetCode;
-    user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
+    user.resetTokenExpiry = Date.now() + 3600000;
     await user.save();
 
     if (process.env.EMAIL_PASS) {
       await transporter.sendMail({
         from: '"MikiConnect Support" <danmike849@gmail.com>',
-        to: user.email,
+        to: user.email || 'danmike849@gmail.com',
         subject: 'MikiConnect - Password Reset Code',
         text: `Your password reset code is: ${resetCode}`
       });
     }
 
-    res.json({ message: 'Password reset code sent to your email', resetCode });
+    res.json({ message: 'Password reset code sent successfully', resetCode });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to process password reset' });
+    res.status(500).json({ error: 'Failed to process password reset: ' + err.message });
   }
 });
 
-// RESEND VERIFICATION EMAIL ENDPOINT
+// RESEND VERIFICATION EMAIL ENDPOINT (CASE INSENSITIVE)
 app.post('/api/auth/resend-verification', async (req, res) => {
-  const { identifier } = req.body;
+  let { identifier } = req.body;
   if (!identifier) return res.status(400).json({ error: 'Provide username or email' });
 
+  identifier = identifier.toLowerCase().trim();
+
   try {
-    const user = await User.findOne({ $or: [{ username: identifier }, { email: identifier }] });
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await User.findOne({
+      $or: [
+        { username: new RegExp(`^${identifier}$`, 'i') },
+        { email: new RegExp(`^${identifier}$`, 'i') }
+      ]
+    });
+
+    if (!user) return res.status(404).json({ error: 'User account not found' });
 
     if (process.env.EMAIL_PASS) {
       await transporter.sendMail({
         from: '"MikiConnect Support" <danmike849@gmail.com>',
-        to: user.email,
+        to: user.email || 'danmike849@gmail.com',
         subject: 'MikiConnect - Verify Your Account',
-        text: `Welcome to MikiConnect! Your account email is verified.`
+        text: `Welcome to MikiConnect! Your account verification is active.`
       });
     }
 
     res.json({ message: 'Verification email resent successfully' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to resend verification email' });
+    res.status(500).json({ error: 'Failed to resend verification email: ' + err.message });
   }
 });
 
@@ -177,7 +201,7 @@ const userSockets = {};
 
 io.on('connection', (socket) => {
   socket.on('register_user', (username) => {
-    userSockets[username] = socket.id;
+    userSockets[username.toLowerCase()] = socket.id;
   });
 
   socket.on('send_message', (data) => {
@@ -185,7 +209,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send_private_message', (data) => {
-    const recipientSocketId = userSockets[data.recipient];
+    const recipientSocketId = userSockets[data.recipient.toLowerCase()];
     if (recipientSocketId) {
       io.to(recipientSocketId).emit('receive_private_message', data);
     }
