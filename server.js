@@ -60,7 +60,7 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// API ROUTES WITH CASE-INSENSITIVE LOOKUPS
+// REGISTER OR LOGIN
 app.post('/api/auth/register-or-login', async (req, res) => {
   let { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username/Email and password required' });
@@ -95,7 +95,7 @@ app.post('/api/auth/register-or-login', async (req, res) => {
   }
 });
 
-// FORGOT PASSWORD ENDPOINT (CASE INSENSITIVE)
+// FORGOT PASSWORD ENDPOINT
 app.post('/api/auth/forgot-password', async (req, res) => {
   let { identifier } = req.body;
   if (!identifier) return res.status(400).json({ error: 'Provide username or email' });
@@ -118,21 +118,26 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     await user.save();
 
     if (process.env.EMAIL_PASS) {
-      await transporter.sendMail({
-        from: '"MikiConnect Support" <danmike849@gmail.com>',
-        to: user.email || 'danmike849@gmail.com',
-        subject: 'MikiConnect - Password Reset Code',
-        text: `Your password reset code is: ${resetCode}`
-      });
+      try {
+        await transporter.sendMail({
+          from: '"MikiConnect Support" <danmike849@gmail.com>',
+          to: user.email || 'danmike849@gmail.com',
+          subject: 'MikiConnect - Password Reset Code',
+          text: `Your password reset code is: ${resetCode}`
+        });
+        return res.json({ message: 'Password reset code sent to your email!' });
+      } catch (mailErr) {
+        return res.status(500).json({ error: 'Email delivery failed. Check Gmail App Password in Render env.' });
+      }
+    } else {
+      return res.json({ message: `Reset code generated: ${resetCode} (Configure EMAIL_PASS in Render to email it automatically)` });
     }
-
-    res.json({ message: 'Password reset code sent successfully', resetCode });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to process password reset: ' + err.message });
+    res.status(500).json({ error: 'Failed to process password reset' });
   }
 });
 
-// RESEND VERIFICATION EMAIL ENDPOINT (CASE INSENSITIVE)
+// RESEND VERIFICATION EMAIL ENDPOINT
 app.post('/api/auth/resend-verification', async (req, res) => {
   let { identifier } = req.body;
   if (!identifier) return res.status(400).json({ error: 'Provide username or email' });
@@ -150,17 +155,22 @@ app.post('/api/auth/resend-verification', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User account not found' });
 
     if (process.env.EMAIL_PASS) {
-      await transporter.sendMail({
-        from: '"MikiConnect Support" <danmike849@gmail.com>',
-        to: user.email || 'danmike849@gmail.com',
-        subject: 'MikiConnect - Verify Your Account',
-        text: `Welcome to MikiConnect! Your account verification is active.`
-      });
+      try {
+        await transporter.sendMail({
+          from: '"MikiConnect Support" <danmike849@gmail.com>',
+          to: user.email || 'danmike849@gmail.com',
+          subject: 'MikiConnect - Verify Your Account',
+          text: `Welcome to MikiConnect! Your account email is verified.`
+        });
+        return res.json({ message: 'Verification email sent successfully!' });
+      } catch (mailErr) {
+        return res.status(500).json({ error: 'Email delivery failed. Check Gmail App Password in Render env.' });
+      }
+    } else {
+      return res.json({ message: 'Verification status updated (Configure EMAIL_PASS in Render env for real email delivery)' });
     }
-
-    res.json({ message: 'Verification email resent successfully' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to resend verification email: ' + err.message });
+    res.status(500).json({ error: 'Failed to resend verification email' });
   }
 });
 

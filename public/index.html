@@ -28,6 +28,7 @@
       width: 100%; height: 44px; background: #3b82f6; color: #fff;
       border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer;
     }
+    .status-box { font-size: 13px; font-weight: 600; padding: 6px; border-radius: 8px; display: none; }
     .auth-links { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
     .auth-link { color: #60a5fa; font-size: 13px; text-decoration: underline; cursor: pointer; background: none; border: none; }
 
@@ -162,6 +163,7 @@
       <input type="text" id="username" placeholder="Username or email">
       <input type="password" id="password" placeholder="Enter your password">
       <button type="button" id="login-btn">Log in</button>
+      <div id="auth-status" class="status-box"></div>
       <div class="auth-links">
         <button class="auth-link" type="button" onclick="requestForgotPassword()">Forgot password?</button>
         <button class="auth-link" type="button" onclick="requestResendVerification()">Resend verification email</button>
@@ -287,6 +289,14 @@
     let currentStream = null;
     let useFacingUser = true;
 
+    function showStatus(text, isError) {
+      const box = document.getElementById('auth-status');
+      box.style.display = 'block';
+      box.style.color = isError ? '#f87171' : '#4ade80';
+      box.style.background = isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)';
+      box.textContent = text;
+    }
+
     if (authToken && currentUser) {
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('profile-username').textContent = '@' + currentUser;
@@ -296,8 +306,9 @@
     document.getElementById('login-btn').addEventListener('click', async () => {
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
-      if (!username || !password) return alert('Enter username and password');
+      if (!username || !password) return showStatus('Enter username and password', true);
 
+      showStatus('Authenticating...', false);
       const res = await fetch('/api/auth/register-or-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -313,34 +324,36 @@
         document.getElementById('auth-screen').style.display = 'none';
         initData();
       } else {
-        alert(data.error || 'Authentication failed');
+        showStatus(data.error || 'Authentication failed', true);
       }
     });
 
     async function requestForgotPassword() {
       const identifier = document.getElementById('username').value.trim();
-      if (!identifier) return alert('Enter your username or email above first');
+      if (!identifier) return showStatus('Enter username or email above first', true);
 
+      showStatus('Sending password reset request...', false);
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier })
       });
       const data = await res.json();
-      alert(data.message || data.error);
+      showStatus(data.message || data.error, !res.ok);
     }
 
     async function requestResendVerification() {
       const identifier = document.getElementById('username').value.trim();
-      if (!identifier) return alert('Enter your username or email above first');
+      if (!identifier) return showStatus('Enter username or email above first', true);
 
+      showStatus('Sending verification request...', false);
       const res = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier })
       });
       const data = await res.json();
-      alert(data.message || data.error);
+      showStatus(data.message || data.error, !res.ok);
     }
 
     function initData() {
