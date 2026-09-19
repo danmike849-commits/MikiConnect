@@ -1,5 +1,9 @@
 const express = require('express');
 const app = express();
+
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
+
 const { sendVerificationEmail } = require('./mailer');
 
 app.use(express.json());
@@ -28,4 +32,8 @@ app.post('/api/forgot-password', async (req, res) => {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`MikiConnect listening on ${PORT}`);
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
