@@ -1,0 +1,23 @@
+{
+  "host": "mikiconnect.onrender.com",
+  "name": "MikiConnect",
+  "shortName": "MikiConnect",
+  "startUrl": "/",
+  "display": "standalone",
+  "themeColor": "#000000",
+  "backgroundColor": "#000000",
+  "manifestUrl": "https://mikiconnect.onrender.com/manifest.json",
+  "packageId": "com.mikiconnect.twa",
+  "launcherName": "MikiConnect",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "signingKey": {
+    "path": "/data/data/com.termux/files/home/.webapk-forge/tools/debug.keystore",
+    "alias": "androiddebugkey"
+  },
+  "appUrl": "https://mikiconnect.onrender.com/",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "iconUrl": "https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png",
+  "maskableIconUrl": "https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png"
+}
