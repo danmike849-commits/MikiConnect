@@ -15,19 +15,25 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
 
-// EMAIL TRANSPORTER CONFIGURATION
+// SMTP TRANSPORTER (PORT 587 FOR RENDER COMPATIBILITY)
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // TLS via STARTTLS
   auth: {
     user: process.env.EMAIL_USER || 'danmike849@gmail.com',
     pass: process.env.EMAIL_PASS
-  }
+  },
+  tls: {
+    rejectUnauthorized: false
+  },
+  connectionTimeout: 10000 // 10 sec timeout prevent hanging
 });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MONGOOSE SCHEMAS
+// SCHEMAS
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, lowercase: true, trim: true },
   email: { type: String, lowercase: true, trim: true },
@@ -127,10 +133,11 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         });
         return res.json({ message: 'Password reset code sent to your email!' });
       } catch (mailErr) {
-        return res.status(500).json({ error: 'Email delivery failed. Check Gmail App Password in Render env.' });
+        console.error('SMTP Error:', mailErr.message);
+        return res.status(500).json({ error: 'Email service blocked or credentials invalid' });
       }
     } else {
-      return res.json({ message: `Reset code generated: ${resetCode} (Configure EMAIL_PASS in Render to email it automatically)` });
+      return res.json({ message: `Reset code generated: ${resetCode} (Configure EMAIL_PASS in Render env)` });
     }
   } catch (err) {
     res.status(500).json({ error: 'Failed to process password reset' });
@@ -164,10 +171,11 @@ app.post('/api/auth/resend-verification', async (req, res) => {
         });
         return res.json({ message: 'Verification email sent successfully!' });
       } catch (mailErr) {
-        return res.status(500).json({ error: 'Email delivery failed. Check Gmail App Password in Render env.' });
+        console.error('SMTP Error:', mailErr.message);
+        return res.status(500).json({ error: 'Email service blocked or credentials invalid' });
       }
     } else {
-      return res.json({ message: 'Verification status updated (Configure EMAIL_PASS in Render env for real email delivery)' });
+      return res.json({ message: 'Verification active (Configure EMAIL_PASS in Render env for real delivery)' });
     }
   } catch (err) {
     res.status(500).json({ error: 'Failed to resend verification email' });
