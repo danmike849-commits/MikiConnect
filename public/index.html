@@ -1,97 +1,527 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111827"><link rel="manifest" href="/manifest.json"><title>MikiConnect</title><style>
-:root{font-family:Inter,system-ui,sans-serif;background:#0b1020;color:#eef2ff}*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b1020,#111827);min-height:100vh}header{position:sticky;top:0;z-index:5;background:#0b1020e8;backdrop-filter:blur(12px);border-bottom:1px solid #26304a;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:800;font-size:1.25rem}.container{max-width:1050px;margin:auto;padding:22px 16px}.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:18px}@media(max-width:800px){.grid{grid-template-columns:1fr}}.card{background:#151c2f;border:1px solid #29334d;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 8px 30px #0003}.row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}.muted{color:#9aa7c2}.hidden{display:none!important}input,textarea,select{width:100%;background:#0f1526;color:#fff;border:1px solid #34405f;border-radius:10px;padding:11px;margin:6px 0}textarea{min-height:100px;resize:vertical}button{border:0;border-radius:10px;padding:10px 14px;background:#4f7cff;color:white;font-weight:700;cursor:pointer}button.secondary{background:#28334e}button.danger{background:#c73f57}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tabs button.active{background:#7c5cff}.post{border-top:1px solid #29334d;padding:16px 0}.post:first-child{border-top:0}.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#29334d}.post img{max-width:100%;max-height:500px;border-radius:12px;margin-top:10px}.comment{padding:7px 0;font-size:.94rem}.chat{height:360px;overflow:auto;background:#0d1425;border-radius:12px;padding:12px}.msg{padding:6px 0}.small{font-size:.82rem}.nav{display:flex;gap:8px;align-items:center}.settings-grid{display:grid;grid-template-columns:160px 1fr;gap:18px}@media(max-width:650px){.settings-grid{grid-template-columns:1fr}}.settings-nav{display:flex;flex-direction:column;gap:8px}.settings-nav button{text-align:left}.setting-panel{min-height:260px}.danger-zone{border:1px solid #7a3040;border-radius:12px;padding:14px;margin-top:18px}.status{display:inline-block;padding:4px 8px;border-radius:999px;background:#253653;font-size:.82rem}.status.ok{background:#214d3b}.notice{padding:10px;border-radius:10px;background:#17233c;margin-bottom:12px}.error{color:#ff9ca9}.auth-card{max-width:520px;margin:34px auto}.auth-intro{text-align:center;margin-bottom:18px}.auth-intro h1{margin:0 0 8px;font-size:1.8rem}.auth-message{min-height:0;margin-top:8px}.auth-card label{display:block;font-size:.9rem;font-weight:700;margin-top:12px}.auth-card input{margin:6px 0 2px}.password-field{display:flex;gap:8px;align-items:stretch}.password-field input{flex:1}.password-toggle{flex:0 0 auto;margin:6px 0 2px}.primary-action{width:100%;margin-top:14px}.auth-links{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:14px}.link-button{background:none;padding:4px;color:#9eb5ff;font-weight:600;text-decoration:underline}.link-button:hover{background:none}.auth-footnote{text-align:center;margin:12px 0 0}.tabs button{flex:1}.auth-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.auth-choice .primary-action{margin-top:0}.auth-back{width:100%;margin-top:14px;background:#202a43}@media(max-width:520px){.auth-choice{grid-template-columns:1fr}.auth-choice .primary-action{min-height:48px}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MikiConnect</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background-color: #000000; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
-/* Step 2 product UX polish */
-:root{color-scheme:dark}
-button,input,textarea,select{font:inherit}
-button{min-height:42px}
-input,textarea,select{box-sizing:border-box}
-.auth-card{box-shadow:0 18px 50px rgba(0,0,0,.22)}
-.auth-intro .brand-mark{display:inline-grid;place-items:center;width:52px;height:52px;border-radius:16px;margin-bottom:10px;background:#1b2742;font-weight:800}
-.field-help{margin:4px 0 0}
-.field-error{min-height:18px;font-size:.82rem;color:#ff9ca9}
-.auth-form-group{margin-bottom:2px}
-.auth-links .link-button{min-height:32px}
-.button-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.card h2{margin-top:0}
-.empty-state{padding:18px 10px;text-align:center}
-.loading{opacity:.7}
-.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:1000;max-width:min(92vw,520px);padding:12px 16px;border-radius:12px;background:#17233c;border:1px solid #34405f;box-shadow:0 12px 30px rgba(0,0,0,.3)}
-.toast.error{border-color:#7a3040}
-.toast.success{border-color:#2d6a4f}
-.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media(max-width:650px){
-  .container{padding:12px}
-  .auth-card{margin:18px auto}
-  header{padding:12px}
-  .nav{gap:5px}
-  .nav button{padding:8px 10px}
-  .grid{gap:12px}
-  .card{padding:14px}
-  .auth-links{gap:6px}
-}
-body.light{background:linear-gradient(180deg,#f5f7fb,#e9edf5)!important;color:#111827!important}
-body.light .card{background:#fff;border-color:#d8deea}
-body.light input,body.light textarea,body.light select{background:#fff;color:#111827;border-color:#cbd5e1}
-body.light .muted{color:#64748b}
-</style></head><body><header><div class="brand" aria-label="MikiConnect">MikiConnect</div><div class="nav"><span id="userLabel" class="muted"></span><button id="settingsBtn" class="secondary hidden">⚙️ Settings</button><button id="adminBtn" class="secondary hidden">Admin</button><button id="logoutBtn" class="danger hidden">Logout</button></div></header><main class="container">
-<section id="auth" class="card auth-card">
-<div class="auth-intro"><div class="brand-mark" aria-hidden="true">MC</div><h1 id="authTitle">Welcome to MikiConnect</h1><p id="authSubtitle" class="muted">Choose how you'd like to continue.</p></div>
-<div class="auth-choice" role="group" aria-label="Choose an account action"><button type="button" id="loginTab" class="primary-action" aria-controls="loginForm">Log in</button><button type="button" id="registerTab" class="secondary primary-action" aria-controls="registerForm">Create account</button></div>
-<div id="authError" class="error auth-message" role="alert" aria-live="polite"></div><div id="authNotice" class="notice auth-message hidden" role="status" aria-live="polite"></div>
-<div id="loginForm" class="hidden" role="tabpanel" aria-labelledby="loginTab">
-<div class="auth-form-group"><label for="loginId">Username or email</label><input id="loginId" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Enter your username or email"></div>
-<div class="auth-form-group"><label for="loginPass">Password</label><div class="password-field"><input id="loginPass" autocomplete="current-password" type="password" placeholder="Enter your password" aria-describedby="loginHelp"><button type="button" class="password-toggle secondary" data-toggle-password="loginPass" aria-label="Show password">Show</button></div><div id="loginHelp" class="sr-only">Enter the password for your MikiConnect account.</div></div>
-<button type="button" id="loginBtn" class="primary-action">Log in</button><div class="auth-links"><button type="button" id="forgotBtn" class="link-button">Forgot password?</button><button type="button" id="resendBtn" class="link-button">Resend verification email</button></div><button type="button" class="secondary auth-back" data-auth-back>← Back</button>
-</div>
-<div id="registerForm" class="hidden" role="tabpanel" aria-labelledby="registerTab">
-<p class="muted small">New to MikiConnect? Create your account below. We'll send a verification email before your first login.</p>
-<div class="auth-form-group"><label for="regUser">Username</label><input id="regUser" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30" placeholder="Choose a username"><div class="field-help muted small">3–30 characters. Use letters, numbers, underscores or hyphens.</div></div>
-<div class="auth-form-group"><label for="regEmail">Email address</label><input id="regEmail" autocomplete="email" type="email" maxlength="254" placeholder="you@example.com"><div class="field-help muted small">Use an email address you can access.</div></div>
-<div class="auth-form-group"><label for="regPass">Password</label><div class="password-field"><input id="regPass" autocomplete="new-password" type="password" minlength="8" placeholder="At least 8 characters"><button type="button" class="password-toggle secondary" data-toggle-password="regPass" aria-label="Show password">Show</button></div><div id="passwordHint" class="muted small field-help">Use at least 8 characters. A longer password is better.</div></div>
-<div class="auth-form-group"><label for="regConfirmPass">Confirm password</label><div class="password-field"><input id="regConfirmPass" autocomplete="new-password" type="password" minlength="8" placeholder="Enter your password again"><button type="button" class="password-toggle secondary" data-toggle-password="regConfirmPass" aria-label="Show password">Show</button></div></div>
-<button type="button" id="registerBtn" class="primary-action">Create account</button><p class="muted small auth-footnote">After registering, check your email for a verification link.</p><button type="button" class="secondary auth-back" data-auth-back>← Back</button>
-</div></section>
-<section id="app" class="hidden"><div id="announcement"></div><div class="grid"><div><div class="card"><h2>Create a post</h2><label class="sr-only" for="postContent">Post content</label><textarea id="postContent" maxlength="5000" placeholder="Share something with your community..." aria-label="Post content"></textarea><label class="sr-only" for="postImage">Image URL</label><input id="postImage" maxlength="2000" placeholder="Optional image URL (https://...)" inputmode="url"/><div class="button-row"><button id="postBtn">Publish</button></div></div><div class="card"><div class="row between"><h2>Community feed</h2><button id="refreshBtn" class="secondary">Refresh</button></div><div id="feed"></div></div></div><aside><div class="card"><h2>My profile</h2><div id="profile"></div><textarea id="bio" maxlength="500" placeholder="Your bio"></textarea><input id="avatar" placeholder="Avatar URL"><button id="saveProfile">Save profile</button><p class="muted small" style="margin-top:14px">Use <strong>Settings</strong> above for account, security, notification, appearance and privacy controls.</p></div>
-<div class="card"><div class="row between"><h2>People</h2><button id="loadNotifications" class="secondary">Notifications</button></div><label class="sr-only" for="userSearch">Search users</label><input id="userSearch" maxlength="30" placeholder="Search usernames" autocomplete="off"><button id="searchUsers">Search people</button><div id="userResults" style="margin-top:10px"></div><div id="notifications" style="margin-top:10px"></div></div><div class="card"><h2>Public chat</h2><div id="publicChat" class="chat" aria-live="polite"></div><div class="row"><label class="sr-only" for="publicInput">Public message</label><input id="publicInput" maxlength="2000" placeholder="Write a message…" autocomplete="off"><button id="publicSend">Send</button></div></div><div class="card"><h2>Private message</h2><label class="sr-only" for="dmRecipient">Recipient username</label><input id="dmRecipient" placeholder="Recipient username" autocomplete="off"><div id="dmChat" class="chat" aria-live="polite"></div><div class="row"><label class="sr-only" for="dmInput">Private message</label><input id="dmInput" maxlength="2000" placeholder="Write a private message…" autocomplete="off"><button id="dmSend">Send</button></div></div></aside></div></section><section id="settings" class="card hidden"><div class="row between"><div><h2>Settings</h2><p class="muted">Manage your MikiConnect account, security and preferences.</p></div><button id="closeSettings" class="secondary">Back to MikiConnect</button></div><div class="settings-grid"><nav class="settings-nav"><button class="secondary" data-settings-tab="account">👤 Account</button><button class="secondary" data-settings-tab="security">🔐 Security</button><button class="secondary" data-settings-tab="notifications">🔔 Notifications</button><button class="secondary" data-settings-tab="appearance">🎨 Appearance</button><button class="secondary" data-settings-tab="privacy">🔒 Privacy</button><button id="adminSettingsTab" class="secondary hidden" data-settings-tab="admin">🛡️ Admin</button></nav><div class="setting-panel"><div id="settings-account" class="settings-pane"><h3>Account</h3><p><span class="muted">Username</span><br><strong id="settingsUsername"></strong></p><p><span class="muted">Email</span><br><strong id="settingsEmail"></strong> <span id="emailStatus" class="status"></span></p><button id="resendSettingsVerification" class="secondary">Resend verification email</button><hr><h3>Profile</h3><textarea id="settingsBio" maxlength="500" placeholder="Your bio"></textarea><input id="settingsAvatar" maxlength="2000" placeholder="Avatar URL"><button id="settingsSaveProfile">Save profile</button></div><div id="settings-security" class="settings-pane hidden"><h3>Security</h3><p class="muted">Changing your password signs out existing sessions for your protection.</p><input id="settingsCurrentPassword" type="password" autocomplete="current-password" placeholder="Current password"><input id="settingsNewPassword" type="password" autocomplete="new-password" placeholder="New password (8+ characters)"><button id="settingsChangePassword">Change password</button><div class="danger-zone"><strong>Account access</strong><p class="muted small">Use Forgot password on the login screen if you cannot sign in.</p><button id="settingsLogout" class="secondary">Sign out</button></div></div><div id="settings-notifications" class="settings-pane hidden"><h3>Notifications</h3><p class="muted">Your notification inbox is available here.</p><button id="settingsLoadNotifications" class="secondary">Load notifications</button><div id="settingsNotificationList" style="margin-top:12px"></div></div><div id="settings-appearance" class="settings-pane hidden"><h3>Appearance</h3><p class="muted">Choose how MikiConnect looks on this device.</p><select id="themeSelect"><option value="dark">Dark</option><option value="light">Light</option></select><button id="saveTheme" class="secondary">Save appearance</button></div><div id="settings-admin" class="settings-pane hidden"><h3>Admin Control Panel</h3><p class="muted">Manage MikiConnect users, reports, messages, broadcasts and platform activity.</p><button id="openAdminPanel" class="primary-action">Open Admin Control Panel</button></div><div id="settings-privacy" class="settings-pane hidden"><h3>Privacy</h3><p>Your email address is not shown in public profiles.</p><p class="muted small">MikiConnect keeps public profile information limited to what the community needs. More privacy controls can be added as the platform grows.</p><div class="danger-zone"><strong>Account data</strong><p class="muted">For account deletion or data requests, contact the owner/support address.</p><strong>mikedan849@gmail.com</strong></div></div></div></div></section></main>
-<script src="/socket.io/socket.io.js"></script><script>
-const $=id=>document.getElementById(id);let me=null;let socket=null;let currentDM='';
-function escapeHTML(s){const d=document.createElement('div');d.textContent=String(s??'');return d.innerHTML}
-function toast(message,type='info'){let el=document.getElementById('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}el.className='toast '+type;el.textContent=message;clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.remove(),4200)}
-function askText(title,placeholder){const value=window.prompt(title,'');return value?.trim()||''}
-function setBusy(btn,busy,label){if(!btn)return;btn.disabled=busy;if(busy){btn.dataset.originalText=btn.textContent;btn.textContent=label||'Working…'}else{btn.textContent=btn.dataset.originalText||btn.textContent}}
-function submitOnEnter(id,fn){$(id)?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();fn()}})}
-async function api(path,options={}){const headers={...(options.headers||{})};const res=await fetch(path,{...options,headers,credentials:'same-origin'});let data={};try{data=await res.json()}catch{}if(!res.ok)throw new Error(data.error||'Request failed');return data}
-function setAuthError(e){$('authError').textContent=e?.message||e||''}
-function showApp(){ $('auth').classList.add('hidden');$('settings').classList.add('hidden');$('app').classList.remove('hidden');$('logoutBtn').classList.remove('hidden');$('settingsBtn').classList.remove('hidden'); if(me){const isAdmin=me.role==='admin';$('userLabel').textContent='@'+me.username;$('adminBtn').classList.toggle('hidden',!isAdmin);$('adminSettingsTab').classList.toggle('hidden',!isAdmin);$('settingsUsername').textContent='@'+me.username;$('settingsEmail').textContent=me.email||'';$('emailStatus').textContent=me.emailVerified?'Verified':'Not verified';$('emailStatus').classList.toggle('ok',!!me.emailVerified);$('settingsBio').value=me.bio||'';$('settingsAvatar').value=me.avatar||'';$('bio').value=me.bio||'';$('avatar').value=me.avatar||'';$('profile').innerHTML=`<div class="row"><img class="avatar" src="${escapeHTML(me.avatar||'')}" onerror="this.style.display='none'"><div><strong>@${escapeHTML(me.username)}</strong><div class="muted small">${escapeHTML(me.email)}</div></div></div>`}connectSocket();loadFeed();loadPublicChat()}
-async function init(){showAuthChoice();try{const d=await api('/api/me');me=d.user;showApp()}catch{me=null;if(socket)socket.disconnect();showAuthChoice()}}
-async function login(){setAuthError('');$('authNotice').classList.add('hidden');const identifier=$('loginId').value.trim(),password=$('loginPass').value;if(!identifier||!password){setAuthError('Enter your username or email and password.');return}try{const d=await api('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier,password})});me=d.user;showApp()}catch(e){setAuthError(e)}}
-async function register(){setAuthError('');$('authNotice').classList.add('hidden');const username=$('regUser').value.trim(),email=$('regEmail').value.trim(),password=$('regPass').value,confirm=$('regConfirmPass').value;if(!username||!email||!password||!confirm){setAuthError('Please complete all fields.');return}if(password.length<8){setAuthError('Your password must be at least 8 characters.');return}if(password!==confirm){setAuthError('Passwords do not match.');return}const btn=$('registerBtn');btn.disabled=true;btn.textContent='Creating account…';try{const d=await api('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,email,password})});$('authNotice').innerHTML=`<strong>Check your email</strong><br>${escapeHTML(d.message||'We sent a verification email.')}<br><span class="muted small">If you do not see it, check Spam/Junk, then use <strong>Resend verification email</strong> below.</span>`;$('authNotice').classList.remove('hidden');showLoginMode({keepNotice:true});$('loginId').value=email;$('loginPass').value='';$('regPass').value='';$('regConfirmPass').value=''}catch(e){setAuthError(e)}finally{btn.disabled=false;btn.textContent='Create account'}}
-function togglePassword(id,button){const input=$(id);const visible=input.type==='text';input.type=visible?'password':'text';button.textContent=visible?'Show':'Hide';button.setAttribute('aria-label',visible?'Show password':'Hide password')}
-async function logout(){try{await api('/api/logout',{method:'POST'})}catch{}me=null;if(socket)socket.disconnect();$('app').classList.add('hidden');$('auth').classList.remove('hidden');$('logoutBtn').classList.add('hidden');$('adminBtn').classList.add('hidden');$('settingsBtn').classList.add('hidden');$('adminSettingsTab').classList.add('hidden');$('settings').classList.add('hidden');$('userLabel').textContent='';showAuthChoice()}
-async function loadFeed(){try{const d=await api('/api/posts');$('feed').innerHTML=d.posts.map(p=>`<article class="post"><div class="row between"><strong>@${escapeHTML(p.author)}</strong><span class="muted small">${new Date(p.createdAt).toLocaleString()}</span></div><p>${escapeHTML(p.content).replace(/\n/g,'<br>')}</p>${p.imageUrl?`<img src="${escapeHTML(p.imageUrl)}" alt="Post image" loading="lazy">`:''}<div class="row"><button data-like="${p._id}" class="secondary">❤️ ${p.likes?.length||0}</button>${p.author===me.username||me.role==='admin'?`<button data-delete="${p._id}" class="danger">Delete</button>`:`<button data-report-post="${p._id}" class="secondary">Report</button>`}</div><div>${(p.comments||[]).map(c=>`<div class="comment"><strong>@${escapeHTML(c.username)}</strong> ${escapeHTML(c.text)}</div>`).join('')}</div><div class="row"><input data-comment="${p._id}" maxlength="1000" placeholder="Write a comment"><button data-sendcomment="${p._id}">Send</button></div></article>`).join('')||'<p class="muted">No posts yet. Be the first!</p>'}catch(e){$('feed').innerHTML=`<p class="error">${escapeHTML(e.message)}</p>`}}
-async function loadPublicChat(){try{const d=await api('/api/messages/public');$('publicChat').innerHTML=d.messages.map(m=>`<div class="msg"><strong>@${escapeHTML(m.sender)}</strong>: ${escapeHTML(m.text)}</div>`).join('');$('publicChat').scrollTop=$('publicChat').scrollHeight}catch(e){}}
-function connectSocket(){if(socket)socket.disconnect();socket=io();socket.on('receivePublicMessage',m=>appendPublic(m));socket.on('receivePrivateMessage',m=>{if(m.sender===currentDM||m.recipient===currentDM)appendDM(m)});socket.on('systemAnnouncement',m=>{$('announcement').innerHTML=`<div class="notice"><strong>Announcement:</strong> ${escapeHTML(m.text)}</div>`});socket.on('postCreated',loadFeed);socket.on('postUpdated',loadFeed);socket.on('postDeleted',loadFeed)}
-function appendPublic(m){$('publicChat').insertAdjacentHTML('beforeend',`<div class="msg"><strong>@${escapeHTML(m.sender)}</strong>: ${escapeHTML(m.content)}</div>`);$('publicChat').scrollTop=$('publicChat').scrollHeight}
-function appendDM(m){$('dmChat').insertAdjacentHTML('beforeend',`<div class="msg"><strong>@${escapeHTML(m.sender)}</strong>: ${escapeHTML(m.content)}</div>`);$('dmChat').scrollTop=$('dmChat').scrollHeight}
-async function searchUsers(){const q=$('userSearch').value.trim();try{const d=await api('/api/users'+(q?'?q='+encodeURIComponent(q):''));$('userResults').innerHTML=d.users.map(u=>`<div class="row between" style="padding:8px 0;border-top:1px solid #29334d"><span><strong>@${escapeHTML(u.username)}</strong><div class="muted small">${escapeHTML(u.bio||'')} · ${u.followersCount||0} followers</div></span><button data-follow="${escapeHTML(u.username)}" class="secondary">Follow</button></div>`).join('')||'<span class="muted">No users found.</span>'}catch(e){$('userResults').innerHTML=`<span class="error">${escapeHTML(e.message)}</span>`}}
-async function loadNotifications(){try{const d=await api('/api/notifications');$('notifications').innerHTML=`<div class="row between"><strong>Notifications</strong><button id="markRead" class="secondary">Mark read</button></div>`+(d.notifications.map(n=>`<div class="notice small">${escapeHTML(n.text)}<div class="muted">${new Date(n.createdAt).toLocaleString()}${n.read?'':' · new'}</div></div>`).join('')||'<p class="muted">No notifications.</p>');$('markRead')?.addEventListener('click',async()=>{await api('/api/notifications/read',{method:'POST'});loadNotifications()})}catch(e){$('notifications').innerHTML=`<span class="error">${escapeHTML(e.message)}</span>`}}
-function openSettings(tab='account'){ $('app').classList.add('hidden');$('settings').classList.remove('hidden');document.querySelectorAll('.settings-pane').forEach(x=>x.classList.add('hidden'));$('settings-'+tab).classList.remove('hidden');document.querySelectorAll('[data-settings-tab]').forEach(b=>b.classList.toggle('active',b.dataset.settingsTab===tab));}
-function closeSettings(){ $('settings').classList.add('hidden');$('app').classList.remove('hidden');}
-$('settingsBtn').onclick=()=>openSettings();$('closeSettings').onclick=closeSettings;document.querySelectorAll('[data-settings-tab]').forEach(b=>b.onclick=()=>openSettings(b.dataset.settingsTab));
-$('settingsSaveProfile').onclick=async()=>{try{const d=await api('/api/me',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({bio:$('settingsBio').value,avatar:$('settingsAvatar').value})});me=d.user;showApp();openSettings('account');}catch(e){toast(e.message,'error')}};
-$('settingsChangePassword').onclick=async()=>{try{await api('/api/me/password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentPassword:$('settingsCurrentPassword').value,newPassword:$('settingsNewPassword').value})});toast('Password changed. Please log in again.','success');setTimeout(()=>logout(),900)}catch(e){toast(e.message,'error')}};
-$('settingsLogout').onclick=()=>logout();$('openAdminPanel').onclick=()=>location.href='/admin.html';
-$('resendSettingsVerification').onclick=async()=>{if(me?.emailVerified){toast('Your email is already verified.','info');return}try{const d=await api('/api/resend-verification',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:me.email})});toast(d.message,'success')}catch(e){toast(e.message,'error')}};
-$('settingsLoadNotifications').onclick=async()=>{try{const d=await api('/api/notifications');$('settingsNotificationList').innerHTML=d.notifications.map(n=>`<div class="notice small">${escapeHTML(n.text)}<div class="muted">${new Date(n.createdAt).toLocaleString()}${n.read?'':' · new'}</div></div>`).join('')||'<p class="muted">No notifications.</p>';await api('/api/notifications/read',{method:'POST'});}catch(e){$('settingsNotificationList').innerHTML=`<span class="error">${escapeHTML(e.message)}</span>`}};
-function applyTheme(){const t=localStorage.getItem('mikiTheme')||'dark';$('themeSelect').value=t;document.body.classList.toggle('light',t==='light');document.body.style.background='';document.body.style.color='';}
-$('saveTheme').onclick=()=>{localStorage.setItem('mikiTheme',$('themeSelect').value);applyTheme()};
-applyTheme();
-showAuthChoice();
-$('searchUsers').onclick=searchUsers;submitOnEnter('userSearch',searchUsers);$('loadNotifications').onclick=loadNotifications;$('userResults').onclick=async e=>{const b=e.target.closest('[data-follow]');if(!b)return;try{const d=await api('/api/users/'+encodeURIComponent(b.dataset.follow)+'/follow',{method:'POST'});b.textContent=d.following?'Unfollow':'Follow';}catch(x){alert(x.message)}};
-$('loginBtn').onclick=login;$('forgotBtn').onclick=async()=>{const email=askText('Enter the email address for your MikiConnect account:');if(!email)return;try{const d=await api('/api/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim()})});$('authNotice').textContent=d.message;$('authNotice').classList.remove('hidden');setAuthError('')}catch(e){setAuthError(e)}};$('resendBtn').onclick=async()=>{const email=askText('Enter the email address you used to register:');if(!email)return;try{const d=await api('/api/resend-verification',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim()})});$('authNotice').textContent=d.message;$('authNotice').classList.remove('hidden');setAuthError('')}catch(e){setAuthError(e)}};$('registerBtn').onclick=register;document.querySelectorAll('[data-toggle-password]').forEach(b=>b.onclick=()=>togglePassword(b.dataset.togglePassword,b));$('regConfirmPass').addEventListener('input',()=>{const ok=$('regConfirmPass').value===$('regPass').value||!$('regConfirmPass').value;$('regConfirmPass').setCustomValidity(ok?'':'Passwords do not match')});$('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('regConfirmPass').addEventListener('keydown',e=>{if(e.key==='Enter')register()});$('logoutBtn').onclick=()=>logout();function showAuthChoice(){ $('loginForm').classList.add('hidden');$('registerForm').classList.add('hidden');$('authTitle').textContent='Welcome to MikiConnect';$('authSubtitle').textContent="Choose how you'd like to continue.";setAuthError('');$('authNotice').classList.add('hidden');$('loginId').value='';$('loginPass').value='';$('regUser').value='';$('regEmail').value='';$('regPass').value='';$('regConfirmPass').value='';$('loginTab').focus();}
-function showLoginMode(options={}){ $('loginForm').classList.remove('hidden');$('registerForm').classList.add('hidden');$('authTitle').textContent='Welcome back';$('authSubtitle').textContent='Log in to your MikiConnect account.';setAuthError('');if(!options.keepNotice)$('authNotice').classList.add('hidden');$('regUser').value='';$('regEmail').value='';$('regPass').value='';$('regConfirmPass').value='';$('loginId').focus();}
-function showRegisterMode(){ $('registerForm').classList.remove('hidden');$('loginForm').classList.add('hidden');$('authTitle').textContent='Create your account';$('authSubtitle').textContent='Join MikiConnect with a new account.';setAuthError('');$('authNotice').classList.add('hidden');$('loginId').value='';$('loginPass').value='';$('regUser').focus();}
+    #auth-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #0f172a; z-index: 999999; display: flex;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .auth-card {
+      background: #1e293b; padding: 28px 24px; border-radius: 16px;
+      width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6); text-align: center; border: 1px solid #334155;
+    }
+    .auth-card h2 { font-size: 24px; font-weight: 800; color: #ff2a5f; }
+    .auth-card input {
+      width: 100%; height: 44px; padding: 0 14px; background: #0f172a;
+      color: #fff; border: 1px solid #334155; border-radius: 10px; font-size: 14px; outline: none;
+    }
+    .auth-card button {
+      width: 100%; height: 44px; background: #3b82f6; color: #fff;
+      border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer;
+    }
+    .auth-links { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+    .auth-link { color: #60a5fa; font-size: 13px; text-decoration: underline; cursor: pointer; background: none; border: none; }
 
-$('loginTab').onclick=showLoginMode;$('registerTab').onclick=showRegisterMode;document.querySelectorAll('[data-auth-back]').forEach(b=>b.onclick=showAuthChoice);$('postBtn').onclick=async()=>{try{await api('/api/posts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:$('postContent').value,imageUrl:$('postImage').value})});$('postContent').value='';$('postImage').value='';loadFeed()}catch(e){toast(e.message,'error')}};$('refreshBtn').onclick=loadFeed;$('saveProfile').onclick=async()=>{try{const d=await api('/api/me',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({bio:$('bio').value,avatar:$('avatar').value})});me=d.user;showApp()}catch(e){toast(e.message,'error')}};submitOnEnter('publicInput',()=>$('publicSend').click());submitOnEnter('dmInput',()=>$('dmSend').click());$('publicSend').onclick=()=>{const content=$('publicInput').value.trim();if(!content)return;socket.emit('sendPublicMessage',{content},r=>{if(!r?.success)toast(r?.error||'Could not send','error')});$('publicInput').value=''};$('dmRecipient').onchange=async()=>{currentDM=$('dmRecipient').value.trim().toLowerCase();$('dmChat').innerHTML='';if(!currentDM)return;try{const d=await api('/api/messages/dm/'+encodeURIComponent(currentDM));d.messages.forEach(appendDM)}catch(e){toast(e.message,'error')}};$('dmSend').onclick=()=>{const content=$('dmInput').value.trim(),recipient=$('dmRecipient').value.trim();if(!recipient||!content)return;currentDM=recipient.toLowerCase();socket.emit('sendPrivateMessage',{recipient,content},r=>{if(!r?.success)toast(r?.error||'Could not send','error')});$('dmInput').value=''};$('feed').onclick=async e=>{const like=e.target.closest('[data-like]'),del=e.target.closest('[data-delete]'),comment=e.target.closest('[data-sendcomment]'),report=e.target.closest('[data-report-post]');try{if(like)await api('/api/posts/'+like.dataset.like+'/like',{method:'POST'});if(del&&confirm('Delete this post?'))await api('/api/posts/'+del.dataset.delete,{method:'DELETE'});if(comment){const input=document.querySelector(`[data-comment="${comment.dataset.sendcomment}"]`);await api('/api/posts/'+comment.dataset.sendcomment+'/comment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:input.value})});input.value=''}if(report){const reason=askText('Why are you reporting this post?');if(reason)await api('/api/reports',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({targetType:'post',targetId:report.dataset.reportPost,reason})})}loadFeed()}catch(x){alert(x.message)}};$('adminBtn').onclick=()=>location.href='/admin.html';window.addEventListener('pageshow',()=>{init()});init();
-</script></body></html>
+    #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; background: #000; }
+
+    .top-nav {
+      position: absolute; top: 0; left: 0; width: 100%; height: 54px;
+      display: flex; align-items: center; justify-content: center; gap: 18px;
+      z-index: 100; background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+      font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.6);
+    }
+    .top-nav .tab.active { color: #ffffff; font-weight: 700; font-size: 16px; }
+
+    .view-section { display: none; width: 100%; height: calc(100vh - 56px); position: relative; overflow-y: auto; }
+    .view-section.active-view { display: flex; flex-direction: column; }
+
+    .feed-container { width: 100%; height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; }
+    .feed-card {
+      width: 100%; height: calc(100vh - 106px); scroll-snap-align: start; position: relative;
+      display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; padding-bottom: 20px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .side-actions {
+      position: absolute; right: 12px; bottom: 30px; display: flex;
+      flex-direction: column; align-items: center; gap: 18px; z-index: 90;
+    }
+    .action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+    .action-icon {
+      width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+
+    .post-info { width: 75%; z-index: 90; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
+    .post-info .author { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .post-info .caption { font-size: 14px; line-height: 1.4; color: #e2e8f0; }
+
+    .chat-input-bar {
+      width: 100%; height: 50px; padding: 6px 12px; background: rgba(15, 23, 42, 0.95);
+      display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 95;
+    }
+    .chat-input-bar input {
+      flex: 1; height: 38px; background: #1e293b; border: 1px solid #334155;
+      border-radius: 20px; padding: 0 14px; color: #fff; font-size: 14px; outline: none;
+    }
+    .send-btn {
+      width: 38px; height: 38px; border-radius: 50%; background: #ff2a5f;
+      border: none; color: #fff; font-weight: bold; font-size: 16px; cursor: pointer;
+    }
+
+    .bottom-nav {
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 56px;
+      background: #000000; border-top: 1px solid rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: space-around; z-index: 101;
+    }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #94a3b8; font-size: 10px; font-weight: 600; cursor: pointer; }
+    .nav-item.active { color: #ffffff; }
+
+    .create-btn {
+      width: 42px; height: 28px; background: #ffffff; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;
+    }
+    .create-btn::before { content: ''; position: absolute; left: -3px; width: 14px; height: 100%; background: #25f4ee; border-radius: 6px 0 0 6px; z-index: -1; }
+    .create-btn::after { content: ''; position: absolute; right: -3px; width: 14px; height: 100%; background: #fe2c55; border-radius: 0 6px 6px 0; z-index: -1; }
+    .create-btn span { color: #000; font-weight: 900; font-size: 20px; line-height: 1; }
+
+    .page-padding { padding: 20px; height: 100%; overflow-y: auto; }
+    .page-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: #ff2a5f; }
+    
+    .user-card {
+      background: #1e293b; padding: 14px; border-radius: 12px; margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+      transition: background 0.2s, transform 0.1s; border: 1px solid #334155;
+    }
+    .dm-badge { background: #ff2a5f; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
+    #camera-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #000; z-index: 99999; display: none; flex-direction: column;
+      justify-content: space-between; padding: 20px 16px 30px;
+    }
+    #camera-screen.active-cam { display: flex; }
+    #camera-preview { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+    .cam-overlay { position: relative; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+    .cam-header { display: flex; justify-content: space-between; align-items: center; }
+    .sound-badge { background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; backdrop-filter: blur(8px); }
+    .cam-tools { position: absolute; right: 0; top: 60px; display: flex; flex-direction: column; gap: 20px; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+
+    .cam-bottom { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 10px; }
+    .mode-selector { display: flex; gap: 18px; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.6); }
+    .mode-selector span.active-mode { color: #fff; border-bottom: 2px solid #fff; padding-bottom: 2px; }
+
+    .shutter-container { display: flex; align-items: center; justify-content: space-around; width: 100%; }
+    .shutter-btn {
+      width: 76px; height: 76px; border-radius: 50%; border: 4px solid #fff;
+      background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .shutter-inner { width: 62px; height: 62px; border-radius: 50%; background: #fe2c55; }
+
+    .text-input-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); z-index: 20; display: none;
+      flex-direction: column; justify-content: center; padding: 20px; gap: 14px;
+    }
+    .text-input-overlay textarea {
+      width: 100%; height: 120px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 12px; padding: 14px; color: #fff; font-size: 16px; outline: none;
+    }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85); z-index: 99999; display: none;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.active-modal { display: flex; }
+    .modal-card {
+      width: 100%; max-width: 500px; background: #1e293b; border-radius: 20px 20px 0 0;
+      padding: 20px; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid #334155;
+    }
+    .modal-card input {
+      width: 100%; background: #0f172a; color: #fff;
+      border: 1px solid #334155; border-radius: 10px; padding: 12px; outline: none; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="auth-screen">
+    <div class="auth-card">
+      <h2>MikiConnect</h2>
+      <p style="color:#94a3b8; font-size:13px;">Log in to your MikiConnect account.</p>
+      <input type="text" id="username" placeholder="Username or email">
+      <input type="password" id="password" placeholder="Enter your password">
+      <button type="button" id="login-btn">Log in</button>
+      <div class="auth-links">
+        <button class="auth-link" type="button" onclick="requestForgotPassword()">Forgot password?</button>
+        <button class="auth-link" type="button" onclick="requestResendVerification()">Resend verification email</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-container">
+
+    <div class="top-nav" id="top-nav">
+      <div class="tab">STEM</div>
+      <div class="tab">Explore</div>
+      <div class="tab">Following</div>
+      <div class="tab active">For You</div>
+    </div>
+
+    <div id="feed-view" class="view-section active-view">
+      <div class="feed-container" id="feed-posts"></div>
+      <div class="chat-input-bar">
+        <input type="text" id="chat-msg" placeholder="Type a public message...">
+        <button class="send-btn" onclick="sendPublicMessage()">➔</button>
+      </div>
+    </div>
+
+    <div id="friends-view" class="view-section page-padding">
+      <div class="page-title">Registered Users</div>
+      <div id="users-list">Loading registered users...</div>
+    </div>
+
+    <div id="inbox-view" class="view-section page-padding">
+      <div class="page-title">Live Public Feed Chat</div>
+      <div id="live-chat-box" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+    <div id="profile-view" class="view-section page-padding">
+      <div class="page-title">My Profile</div>
+      <div class="user-card" style="flex-direction:column; text-align:center; padding:24px;">
+        <div style="font-size:48px; margin-bottom:8px;">👤</div>
+        <h3 id="profile-username" style="color:#ff2a5f;">@guest</h3>
+      </div>
+      <button onclick="logoutUser()" style="width:100%; padding:12px; background:#ef4444; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Log Out</button>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item active" onclick="switchView('feed-view', this, true)">
+        <div class="nav-icon">🏠</div><span>Home</span>
+      </div>
+      <div class="nav-item" onclick="switchView('friends-view', this, false)">
+        <div class="nav-icon">👥</div><span>Friends</span>
+      </div>
+      <div class="create-btn" onclick="openCamera()"><span>+</span></div>
+      <div class="nav-item" onclick="switchView('inbox-view', this, false)">
+        <div class="nav-icon">💬</div><span>Inbox</span>
+      </div>
+      <div class="nav-item" onclick="switchView('profile-view', this, false)">
+        <div class="nav-icon">👤</div><span>Profile</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="camera-screen">
+    <video id="camera-preview" autoplay playsinline muted></video>
+    
+    <div class="cam-overlay">
+      <div class="cam-header">
+        <span style="font-size:24px; cursor:pointer;" onclick="closeCamera()">✕</span>
+        <div class="sound-badge">🎵 Add sound</div>
+        <span style="font-size:20px; cursor:pointer;" onclick="switchCameraFacing()">🔄</span>
+      </div>
+
+      <div class="cam-tools">
+        <div>⚡</div>
+        <div>⏱️</div>
+        <div>🖼️</div>
+        <div>✨</div>
+      </div>
+
+      <div class="cam-bottom">
+        <div class="mode-selector">
+          <span>10m</span>
+          <span>60s</span>
+          <span>15s</span>
+          <span class="active-mode">PHOTO</span>
+          <span onclick="openTextOverlay()">TEXT</span>
+        </div>
+
+        <div class="shutter-container">
+          <div style="width:40px;"></div>
+          <div class="shutter-btn" onclick="triggerCapture()">
+            <div class="shutter-inner"></div>
+          </div>
+          <div style="width:40px; font-size:24px; cursor:pointer;" onclick="openTextOverlay()">✍️</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-input-overlay" id="text-overlay">
+      <h3 style="color:#fe2c55;">Write Post Caption</h3>
+      <textarea id="camera-post-caption" placeholder="What's on your mind?"></textarea>
+      <button onclick="publishCameraPost()" style="padding:14px; background:#fe2c55; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Publish Post</button>
+      <button onclick="closeTextOverlay()" style="padding:10px; background:transparent; color:#aaa; border:none; cursor:pointer;">Back to Camera</button>
+    </div>
+  </div>
+
+  <div id="dm-modal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="color:#ff2a5f;" id="dm-target-title">Chat with User</h3>
+      <div id="dm-chat-history" style="height: 180px; overflow-y: auto; background: #0f172a; padding: 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="dm-input" placeholder="Type a private message...">
+        <button onclick="sendPrivateMessage()" style="padding:0 16px; background:#ff2a5f; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Send</button>
+      </div>
+      <button onclick="closeModals()" style="padding:10px; background:transparent; color:#94a3b8; border:none; cursor:pointer;">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let authToken = localStorage.getItem('token');
+    let currentUser = localStorage.getItem('username');
+    let activeDmTarget = null;
+    let currentStream = null;
+    let useFacingUser = true;
+
+    if (authToken && currentUser) {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('profile-username').textContent = '@' + currentUser;
+      initData();
+    }
+
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      if (!username || !password) return alert('Enter username and password');
+
+      const res = await fetch('/api/auth/register-or-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username);
+        authToken = data.token;
+        currentUser = data.username;
+        document.getElementById('profile-username').textContent = '@' + currentUser;
+        document.getElementById('auth-screen').style.display = 'none';
+        initData();
+      } else {
+        alert(data.error || 'Authentication failed');
+      }
+    });
+
+    async function requestForgotPassword() {
+      const identifier = document.getElementById('username').value.trim();
+      if (!identifier) return alert('Enter your username or email above first');
+
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier })
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+    }
+
+    async function requestResendVerification() {
+      const identifier = document.getElementById('username').value.trim();
+      if (!identifier) return alert('Enter your username or email above first');
+
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier })
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+    }
+
+    function initData() {
+      socket.emit('register_user', currentUser);
+      fetchPosts();
+      fetchUsers();
+    }
+
+    async function openCamera() {
+      document.getElementById('camera-screen').classList.add('active-cam');
+      startCameraStream();
+    }
+
+    async function startCameraStream() {
+      if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: useFacingUser ? 'user' : 'environment' },
+          audio: false
+        });
+        document.getElementById('camera-preview').srcObject = currentStream;
+      } catch (err) {
+        console.warn('Camera permission denied or unavailable');
+      }
+    }
+
+    function switchCameraFacing() {
+      useFacingUser = !useFacingUser;
+      startCameraStream();
+    }
+
+    function closeCamera() {
+      if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+      document.getElementById('camera-screen').classList.remove('active-cam');
+      closeTextOverlay();
+    }
+
+    function openTextOverlay() { document.getElementById('text-overlay').style.display = 'flex'; }
+    function closeTextOverlay() { document.getElementById('text-overlay').style.display = 'none'; }
+    function triggerCapture() { openTextOverlay(); }
+
+    async function publishCameraPost() {
+      const caption = document.getElementById('camera-post-caption').value.trim();
+      if (!caption) return alert('Write a caption for your post');
+
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + authToken
+        },
+        body: JSON.stringify({ caption })
+      });
+
+      if (res.ok) {
+        document.getElementById('camera-post-caption').value = '';
+        closeCamera();
+        switchView('feed-view', document.querySelectorAll('.bottom-nav .nav-item')[0], true);
+      } else {
+        alert('Failed to publish post');
+      }
+    }
+
+    async function fetchPosts() {
+      const res = await fetch('/api/posts');
+      const posts = await res.json();
+      const feed = document.getElementById('feed-posts');
+      feed.innerHTML = '';
+      posts.forEach(p => renderPost(p));
+    }
+
+    function renderPost(post) {
+      const feed = document.getElementById('feed-posts');
+      const card = document.createElement('div');
+      card.className = 'feed-card';
+      card.innerHTML = `
+        <div class="side-actions">
+          <div class="action-btn"><div class="action-icon">❤️</div><span class="action-count">${post.likes || 0}</span></div>
+          <div class="action-btn"><div class="action-icon">💬</div><span class="action-count">0</span></div>
+          <div class="action-btn"><div class="action-icon">🔖</div><span class="action-count">0</span></div>
+        </div>
+        <div class="post-info">
+          <div class="author">@${post.author} <span style="color:#ff2a5f;">✔</span></div>
+          <div class="caption">${post.caption}</div>
+        </div>
+      `;
+      feed.prepend(card);
+    }
+
+    async function fetchUsers() {
+      const res = await fetch('/api/users');
+      const users = await res.json();
+      const container = document.getElementById('users-list');
+      
+      container.innerHTML = users
+        .filter(u => u.username !== currentUser)
+        .map(u => `
+          <div class="user-card" onclick="openPrivateChat('${u.username}')">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-size:24px;">👤</span>
+              <div>
+                <strong>@${u.username}</strong><br>
+                <small style="color:#94a3b8;">Registered User</small>
+              </div>
+            </div>
+            <span class="dm-badge">Chat 💬</span>
+          </div>
+        `).join('');
+    }
+
+    function openPrivateChat(targetUsername) {
+      activeDmTarget = targetUsername;
+      document.getElementById('dm-target-title').textContent = 'Chat with @' + targetUsername;
+      document.getElementById('dm-chat-history').innerHTML = '';
+      document.getElementById('dm-modal').classList.add('active-modal');
+    }
+
+    function sendPrivateMessage() {
+      const input = document.getElementById('dm-input');
+      const msg = input.value.trim();
+      if (!msg || !activeDmTarget) return;
+
+      socket.emit('send_private_message', {
+        sender: currentUser,
+        recipient: activeDmTarget,
+        text: msg
+      });
+
+      appendDmMessage(currentUser, msg);
+      input.value = '';
+    }
+
+    function appendDmMessage(sender, text) {
+      const box = document.getElementById('dm-chat-history');
+      const div = document.createElement('div');
+      div.style.padding = '6px 10px';
+      div.style.borderRadius = '8px';
+      div.style.background = sender === currentUser ? '#ff2a5f' : '#1e293b';
+      div.style.alignSelf = sender === currentUser ? 'flex-end' : 'flex-start';
+      div.style.maxWidth = '80%';
+      div.innerHTML = `<small style="opacity:0.8;">@${sender}:</small><br>${text}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendPublicMessage() {
+      const input = document.getElementById('chat-msg');
+      const msg = input.value.trim();
+      if (!msg) return;
+      socket.emit('send_message', { user: currentUser, text: msg });
+      input.value = '';
+    }
+
+    socket.on('receive_private_message', (data) => {
+      if (data.sender === activeDmTarget || data.sender === currentUser) {
+        appendDmMessage(data.sender, data.text);
+      } else {
+        alert(`New message from @${data.sender}`);
+      }
+    });
+
+    socket.on('receive_message', (data) => {
+      const box = document.getElementById('live-chat-box');
+      const item = document.createElement('div');
+      item.className = 'user-card';
+      item.innerHTML = `<span>💬</span><div><strong>@${data.user}:</strong> ${data.text}</div>`;
+      box.prepend(item);
+    });
+
+    socket.on('new_post', (post) => { renderPost(post); });
+
+    function switchView(viewId, element, isHome) {
+      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active-view'));
+      document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active-view');
+      if (element) element.classList.add('active');
+      document.getElementById('top-nav').style.display = isHome ? 'flex' : 'none';
+    }
+
+    function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active-modal')); }
+    function logoutUser() { localStorage.clear(); location.reload(); }
+  </script>
+</body>
+</html>
