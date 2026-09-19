@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
-const nodemailer = require('nodemailer');
 const { Server } = require('socket.io');
 
 const app = express();
@@ -15,20 +14,8 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
 
-// SMTP TRANSPORTER (PORT 587 FOR RENDER COMPATIBILITY)
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // TLS via STARTTLS
-  auth: {
-    user: process.env.EMAIL_USER || 'danmike849@gmail.com',
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  connectionTimeout: 10000 // 10 sec timeout prevent hanging
-});
+// DEFINE ADMIN IDENTIFIERS
+const ADMIN_EMAILS = ['danmike849@gmail.com', 'danmike849'];
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -38,7 +25,8 @@ const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, lowercase: true, trim: true },
   email: { type: String, lowercase: true, trim: true },
   password: { type: String, required: true },
-  isVerified: { type: Boolean, default: false },
+  role: { type: String, default: 'user' },
+  isBanned: { type: Boolean, default: false },
   resetToken: { type: String },
   resetTokenExpiry: { type: Date },
   createdAt: { type: Date, default: Date.now }
@@ -66,7 +54,15 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// REGISTER OR LOGIN
+// ADMIN ONLY MIDDLEWARE
+const requireAdmin = (req, res, next) => {
+  if (!ADMIN_EMAILS.includes(req.user.username.toLowerCase())) {
+    return res.status(403).json({ error: 'Access Denied: Admin privileges required.' });
+  }
+  next();
+};
+
+// REGISTER OR LOGIN FOR ANY USER
 app.post('/api/auth/register-or-login', async (req, res) => {
   let { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username/Email and password required' });
@@ -81,12 +77,18 @@ app.post('/api/auth/register-or-login', async (req, res) => {
       ]
     });
 
+    if (user && user.isBanned) {
+      return res.status(403).json({ error: 'This account has been banned by Admin.' });
+    }
+
     if (!user) {
       const hashedPassword = await bcrypt.hash(password, 10);
+      const isOwner = ADMIN_EMAILS.includes(username);
       user = new User({ 
         username: username, 
         email: username.includes('@') ? username : `${username}@mikiconnect.app`, 
-        password: hashedPassword 
+        password: hashedPassword,
+        role: isOwner ? 'admin' : 'user'
       });
       await user.save();
     } else {
@@ -94,14 +96,14 @@ app.post('/api/auth/register-or-login', async (req, res) => {
       if (!isMatch) return res.status(400).json({ error: 'Invalid password' });
     }
 
-    const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, username: user.username });
+    const token = jwt.sign({ id: user._id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, username: user.username, role: user.role });
   } catch (err) {
     res.status(500).json({ error: 'Database authentication error: ' + err.message });
   }
 });
 
-// FORGOT PASSWORD ENDPOINT
+// FORGOT PASSWORD ENDPOINT (FOR ALL USERS)
 app.post('/api/auth/forgot-password', async (req, res) => {
   let { identifier } = req.body;
   if (!identifier) return res.status(400).json({ error: 'Provide username or email' });
@@ -123,28 +125,16 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     user.resetTokenExpiry = Date.now() + 3600000;
     await user.save();
 
-    if (process.env.EMAIL_PASS) {
-      try {
-        await transporter.sendMail({
-          from: '"MikiConnect Support" <danmike849@gmail.com>',
-          to: user.email || 'danmike849@gmail.com',
-          subject: 'MikiConnect - Password Reset Code',
-          text: `Your password reset code is: ${resetCode}`
-        });
-        return res.json({ message: 'Password reset code sent to your email!' });
-      } catch (mailErr) {
-        console.error('SMTP Error:', mailErr.message);
-        return res.status(500).json({ error: 'Email service blocked or credentials invalid' });
-      }
-    } else {
-      return res.json({ message: `Reset code generated: ${resetCode} (Configure EMAIL_PASS in Render env)` });
-    }
+    return res.json({ 
+      message: `Reset code generated successfully! Your code is: ${resetCode}` 
+    });
+
   } catch (err) {
     res.status(500).json({ error: 'Failed to process password reset' });
   }
 });
 
-// RESEND VERIFICATION EMAIL ENDPOINT
+// RESEND VERIFICATION ENDPOINT
 app.post('/api/auth/resend-verification', async (req, res) => {
   let { identifier } = req.body;
   if (!identifier) return res.status(400).json({ error: 'Provide username or email' });
@@ -161,30 +151,34 @@ app.post('/api/auth/resend-verification', async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'User account not found' });
 
-    if (process.env.EMAIL_PASS) {
-      try {
-        await transporter.sendMail({
-          from: '"MikiConnect Support" <danmike849@gmail.com>',
-          to: user.email || 'danmike849@gmail.com',
-          subject: 'MikiConnect - Verify Your Account',
-          text: `Welcome to MikiConnect! Your account email is verified.`
-        });
-        return res.json({ message: 'Verification email sent successfully!' });
-      } catch (mailErr) {
-        console.error('SMTP Error:', mailErr.message);
-        return res.status(500).json({ error: 'Email service blocked or credentials invalid' });
-      }
-    } else {
-      return res.json({ message: 'Verification active (Configure EMAIL_PASS in Render env for real delivery)' });
-    }
+    return res.json({ message: `Verification status verified for ${user.username}. Account is active.` });
   } catch (err) {
     res.status(500).json({ error: 'Failed to resend verification email' });
   }
 });
 
+// ADMIN ONLY CONTROL ENDPOINTS (ONLY ACCESSIBLE BY danmike849@gmail.com)
+app.delete('/api/admin/delete-user/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'User permanently deleted by Admin.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+app.post('/api/admin/ban-user/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.params.id, { isBanned: true });
+    res.json({ message: 'User has been banned.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to ban user' });
+  }
+});
+
 app.get('/api/users', async (req, res) => {
   try {
-    const users = await User.find({}, 'username createdAt').sort({ createdAt: -1 });
+    const users = await User.find({}, 'username createdAt role isBanned').sort({ createdAt: -1 });
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch users' });
@@ -219,7 +213,7 @@ const userSockets = {};
 
 io.on('connection', (socket) => {
   socket.on('register_user', (username) => {
-    userSockets[username.toLowerCase()] = socket.id;
+    if (username) userSockets[username.toLowerCase()] = socket.id;
   });
 
   socket.on('send_message', (data) => {
