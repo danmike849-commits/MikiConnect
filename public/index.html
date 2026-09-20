@@ -48,7 +48,47 @@
   </div>
 
   <!-- MAIN LOGIN CARD -->
-  <div id="authContainer" class="auth-card">
+  
+  <!-- DATING PROFILE EDIT CARD -->
+  <div id="profileContainer" class="auth-card" style="display:none; max-width:480px; text-align:left;">
+    <h2 style="color:#f43f5e; font-size:22px; text-align:center; margin-bottom:12px;">Edit Your Profile</h2>
+    <p style="text-align:center; margin-bottom:20px; color:#94a3b8;">Set up your dating photos, bio, and preferences.</p>
+
+    <label style="font-size:13px; color:#38bdf8; font-weight:bold;">Profile Photo URL (Primary Image)</label>
+    <input type="text" id="profPhoto" class="auth-input" placeholder="https://example.com/my-photo.jpg" />
+
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1;">
+        <label style="font-size:13px; color:#38bdf8; font-weight:bold;">Age</label>
+        <input type="number" id="profAge" class="auth-input" placeholder="e.g. 24" min="18" max="100" />
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:13px; color:#38bdf8; font-weight:bold;">Gender</label>
+        <select id="profGender" class="auth-input" style="background:#0f172a; color:white;">
+          <option value="man">Man</option>
+          <option value="woman">Woman</option>
+          <option value="nonbinary">Non-Binary</option>
+        </select>
+      </div>
+    </div>
+
+    <label style="font-size:13px; color:#38bdf8; font-weight:bold;">Interested In</label>
+    <select id="profInterested" class="auth-input" style="background:#0f172a; color:white;">
+      <option value="women">Women</option>
+      <option value="men">Men</option>
+      <option value="everyone">Everyone</option>
+    </select>
+
+    <label style="font-size:13px; color:#38bdf8; font-weight:bold;">Location / City</label>
+    <input type="text" id="profLocation" class="auth-input" placeholder="e.g. Abuja, Nigeria" />
+
+    <label style="font-size:13px; color:#38bdf8; font-weight:bold;">Bio / About You</label>
+    <textarea id="profBio" class="auth-input" style="height:80px; resize:none;" placeholder="Tell potential matches about yourself..."></textarea>
+
+    <button onclick="saveProfile()" class="btn-submit" style="background:#f43f5e; margin-top:10px;">Save Profile</button>
+  </div>
+
+<div id="authContainer" class="auth-card">
     <h2>MikiConnect</h2>
     <p>Log in to your MikiConnect account.</p>
     
@@ -107,6 +147,8 @@
       const username = localStorage.getItem('miki_username');
       if (token && username) {
         document.getElementById('authContainer').style.display = 'none';
+        document.getElementById('profileContainer').style.display = 'block';
+        loadProfile();
         document.getElementById('userSection').innerHTML = `
           <span style="color:#f8fafc; font-weight:bold; margin-right:8px;">${username}</span>
           <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Logout</button>
@@ -114,7 +156,67 @@
       }
     };
 
-    function logout() {
+    
+    async function loadProfile() {
+      const token = localStorage.getItem('miki_token');
+      if (!token) return;
+
+      try {
+        const res = await fetch('/api/user/profile', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const user = await res.json();
+        if (res.ok) {
+          document.getElementById('profPhoto').value = (user.photos && user.photos[0]) ? user.photos[0] : '';
+          document.getElementById('profAge').value = user.age || '';
+          document.getElementById('profGender').value = user.gender || 'man';
+          document.getElementById('profInterested').value = user.interestedIn || 'women';
+          document.getElementById('profLocation').value = user.location || '';
+          document.getElementById('profBio').value = user.bio || '';
+        }
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+      }
+    }
+
+    async function saveProfile() {
+      const token = localStorage.getItem('miki_token');
+      const photo = document.getElementById('profPhoto').value.trim();
+      const age = document.getElementById('profAge').value;
+      const gender = document.getElementById('profGender').value;
+      const interestedIn = document.getElementById('profInterested').value;
+      const location = document.getElementById('profLocation').value.trim();
+      const bio = document.getElementById('profBio').value.trim();
+
+      try {
+        const res = await fetch('/api/user/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({
+            photos: photo ? [photo] : [],
+            age,
+            gender,
+            interestedIn,
+            location,
+            bio
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert('🎉 Dating profile updated successfully!');
+        } else {
+          alert('❌ ' + (data.error || 'Failed to update profile.'));
+        }
+      } catch (err) {
+        alert('❌ Network Error: ' + err.message);
+      }
+    }
+
+function logout() {
       localStorage.removeItem('miki_token');
       localStorage.removeItem('miki_username');
       alert('👋 You have been logged out.');

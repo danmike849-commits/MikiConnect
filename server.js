@@ -27,6 +27,16 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, default: 'user' },
   isBanned: { type: Boolean, default: false },
+  
+  // DATING PROFILE FIELDS
+  photos: { type: [String], default: [] },
+  age: { type: Number, min: 18, max: 100 },
+  gender: { type: String, enum: ['man', 'woman', 'nonbinary', 'other'] },
+  interestedIn: { type: String, enum: ['men', 'women', 'everyone'] },
+  bio: { type: String, maxlength: 300, default: '' },
+  location: { type: String, default: '' },
+  isPremium: { type: Boolean, default: false },
+  
   resetToken: { type: String },
   resetTokenExpiry: { type: Date },
   createdAt: { type: Date, default: Date.now }
@@ -41,6 +51,39 @@ const PostSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', UserSchema);
 const Post = mongoose.model('Post', PostSchema);
+
+
+// GET CURRENT USER PROFILE
+app.get('/api/user/profile', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve profile: ' + err.message });
+  }
+});
+
+// UPDATE USER PROFILE
+app.put('/api/user/profile', authenticate, async (req, res) => {
+  const { photos, age, gender, interestedIn, bio, location } = req.body;
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (photos !== undefined) user.photos = photos;
+    if (age !== undefined) user.age = Number(age);
+    if (gender !== undefined) user.gender = gender;
+    if (interestedIn !== undefined) user.interestedIn = interestedIn;
+    if (bio !== undefined) user.bio = bio;
+    if (location !== undefined) user.location = location;
+
+    await user.save();
+    res.json({ message: 'Profile updated successfully!', user });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update profile: ' + err.message });
+  }
+});
 
 // AUTH MIDDLEWARE
 const authenticate = (req, res, next) => {
