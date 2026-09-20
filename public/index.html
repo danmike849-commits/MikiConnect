@@ -681,19 +681,7 @@
 
 
   <!-- SIGN-UP CUSTOM VISUAL MODAL -->
-  <div id="signUpModal" class="modal-overlay">
-    <div class="modal-card">
-      <h3>Create New Account</h3>
-      <p>No account was found for your entry. Fill in your details below to join MikiConnect:</p>
-
-      <input type="text" id="regIdentifier" class="modal-input" placeholder="Phone Number / Identifier" readonly style="background:#f3f4f6;" />
-      <input type="text" id="regUsername" class="modal-input" placeholder="Choose a Display Username (e.g. MikiUser)" />
-      <input type="password" id="regPassword" class="modal-input" placeholder="Create Password" />
-
-      <button onclick="submitRegistration()" class="modal-btn">Complete Registration</button>
-      <button onclick="closeSignUpModal()" class="modal-close">Cancel & Go Back</button>
-    </div>
-  </div>
+  
 
   <script>
     function openSignUpModal(identifier, password) {
@@ -787,6 +775,163 @@
       // Notify user & reload page to show login screen
       alert('👋 You have been logged out.');
       window.location.reload();
+    }
+  </script>
+
+
+  <!-- CREATE ACCOUNT CUSTOM VISUAL MODAL -->
+  <style>
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.75); display: none; align-items: center;
+      justify-content: center; z-index: 10000; backdrop-filter: blur(5px);
+    }
+    .modal-card {
+      background: #1f2937; color: #f9fafb; width: 90%; max-width: 400px; padding: 24px;
+      border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      font-family: system-ui, -apple-system, sans-serif; text-align: center;
+      border: 1px solid #374151;
+    }
+    .modal-card h3 { margin-top: 0; color: #3b82f6; font-size: 22px; margin-bottom: 8px; }
+    .modal-card p { color: #9ca3af; font-size: 14px; margin-bottom: 18px; line-height: 1.4; }
+    .modal-input {
+      width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #4b5563;
+      border-radius: 8px; font-size: 15px; box-sizing: border-box;
+      background: #111827; color: #ffffff;
+    }
+    .modal-input:focus { outline: none; border-color: #3b82f6; }
+    .modal-btn-primary {
+      width: 100%; padding: 12px; background: #2563eb; color: white; border: none;
+      border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 12px;
+    }
+    .modal-btn-primary:hover { background: #1d4ed8; }
+    .modal-close {
+      background: none; border: none; color: #9ca3af; font-size: 14px;
+      margin-top: 12px; cursor: pointer; width: 100%; padding: 6px;
+    }
+    .modal-close:hover { color: #f3f4f6; }
+  </style>
+
+  <div id="signUpModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3>Create New Account</h3>
+      <p>Fill in your details below to set up your MikiConnect profile.</p>
+
+      <input type="text" id="regIdentifier" class="modal-input" placeholder="Phone Number" readonly style="background:#374151; color:#9ca3af;" />
+      <input type="text" id="regUsername" class="modal-input" placeholder="Choose a Display Username (e.g. MikiUser)" />
+      <input type="password" id="regPassword" class="modal-input" placeholder="Create Password" />
+
+      <button onclick="submitRegistration()" class="modal-btn-primary">Create Account</button>
+      <button onclick="closeSignUpModal()" class="modal-close">Cancel & Go Back</button>
+    </div>
+  </div>
+
+  <script>
+    function openSignUpModal(identifier, password) {
+      document.getElementById('regIdentifier').value = identifier;
+      document.getElementById('regPassword').value = password;
+      
+      // If the input is not a raw phone number, auto-populate display username
+      if (!/^\+?[0-9]{7,15}$/.test(identifier)) {
+        document.getElementById('regUsername').value = identifier;
+      } else {
+        document.getElementById('regUsername').value = '';
+      }
+      document.getElementById('signUpModal').style.display = 'flex';
+    }
+
+    function closeSignUpModal() {
+      document.getElementById('signUpModal').style.display = 'none';
+    }
+
+    async function handleAuth(username, password) {
+      if (!username || !password) {
+        return alert('Please enter your phone number/username and password.');
+      }
+
+      const loginBtn = document.querySelector('form button, button[type="submit"]');
+      if (loginBtn) {
+        loginBtn.innerText = 'Authenticating...';
+        loginBtn.disabled = true;
+      }
+
+      try {
+        const res = await fetch('/api/auth/login-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        // Account NOT found -> Ask user explicitly BEFORE opening Sign-Up Modal
+        if (res.status === 404 && data.accountExists === false) {
+          if (loginBtn) {
+            loginBtn.innerText = 'Log in';
+            loginBtn.disabled = false;
+          }
+
+          const wantsToRegister = confirm("⚠️ No account found for \"" + username + "\".\n\nWould you like to create a NEW account?");
+          if (wantsToRegister) {
+            openSignUpModal(username, password);
+          }
+          return;
+        }
+
+        if (!res.ok) {
+          if (loginBtn) {
+            loginBtn.innerText = 'Log in';
+            loginBtn.disabled = false;
+          }
+          alert("❌ " + (data.error || "Authentication failed."));
+          return;
+        }
+
+        // Login Success
+        localStorage.setItem('miki_token', data.token);
+        localStorage.setItem('miki_username', data.username);
+        alert("🎉 Welcome back " + data.username + "!");
+        window.location.reload();
+
+      } catch (err) {
+        if (loginBtn) {
+          loginBtn.innerText = 'Log in';
+          loginBtn.disabled = false;
+        }
+        alert("❌ Network Error: " + err.message);
+      }
+    }
+
+    async function submitRegistration() {
+      const identifier = document.getElementById('regIdentifier').value.trim();
+      const username = document.getElementById('regUsername').value.trim();
+      const password = document.getElementById('regPassword').value.trim();
+
+      if (!identifier || !username || !password) {
+        return alert('Please fill in all registration fields.');
+      }
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.status === 201) {
+          localStorage.setItem('miki_token', data.token);
+          localStorage.setItem('miki_username', data.username);
+          alert("🎉 Account created successfully! Welcome to MikiConnect, " + data.username + "!");
+          closeSignUpModal();
+          window.location.reload();
+        } else {
+          alert("❌ " + (data.error || "Registration failed."));
+        }
+      } catch (err) {
+        alert("❌ Network Error: " + err.message);
+      }
     }
   </script>
 
