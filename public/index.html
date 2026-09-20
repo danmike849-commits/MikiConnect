@@ -122,11 +122,11 @@
     <h2>MikiConnect</h2>
     <p>Log in to your MikiConnect account.</p>
     
-    <form id="loginForm" onsubmit="return handleAuth(event)">
+    <div id="loginForm">
       <input type="text" id="loginUsername" class="auth-input" placeholder="Phone Number or Username" required />
       <input type="password" id="loginPassword" class="auth-input" placeholder="Password" required />
-      <button type="submit" id="loginBtn" class="btn-submit">Log in</button>
-    </form>
+      <button type="button" id="loginBtn" onclick="handleAuth()" class="btn-submit">Log in</button>
+    </div>
 
     <button onclick="openResetModal()" class="btn-secondary" >Forgot password?</button>
   </div>
@@ -534,23 +534,24 @@ function logout() {
     }
 
 
-    async function handleAuth(e) {
-      if (e && e.preventDefault) e.preventDefault();
+    
 
+
+    async function handleAuth() {
       const userInput = document.getElementById('loginUsername');
       const passInput = document.getElementById('loginPassword');
 
       if (!userInput || !passInput) {
         alert('⚠️ Login inputs not found.');
-        return false;
+        return;
       }
 
       const username = userInput.value.trim();
       const password = passInput.value.trim();
 
       if (!username || !password) {
-        alert('⚠️ Please enter both your phone/username and password.');
-        return false;
+        alert('⚠️ Please enter both phone number/username and password.');
+        return;
       }
 
       const btn = document.getElementById('loginBtn');
@@ -572,16 +573,18 @@ function logout() {
           localStorage.setItem('miki_token', data.token);
           localStorage.setItem('miki_user', data.username);
 
-          // Hide Auth, Show Main App & Navigation
-          if (document.getElementById('authContainer')) document.getElementById('authContainer').style.display = 'none';
-          if (document.getElementById('profileContainer')) document.getElementById('profileContainer').style.display = 'none';
-          if (document.getElementById('discoverContainer')) document.getElementById('discoverContainer').style.display = 'block';
-          if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
+          document.getElementById('authContainer').style.display = 'none';
+          if (document.getElementById('discoverContainer')) {
+            document.getElementById('discoverContainer').style.display = 'block';
+          }
+          if (document.getElementById('bottomNav')) {
+            document.getElementById('bottomNav').style.display = 'flex';
+          }
 
           if (typeof loadDiscoverFeed === 'function') loadDiscoverFeed();
           alert('🎉 Welcome back, ' + data.username + '!');
         } else {
-          alert('❌ ' + (data.error || 'Invalid credentials'));
+          alert('❌ ' + (data.error || 'Invalid username or password'));
         }
       } catch (err) {
         alert('❌ Network Error: ' + err.message);
@@ -591,7 +594,6 @@ function logout() {
           btn.disabled = false;
         }
       }
-      return false;
     }
 
 </script>
