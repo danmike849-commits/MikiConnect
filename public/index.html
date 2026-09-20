@@ -155,6 +155,11 @@
   </style>
 </head>
 <body>
+<div style="position:fixed; top:12px; right:12px; z-index:10000;">
+  <button id="logoutBtn" onclick="logout()" style="background:#ef4444; color:white; border:none; padding:6px 14px; border-radius:8px; font-weight:bold; cursor:pointer; margin-left:10px; font-size:14px;">
+    Logout
+  </button>
+</div>
 
   <div id="auth-screen">
     <div class="auth-card">
@@ -773,6 +778,19 @@
       } catch (err) {
         alert("❌ Network Error: " + err.message);
       }
+    }
+  </script>
+
+
+  <script>
+    function logout() {
+      // Clear local session storage
+      localStorage.removeItem('miki_token');
+      localStorage.removeItem('miki_username');
+      
+      // Notify user & reload page to show login screen
+      alert('👋 You have been logged out.');
+      window.location.reload();
     }
   </script>
 
