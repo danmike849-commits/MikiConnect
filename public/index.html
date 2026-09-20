@@ -107,20 +107,20 @@
     <label style="font-size:13px; color:#38bdf8; font-weight:bold;">Bio / About You</label>
     <textarea id="profBio" class="auth-input" style="height:80px; resize:none;" placeholder="Tell potential matches about yourself..."></textarea>
 
-    <button onclick="saveProfile()" class="btn-submit" style="background:#f43f5e; margin-top:10px;">Save Profile</button>
+    <button onclick="saveProfile()" class="btn-submit" style="background:#f43f5e; margin-top:10px;" >Save Profile</button>
   </div>
 
 <div id="authContainer" class="auth-card">
     <h2>MikiConnect</h2>
     <p>Log in to your MikiConnect account.</p>
     
-    <form onsubmit="return handleLogin(event)" id="loginForm" onsubmit="event.preventDefault(); triggerAuth();">
+    <form  onsubmit="return handleLogin(event)" id="loginForm" onsubmit="return handleLogin(event)" onsubmit="event.preventDefault(); triggerAuth();">
       <input type="text" id="loginUsername" class="auth-input" placeholder="Phone Number or Username" required />
       <input type="password" id="loginPassword" class="auth-input" placeholder="Password" required />
-      <button type="submit" id="loginBtn" class="btn-submit">Log in</button>
+      <button type="submit" id="loginBtn" onclick="handleLogin(event)" class="btn-submit" >Log in</button>
     </form>
 
-    <button onclick="openResetModal()" class="btn-secondary">Forgot password?</button>
+    <button onclick="openResetModal()" class="btn-secondary" >Forgot password?</button>
   </div>
 
   <!-- CREATE ACCOUNT MODAL -->
@@ -133,8 +133,8 @@
       <input type="text" id="regUsername" class="modal-input" placeholder="Choose Display Username (e.g. MikiUser)" />
       <input type="password" id="regPassword" class="modal-input" placeholder="Create Password" />
 
-      <button onclick="submitRegistration()" class="modal-btn">Create Account</button>
-      <button onclick="closeSignUpModal()" class="modal-close">Cancel & Go Back</button>
+      <button onclick="submitRegistration()" class="modal-btn" >Create Account</button>
+      <button onclick="closeSignUpModal()" class="modal-close" >Cancel & Go Back</button>
     </div>
   </div>
 
@@ -146,7 +146,7 @@
 
       <div id="resetStep1">
         <input type="text" id="resetIdentifier" class="modal-input" placeholder="Phone Number or Username" />
-        <button onclick="submitRequestCode()" class="modal-btn">Get Reset Code</button>
+        <button onclick="submitRequestCode()" class="modal-btn" >Get Reset Code</button>
       </div>
 
       <div id="resetStep2" style="display: none;">
@@ -155,10 +155,10 @@
         
         <input type="text" id="inputResetCode" class="modal-input" placeholder="Enter 6-digit code" />
         <input type="password" id="inputNewPassword" class="modal-input" placeholder="Enter new password" />
-        <button onclick="submitNewPassword()" class="modal-btn">Update Password</button>
+        <button onclick="submitNewPassword()" class="modal-btn" >Update Password</button>
       </div>
 
-      <button onclick="closeResetModal()" class="modal-close">Cancel</button>
+      <button onclick="closeResetModal()" class="modal-close" >Cancel</button>
     </div>
   </div>
 
@@ -179,7 +179,7 @@
         loadProfile();
         document.getElementById('userSection').innerHTML = `
           <span style="color:#f8fafc; font-weight:bold; margin-right:8px;">${username}</span>
-          <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Logout</button>
+          <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer;" >Logout</button>
         `;
       }
     };
@@ -443,34 +443,107 @@ function logout() {
   
     
     async 
+    
     async function handleLogin(e) {
       if (e && e.preventDefault) e.preventDefault();
       
-      // Get input elements by common IDs
-      const identifierInput = document.getElementById('loginIdentifier') || document.getElementById('username') || document.getElementById('identifier') || document.getElementById('phone');
-      const passwordInput = document.getElementById('loginPassword') || document.getElementById('password');
+      const userInput = document.getElementById('loginUsername');
+      const passInput = document.getElementById('loginPassword');
       
-      if (!identifierInput || !passwordInput) {
-        alert('⚠️ UI Error: Could not locate login input fields. Please refresh.');
+      if (!userInput || !passInput) {
+        alert('⚠️ Login fields missing. Please reload.');
         return false;
       }
 
-      const identifier = identifierInput.value.trim();
-      const password = passwordInput.value.trim();
+      const username = userInput.value.trim();
+      const password = passInput.value.trim();
 
-      if (!identifier || !password) {
+      if (!username || !password) {
         alert('⚠️ Please enter both your phone/username and password.');
         return false;
       }
 
-      const btn = document.getElementById('loginBtn') || (e ? e.target : null);
+      const btn = document.getElementById('loginBtn');
       if (btn) {
         btn.innerText = 'Logging in...';
         btn.disabled = true;
       }
 
       try {
-        console.log('Posting login request to /api/auth/login-check...');
+        const res = await fetch('/api/auth/login-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          localStorage.setItem('miki_token', data.token);
+          localStorage.setItem('miki_user', data.username);
+
+          if (document.getElementById('authContainer')) document.getElementById('authContainer').style.display = 'none';
+          if (document.getElementById('profileContainer')) document.getElementById('profileContainer').style.display = 'block';
+          if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
+
+          if (typeof loadProfile === 'function') loadProfile();
+          alert('🎉 Welcome back, ' + data.username + '!');
+        } else {
+          alert('❌ Login Failed: ' + (data.error || 'Invalid username or password'));
+        }
+      } catch (err) {
+        alert('❌ Connection Error: ' + err.message);
+      } finally {
+        if (btn) {
+          btn.innerText = 'Log In';
+          btn.disabled = false;
+        }
+      }
+      return false;
+    }
+
+
+
+
+
+    async function universalLogin(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      // Find inputs inside the visible form or auth container
+      const container = document.getElementById('authContainer') || document.body;
+      const inputs = container.getElementsByTagName('input');
+      
+      let identifier = '';
+      let password = '';
+
+      for (let input of inputs) {
+        if (input.type === 'password') {
+          password = input.value.trim();
+        } else if (input.type === 'text' || input.type === 'tel' || input.type === 'email') {
+          if (!identifier && input.value.trim()) {
+            identifier = input.value.trim();
+          }
+        }
+      }
+
+      if (!identifier || !password) {
+        alert('⚠️ Please enter your phone/username and password.');
+        return false;
+      }
+
+      // Find submit button
+      const btn = container.querySelector('button');
+      const originalText = btn ? btn.innerText : 'Log In';
+      if (btn) {
+        btn.innerText = 'Logging in...';
+        btn.disabled = true;
+      }
+
+      try {
+        console.log('Sending auth request...');
         const res = await fetch('/api/auth/login-check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -488,22 +561,20 @@ function logout() {
           if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
           
           if (typeof loadProfile === 'function') loadProfile();
-          alert('🎉 Logged in successfully as ' + data.username);
+          alert('🎉 Welcome back, ' + data.username + '!');
         } else {
-          alert('❌ Login Failed: ' + (data.error || 'Invalid credentials'));
+          alert('❌ Auth Failed: ' + (data.error || 'Invalid login details'));
         }
       } catch (err) {
-        alert('❌ Network/Server Error: ' + err.message);
+        alert('❌ Network Error: ' + err.message);
       } finally {
         if (btn) {
-          btn.innerText = 'Log In';
+          btn.innerText = originalText;
           btn.disabled = false;
         }
       }
       return false;
     }
-
-
 
 </script>
 
