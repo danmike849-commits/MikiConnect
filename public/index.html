@@ -153,25 +153,21 @@
       border: 1px solid #334155; border-radius: 10px; padding: 12px; outline: none; font-size: 14px;
     }
   </style>
+
+    function resetAuthButton() {
+      const btns = document.querySelectorAll('button');
+      btns.forEach(btn => {
+        if (btn.innerText.includes('Authenticating')) {
+          btn.innerText = 'Log in';
+          btn.disabled = false;
+        }
+      });
+    }
+  
 </head>
 <body>
 <div style="position:fixed; top:12px; right:12px; z-index:10000;">
-  <button id="logoutBtn" onclick="logout()" style="background:#ef4444; color:white; border:none; padding:6px 14px; border-radius:8px; font-weight:bold; cursor:pointer; margin-left:10px; font-size:14px;">
-    Logout
-  </button>
-</div>
-
-  <div id="auth-screen">
-    <div class="auth-card">
-      <h2>MikiConnect</h2>
-      <p style="color:#94a3b8; font-size:13px;">Log in to your MikiConnect account.</p>
-      <input type="text" id="username" placeholder="Username or email">
-      <input type="password" id="password" placeholder="Enter your password">
-      <button type="button" id="login-btn">Log in</button>
-      <div id="auth-status" class="status-box"></div>
-      <div class="auth-links">
-        <button class="auth-link" type="button" onclick="requestForgotPassword()">Forgot password?</button>
-        <button class="auth-link" type="button" onclick="requestResendVerification()">Resend verification email</button>
+  
       </div>
     </div>
   </div>
