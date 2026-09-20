@@ -114,7 +114,7 @@
     <h2>MikiConnect</h2>
     <p>Log in to your MikiConnect account.</p>
     
-    <form id="loginForm" onsubmit="event.preventDefault(); triggerAuth();">
+    <form onsubmit="return handleLogin(event)" id="loginForm" onsubmit="event.preventDefault(); triggerAuth();">
       <input type="text" id="loginUsername" class="auth-input" placeholder="Phone Number or Username" required />
       <input type="password" id="loginPassword" class="auth-input" placeholder="Password" required />
       <button type="submit" id="loginBtn" class="btn-submit">Log in</button>
@@ -441,15 +441,18 @@ function logout() {
       }
     }
   
+    
+    async 
     async function handleLogin(e) {
-      if (e) e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       
-      const identifierInput = document.getElementById('loginIdentifier') || document.getElementById('username') || document.getElementById('phone');
+      // Get input elements by common IDs
+      const identifierInput = document.getElementById('loginIdentifier') || document.getElementById('username') || document.getElementById('identifier') || document.getElementById('phone');
       const passwordInput = document.getElementById('loginPassword') || document.getElementById('password');
       
       if (!identifierInput || !passwordInput) {
-        alert('⚠️ Form error: input fields not found.');
-        return;
+        alert('⚠️ UI Error: Could not locate login input fields. Please refresh.');
+        return false;
       }
 
       const identifier = identifierInput.value.trim();
@@ -457,49 +460,50 @@ function logout() {
 
       if (!identifier || !password) {
         alert('⚠️ Please enter both your phone/username and password.');
-        return;
+        return false;
       }
 
-      const btn = document.getElementById('loginBtn');
+      const btn = document.getElementById('loginBtn') || (e ? e.target : null);
       if (btn) {
         btn.innerText = 'Logging in...';
         btn.disabled = true;
       }
 
       try {
-        console.log('Sending login request for:', identifier);
+        console.log('Posting login request to /api/auth/login-check...');
         const res = await fetch('/api/auth/login-check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: identifier, password })
+          body: JSON.stringify({ username: identifier, password: password })
         });
 
         const data = await res.json();
-        console.log('Login response:', data);
 
         if (res.ok && data.token) {
           localStorage.setItem('miki_token', data.token);
           localStorage.setItem('miki_user', data.username);
           
-          document.getElementById('authContainer').style.display = 'none';
-          document.getElementById('profileContainer').style.display = 'block';
-          if (document.getElementById('bottomNav')) {
-            document.getElementById('bottomNav').style.display = 'flex';
-          }
-          loadProfile();
+          if (document.getElementById('authContainer')) document.getElementById('authContainer').style.display = 'none';
+          if (document.getElementById('profileContainer')) document.getElementById('profileContainer').style.display = 'block';
+          if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
+          
+          if (typeof loadProfile === 'function') loadProfile();
+          alert('🎉 Logged in successfully as ' + data.username);
         } else {
-          alert('❌ ' + (data.error || 'Login failed. Please check your details.'));
+          alert('❌ Login Failed: ' + (data.error || 'Invalid credentials'));
         }
       } catch (err) {
-        console.error('Fetch error:', err);
-        alert('❌ Network Error: Unable to reach server. ' + err.message);
+        alert('❌ Network/Server Error: ' + err.message);
       } finally {
         if (btn) {
           btn.innerText = 'Log In';
           btn.disabled = false;
         }
       }
+      return false;
     }
+
+
 
 </script>
 
