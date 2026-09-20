@@ -13,8 +13,8 @@ const io = new Server(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-// DEFINE ADMIN IDENTIFIERS
 const ADMIN_EMAILS = ['danmike849@gmail.com', 'danmike849'];
 
 app.use(express.json());
@@ -45,16 +45,15 @@ const Post = mongoose.model('Post', PostSchema);
 // AUTH MIDDLEWARE
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  if (!token) return res.status(401).json({ error: 'Unauthorized: Missing token' });
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch (err) {
-    res.status(403).json({ error: 'Invalid token' });
+    res.status(403).json({ error: 'Invalid or expired token' });
   }
 };
 
-// ADMIN ONLY MIDDLEWARE
 const requireAdmin = (req, res, next) => {
   if (!ADMIN_EMAILS.includes(req.user.username.toLowerCase())) {
     return res.status(403).json({ error: 'Access Denied: Admin privileges required.' });
@@ -62,10 +61,10 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-// REGISTER OR LOGIN FOR ANY USER
+// REGISTER OR LOGIN
 app.post('/api/auth/register-or-login', async (req, res) => {
   let { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Username/Email and password required' });
+  if (!username || !password) return res.status(400).json({ error: 'Username/Email and password are required' });
 
   username = username.toLowerCase().trim();
 
@@ -93,20 +92,20 @@ app.post('/api/auth/register-or-login', async (req, res) => {
       await user.save();
     } else {
       const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ error: 'Invalid password' });
+      if (!isMatch) return res.status(400).json({ error: 'Incorrect password entered.' });
     }
 
     const token = jwt.sign({ id: user._id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, username: user.username, role: user.role });
   } catch (err) {
-    res.status(500).json({ error: 'Database authentication error: ' + err.message });
+    res.status(500).json({ error: 'Authentication error: ' + err.message });
   }
 });
 
-// FORGOT PASSWORD ENDPOINT (FOR ALL USERS)
+// FORGOT PASSWORD
 app.post('/api/auth/forgot-password', async (req, res) => {
   let { identifier } = req.body;
-  if (!identifier) return res.status(400).json({ error: 'Provide username or email' });
+  if (!identifier) return res.status(400).json({ error: 'Please enter a valid email address or username.' });
 
   identifier = identifier.toLowerCase().trim();
 
@@ -118,26 +117,48 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       ]
     });
 
-    if (!user) return res.status(404).json({ error: 'User account not found' });
+    if (!user) return res.status(404).json({ error: `No account exists for "${identifier}".` });
 
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetToken = resetCode;
     user.resetTokenExpiry = Date.now() + 3600000;
     await user.save();
 
-    return res.json({ 
-      message: `Reset code generated successfully! Your code is: ${resetCode}` 
-    });
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      return res.json({ 
+        message: `RESEND_API_KEY missing on Render! Fallback code: ${resetCode}` 
+      });
+    }
+
+    try {
+      const { Resend } = require('resend');
+      const resend = new Resend(apiKey);
+      const emailResult = await resend.emails.send({
+        from: 'MikiConnect <onboarding@resend.dev>',
+        to: user.email,
+        subject: 'MikiConnect Password Reset Code',
+        html: `<p>Your MikiConnect password reset code is: <strong>${resetCode}</strong></p>`
+      });
+
+      if (emailResult.error) {
+        return res.status(400).json({ error: `Resend Error: ${emailResult.error.message}` });
+      }
+
+      return res.json({ message: `Password reset code sent to ${user.email}!` });
+    } catch (sdkErr) {
+      return res.status(500).json({ error: `SDK Error: ${sdkErr.message}` });
+    }
 
   } catch (err) {
-    res.status(500).json({ error: 'Failed to process password reset' });
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
-// RESEND VERIFICATION ENDPOINT
+// RESEND VERIFICATION
 app.post('/api/auth/resend-verification', async (req, res) => {
   let { identifier } = req.body;
-  if (!identifier) return res.status(400).json({ error: 'Provide username or email' });
+  if (!identifier) return res.status(400).json({ error: 'Please enter a valid email address or username.' });
 
   identifier = identifier.toLowerCase().trim();
 
@@ -149,21 +170,43 @@ app.post('/api/auth/resend-verification', async (req, res) => {
       ]
     });
 
-    if (!user) return res.status(404).json({ error: 'User account not found' });
+    if (!user) return res.status(404).json({ error: `No account found for "${identifier}".` });
 
-    return res.json({ message: `Verification status verified for ${user.username}. Account is active.` });
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      return res.json({ message: `RESEND_API_KEY not found on Render.` });
+    }
+
+    try {
+      const { Resend } = require('resend');
+      const resend = new Resend(apiKey);
+      const emailResult = await resend.emails.send({
+        from: 'MikiConnect <onboarding@resend.dev>',
+        to: user.email,
+        subject: 'MikiConnect Email Verification',
+        html: `<p>Hello ${user.username}, your account is active and verified!</p>`
+      });
+
+      if (emailResult.error) {
+        return res.status(400).json({ error: `Resend Error: ${emailResult.error.message}` });
+      }
+
+      return res.json({ message: `Verification email sent to ${user.email}!` });
+    } catch (sdkErr) {
+      return res.status(500).json({ error: `SDK Error: ${sdkErr.message}` });
+    }
   } catch (err) {
-    res.status(500).json({ error: 'Failed to resend verification email' });
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
-// ADMIN ONLY CONTROL ENDPOINTS (ONLY ACCESSIBLE BY danmike849@gmail.com)
+// ADMIN CONTROLS
 app.delete('/api/admin/delete-user/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
-    res.json({ message: 'User permanently deleted by Admin.' });
+    res.json({ message: 'User permanently deleted.' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to delete user' });
+    res.status(500).json({ error: 'Failed to delete user: ' + err.message });
   }
 });
 
@@ -172,7 +215,7 @@ app.post('/api/admin/ban-user/:id', authenticate, requireAdmin, async (req, res)
     await User.findByIdAndUpdate(req.params.id, { isBanned: true });
     res.json({ message: 'User has been banned.' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to ban user' });
+    res.status(500).json({ error: 'Failed to ban user: ' + err.message });
   }
 });
 
@@ -239,6 +282,7 @@ app.get('/health', (req, res) => res.status(200).send('OK'));
 
 server.listen(PORT, () => {
   console.log(`Server live on port ${PORT}`);
+  console.log(`RESEND_API_KEY Status: ${process.env.RESEND_API_KEY ? 'CONFIGURED' : 'MISSING'}`);
   if (MONGO_URI) {
     mongoose.connect(MONGO_URI)
       .then(() => console.log('Connected to MongoDB Atlas'))
