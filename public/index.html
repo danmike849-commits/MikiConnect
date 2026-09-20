@@ -31,6 +31,15 @@
     .code-display { background: #0284c7; color: #ffffff; font-size: 24px; font-weight: bold; letter-spacing: 4px; padding: 10px; border-radius: 8px; margin: 12px 0; }
     .modal-btn { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     .modal-close { background: none; border: none; color: #94a3b8; font-size: 14px; margin-top: 12px; cursor: pointer; width: 100%; padding: 6px; }
+  
+    /* BOTTOM DATING NAV */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #1e293b; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
+    .nav-item { color: #94a3b8; text-decoration: none; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; }
+    .nav-item.active { color: #f43f5e; font-weight: bold; }
+    .nav-icon { font-size: 20px; margin-bottom: 2px; }
+    
+    .profile-preview-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #f43f5e; margin: 0 auto 14px auto; display: block; background: #0f172a; }
+
   </style>
 </head>
 <body>
@@ -40,7 +49,7 @@
     <div id="userSection"></div>
   </header>
 
-  <div class="nav-tabs">
+  <div class="nav-tabs" style="display:none;">
     <span>STEM</span>
     <span>Explore</span>
     <span>Following</span>
@@ -53,6 +62,10 @@
   <div id="profileContainer" class="auth-card" style="display:none; max-width:480px; text-align:left;">
     <h2 style="color:#f43f5e; font-size:22px; text-align:center; margin-bottom:12px;">Edit Your Profile</h2>
     <p style="text-align:center; margin-bottom:20px; color:#94a3b8;">Set up your dating photos, bio, and preferences.</p>
+
+    
+    <!-- LIVE PHOTO PREVIEW -->
+    <img id="imgPreview" class="profile-preview-img" src="https://via.placeholder.com/150/1e293b/94a3b8?text=Photo" alt="Profile Preview" />
 
     <label style="font-size:13px; color:#38bdf8; font-weight:bold;">Profile Photo URL (Primary Image)</label>
     <input type="text" id="profPhoto" class="auth-input" placeholder="https://example.com/my-photo.jpg" />
@@ -148,6 +161,7 @@
       if (token && username) {
         document.getElementById('authContainer').style.display = 'none';
         document.getElementById('profileContainer').style.display = 'block';
+        document.getElementById('bottomNav').style.display = 'flex';
         loadProfile();
         document.getElementById('userSection').innerHTML = `
           <span style="color:#f8fafc; font-weight:bold; margin-right:8px;">${username}</span>
@@ -167,7 +181,9 @@
         });
         const user = await res.json();
         if (res.ok) {
-          document.getElementById('profPhoto').value = (user.photos && user.photos[0]) ? user.photos[0] : '';
+          const p = (user.photos && user.photos[0]) ? user.photos[0] : '';
+          document.getElementById('profPhoto').value = p;
+          if (p) document.getElementById('imgPreview').src = p;
           document.getElementById('profAge').value = user.age || '';
           document.getElementById('profGender').value = user.gender || 'man';
           document.getElementById('profInterested').value = user.interestedIn || 'women';
@@ -176,6 +192,22 @@
         }
       } catch (err) {
         console.error('Failed to load profile:', err);
+      }
+    }
+
+    
+    document.getElementById('profPhoto').addEventListener('input', function(e) {
+      const url = e.target.value.trim();
+      document.getElementById('imgPreview').src = url || 'https://via.placeholder.com/150/1e293b/94a3b8?text=Photo';
+    });
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      if (tabName === 'profile') {
+        document.getElementById('profileTabBtn').classList.add('active');
+        document.getElementById('profileContainer').style.display = 'block';
+      } else {
+        alert('🚀 ' + tabName.toUpperCase() + ' section coming in next update!');
       }
     }
 
@@ -377,6 +409,27 @@ function logout() {
       }
     }
   </script>
+
+
+  <!-- BOTTOM DATING NAVIGATION -->
+  <div id="bottomNav" class="bottom-nav" style="display:none;">
+    <div class="nav-item" onclick="switchTab('discover')">
+      <span class="nav-icon">🔥</span>
+      <span>Discover</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('matches')">
+      <span class="nav-icon">💬</span>
+      <span>Chats</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('likes')">
+      <span class="nav-icon">👑</span>
+      <span>Likes You</span>
+    </div>
+    <div class="nav-item active" id="profileTabBtn" onclick="switchTab('profile')">
+      <span class="nav-icon">👤</span>
+      <span>Profile</span>
+    </div>
+  </div>
 
 </body>
 </html>
