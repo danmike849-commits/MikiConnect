@@ -550,5 +550,231 @@
     function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active-modal')); }
     function logoutUser() { localStorage.clear(); location.reload(); }
   </script>
+
+  <!-- IN-APP CUSTOM RESET MODAL -->
+  <style>
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.7); display: none; align-items: center;
+      justify-content: center; z-index: 9999; backdrop-filter: blur(4px);
+    }
+    .modal-card {
+      background: #ffffff; width: 90%; max-width: 400px; padding: 24px;
+      border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      font-family: system-ui, -apple-system, sans-serif; text-align: center;
+    }
+    .modal-card h3 { margin-top: 0; color: #1f2937; font-size: 20px; }
+    .modal-card p { color: #6b7280; font-size: 14px; margin-bottom: 16px; }
+    .modal-input {
+      width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db;
+      border-radius: 8px; font-size: 15px; box-sizing: border-box;
+    }
+    .code-display {
+      background: #e0e7ff; color: #3730a3; font-size: 26px; font-weight: bold;
+      letter-spacing: 6px; padding: 12px; border-radius: 8px; margin: 12px 0;
+    }
+    .modal-btn {
+      width: 100%; padding: 12px; background: #4f46e5; color: white; border: none;
+      border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+    }
+    .modal-btn:hover { background: #4338ca; }
+    .modal-close {
+      background: none; border: none; color: #9ca3af; font-size: 14px;
+      margin-top: 12px; cursor: pointer; width: 100%;
+    }
+  </style>
+
+  <div id="resetModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 id="modalTitle">Password Reset</h3>
+      <p id="modalSub">Enter your registered Phone Number or Username</p>
+
+      <!-- Step 1: Identifier Input -->
+      <div id="modalStep1">
+        <input type="text" id="modalIdentifier" class="modal-input" placeholder="e.g. 08012345678 or MikiUser" />
+        <button onclick="submitRequestCode()" class="modal-btn">Get Reset Code</button>
+      </div>
+
+      <!-- Step 2: Code & New Password Input -->
+      <div id="modalStep2" style="display: none;">
+        <p style="margin:0; font-size:12px; color:#4f46e5;">YOUR 6-DIGIT RESET CODE:</p>
+        <div id="displayedCode" class="code-display">000000</div>
+        
+        <input type="text" id="inputResetCode" class="modal-input" placeholder="Enter 6-digit code above" />
+        <input type="password" id="inputNewPassword" class="modal-input" placeholder="Enter new password" />
+        <button onclick="submitNewPassword()" class="modal-btn">Update Password</button>
+      </div>
+
+      <button onclick="closeResetModal()" class="modal-close">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    function openResetModal() {
+      document.getElementById('resetModal').style.display = 'flex';
+      document.getElementById('modalStep1').style.display = 'block';
+      document.getElementById('modalStep2').style.display = 'none';
+      document.getElementById('modalIdentifier').value = '';
+    }
+
+    function closeResetModal() {
+      document.getElementById('resetModal').style.display = 'none';
+    }
+
+    async function submitRequestCode() {
+      const identifier = document.getElementById('modalIdentifier').value.trim();
+      if (!identifier) return alert('Please enter your Phone Number or Username.');
+
+      try {
+        const res = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier })
+        });
+        const data = await res.json();
+
+        if (!res.ok) return alert('❌ ' + (data.error || 'Request failed'));
+
+        // Transition to Step 2 smoothly
+        document.getElementById('displayedCode').innerText = data.resetCode;
+        document.getElementById('inputResetCode').value = data.resetCode; // Auto fill for quick testing
+        document.getElementById('modalStep1').style.display = 'none';
+        document.getElementById('modalStep2').style.display = 'block';
+        document.getElementById('modalSub').innerText = 'Set your new password below';
+
+      } catch (err) {
+        alert('❌ Network Error: ' + err.message);
+      }
+    }
+
+    async function submitNewPassword() {
+      const identifier = document.getElementById('modalIdentifier').value.trim();
+      const resetCode = document.getElementById('inputResetCode').value.trim();
+      const newPassword = document.getElementById('inputNewPassword').value.trim();
+
+      if (!resetCode || !newPassword) return alert('Please enter both the code and your new password.');
+
+      try {
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, resetCode, newPassword })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          alert('🎉 ' + data.message);
+          closeResetModal();
+        } else {
+          alert('❌ ' + (data.error || 'Failed to update password'));
+        }
+      } catch (err) {
+        alert('❌ Network Error: ' + err.message);
+      }
+    }
+
+    function handleForgotPassword() {
+      openResetModal();
+    }
+  </script>
+
+
+  <!-- SIGN-UP CUSTOM VISUAL MODAL -->
+  <div id="signUpModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3>Create New Account</h3>
+      <p>No account was found for your entry. Fill in your details below to join MikiConnect:</p>
+
+      <input type="text" id="regIdentifier" class="modal-input" placeholder="Phone Number / Identifier" readonly style="background:#f3f4f6;" />
+      <input type="text" id="regUsername" class="modal-input" placeholder="Choose a Display Username (e.g. MikiUser)" />
+      <input type="password" id="regPassword" class="modal-input" placeholder="Create Password" />
+
+      <button onclick="submitRegistration()" class="modal-btn">Complete Registration</button>
+      <button onclick="closeSignUpModal()" class="modal-close">Cancel & Go Back</button>
+    </div>
+  </div>
+
+  <script>
+    function openSignUpModal(identifier, password) {
+      document.getElementById('regIdentifier').value = identifier;
+      document.getElementById('regPassword').value = password;
+      // Auto-suggest username if identifier is not a raw phone number
+      if (!/^\+?[0-9]{7,15}$/.test(identifier)) {
+        document.getElementById('regUsername').value = identifier;
+      } else {
+        document.getElementById('regUsername').value = '';
+      }
+      document.getElementById('signUpModal').style.display = 'flex';
+    }
+
+    function closeSignUpModal() {
+      document.getElementById('signUpModal').style.display = 'none';
+    }
+
+    async function handleAuth(username, password) {
+      try {
+        const res = await fetch('/api/auth/login-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        // If account does NOT exist, open the Registration Modal Form!
+        if (res.status === 404 && data.accountExists === false) {
+          openSignUpModal(username, password);
+          return;
+        }
+
+        if (!res.ok) {
+          alert("❌ " + (data.error || "Authentication failed."));
+          return;
+        }
+
+        // Login Success
+        localStorage.setItem('miki_token', data.token);
+        localStorage.setItem('miki_username', data.username);
+        alert("🎉 Welcome back " + data.username + "!");
+        window.location.reload();
+
+      } catch (err) {
+        alert("❌ Network Error: " + err.message);
+      }
+    }
+
+    async function submitRegistration() {
+      const identifier = document.getElementById('regIdentifier').value.trim();
+      const username = document.getElementById('regUsername').value.trim();
+      const password = document.getElementById('regPassword').value.trim();
+
+      if (!identifier || !username || !password) {
+        return alert('Please fill in all registration fields.');
+      }
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.status === 201) {
+          localStorage.setItem('miki_token', data.token);
+          localStorage.setItem('miki_username', data.username);
+          alert("🎉 Account created successfully! Welcome to MikiConnect, " + data.username + "!");
+          closeSignUpModal();
+          window.location.reload();
+        } else {
+          alert("❌ " + (data.error || "Registration failed."));
+        }
+      } catch (err) {
+        alert("❌ Network Error: " + err.message);
+      }
+    }
+  </script>
+
 </body>
 </html>

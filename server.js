@@ -14,14 +14,15 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'mikiconnect_secret_key_2026';
 const MONGO_URI = process.env.MONGO_URI;
 
-const ADMIN_EMAILS = ['danmike849@gmail.com', 'danmike849'];
+const ADMIN_IDENTIFIERS = ['danmike849@gmail.com', 'danmike849', '08000000000'];
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// SCHEMAS
+// USER SCHEMA WITH PHONE & EMAIL
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  phone: { type: String, trim: true },
   email: { type: String, lowercase: true, trim: true },
   password: { type: String, required: true },
   role: { type: String, default: 'user' },
@@ -54,24 +55,25 @@ const authenticate = (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
-  if (!ADMIN_EMAILS.includes(req.user.username.toLowerCase())) {
+  if (!ADMIN_IDENTIFIERS.includes(req.user.username.toLowerCase())) {
     return res.status(403).json({ error: 'Access Denied: Admin privileges required.' });
   }
   next();
 };
 
-// REGISTER OR LOGIN
-app.post('/api/auth/register-or-login', async (req, res) => {
+// 1. LOGIN / ACCOUNT CHECK
+app.post('/api/auth/login-check', async (req, res) => {
   let { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Username/Email and password are required' });
+  if (!username || !password) return res.status(400).json({ error: 'Phone number/Username and password are required' });
 
   username = username.toLowerCase().trim();
 
   try {
     let user = await User.findOne({
       $or: [
-        { username: new RegExp(`^${username}$`, 'i') },
-        { email: new RegExp(`^${username}$`, 'i') }
+        { username: username },
+        { phone: username },
+        { email: username }
       ]
     });
 
@@ -79,40 +81,77 @@ app.post('/api/auth/register-or-login', async (req, res) => {
       return res.status(403).json({ error: 'This account has been banned by Admin.' });
     }
 
+    // Account Not Found -> Inform Frontend to show Sign-Up Form
     if (!user) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const isOwner = ADMIN_EMAILS.includes(username);
-      user = new User({ 
-        username: username, 
-        email: username.includes('@') ? username : `${username}@mikiconnect.app`, 
-        password: hashedPassword,
-        role: isOwner ? 'admin' : 'user'
+      return res.status(404).json({ 
+        accountExists: false, 
+        message: 'No account found. Please complete registration.' 
       });
-      await user.save();
-    } else {
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ error: 'Incorrect password entered.' });
     }
+
+    // Account Found -> Verify Password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: 'Incorrect password entered.' });
 
     const token = jwt.sign({ id: user._id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, username: user.username, role: user.role });
+
   } catch (err) {
     res.status(500).json({ error: 'Authentication error: ' + err.message });
   }
 });
 
-// FORGOT PASSWORD
+// 2. EXPLICIT ACCOUNT REGISTRATION
+app.post('/api/auth/register', async (req, res) => {
+  let { identifier, username, password } = req.body;
+  if (!identifier || !username || !password) {
+    return res.status(400).json({ error: 'All registration fields are required.' });
+  }
+
+  identifier = identifier.toLowerCase().trim();
+  username = username.toLowerCase().trim();
+
+  try {
+    const existingUser = await User.findOne({ username: username });
+    if (existingUser) {
+      return res.status(400).json({ error: `Username "${username}" is already taken. Try another.` });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const isOwner = ADMIN_IDENTIFIERS.includes(identifier) || ADMIN_IDENTIFIERS.includes(username);
+    const isPhone = /^\+?[0-9]{7,15}$/.test(identifier);
+
+    const newUser = new User({
+      username: username,
+      phone: isPhone ? identifier : undefined,
+      email: identifier.includes('@') ? identifier : `${username}@mikiconnect.app`,
+      password: hashedPassword,
+      role: isOwner ? 'admin' : 'user'
+    });
+
+    await newUser.save();
+
+    const token = jwt.sign({ id: newUser._id, username: newUser.username, role: newUser.role }, JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({ token, username: newUser.username, role: newUser.role, message: 'Account created successfully!' });
+
+  } catch (err) {
+    res.status(500).json({ error: 'Registration error: ' + err.message });
+  }
+});
+
+// 3. FORGOT PASSWORD (IN-APP CODE GENERATION)
 app.post('/api/auth/forgot-password', async (req, res) => {
   let { identifier } = req.body;
-  if (!identifier) return res.status(400).json({ error: 'Please enter a valid email address or username.' });
+  if (!identifier) return res.status(400).json({ error: 'Please enter a valid Phone Number or Username.' });
 
   identifier = identifier.toLowerCase().trim();
 
   try {
     const user = await User.findOne({
       $or: [
-        { username: new RegExp(`^${identifier}$`, 'i') },
-        { email: new RegExp(`^${identifier}$`, 'i') }
+        { username: identifier },
+        { phone: identifier },
+        { email: identifier }
       ]
     });
 
@@ -123,42 +162,22 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     user.resetTokenExpiry = Date.now() + 3600000;
     await user.save();
 
-    const apiKey = process.env.RESEND_API_KEY;
-    if (apiKey) {
-      try {
-        const { Resend } = require('resend');
-        const resend = new Resend(apiKey);
-        const emailResult = await resend.emails.send({
-          from: 'MikiConnect <onboarding@resend.dev>',
-          to: user.email,
-          subject: 'MikiConnect Password Reset Code',
-          html: `<p>Your MikiConnect password reset code is: <strong>${resetCode}</strong></p>`
-        });
-
-        if (emailResult.error) {
-          return res.json({ 
-            message: `Reset code generated! Your code is: ${resetCode}` 
-          });
-        }
-
-        return res.json({ message: `Password reset code sent to ${user.email}!` });
-      } catch (sdkErr) {
-        return res.json({ message: `Reset code generated! Your code is: ${resetCode}` });
-      }
-    }
-
-    return res.json({ message: `Reset code generated! Your code is: ${resetCode}` });
+    return res.json({ 
+      success: true,
+      resetCode: resetCode,
+      message: 'Reset code generated successfully!' 
+    });
 
   } catch (err) {
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
-// RESET PASSWORD FINALIZATION
+// 4. RESET PASSWORD FINALIZATION
 app.post('/api/auth/reset-password', async (req, res) => {
   let { identifier, resetCode, newPassword } = req.body;
   if (!identifier || !resetCode || !newPassword) {
-    return res.status(400).json({ error: 'All fields are required (identifier, code, and new password).' });
+    return res.status(400).json({ error: 'All fields are required.' });
   }
 
   identifier = identifier.toLowerCase().trim();
@@ -166,8 +185,9 @@ app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const user = await User.findOne({
       $or: [
-        { username: new RegExp(`^${identifier}$`, 'i') },
-        { email: new RegExp(`^${identifier}$`, 'i') }
+        { username: identifier },
+        { phone: identifier },
+        { email: identifier }
       ]
     });
 
@@ -178,7 +198,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
     }
 
     if (user.resetTokenExpiry && Date.now() > user.resetTokenExpiry) {
-      return res.status(400).json({ error: 'Reset code has expired. Please request a new one.' });
+      return res.status(400).json({ error: 'Reset code has expired. Request a new one.' });
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
@@ -186,85 +206,13 @@ app.post('/api/auth/reset-password', async (req, res) => {
     user.resetTokenExpiry = undefined;
     await user.save();
 
-    res.json({ message: 'Password updated successfully! You can now log in with your new password.' });
+    res.json({ success: true, message: 'Password updated successfully! You can now log in.' });
   } catch (err) {
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
-// RESEND VERIFICATION
-app.post('/api/auth/resend-verification', async (req, res) => {
-  let { identifier } = req.body;
-  if (!identifier) return res.status(400).json({ error: 'Please enter a valid email address or username.' });
-
-  identifier = identifier.toLowerCase().trim();
-
-  try {
-    const user = await User.findOne({
-      $or: [
-        { username: new RegExp(`^${identifier}$`, 'i') },
-        { email: new RegExp(`^${identifier}$`, 'i') }
-      ]
-    });
-
-    if (!user) return res.status(404).json({ error: `No account found for "${identifier}".` });
-
-    const apiKey = process.env.RESEND_API_KEY;
-    if (apiKey) {
-      try {
-        const { Resend } = require('resend');
-        const resend = new Resend(apiKey);
-        const emailResult = await resend.emails.send({
-          from: 'MikiConnect <onboarding@resend.dev>',
-          to: user.email,
-          subject: 'MikiConnect Email Verification',
-          html: `<p>Hello ${user.username}, your account is active and verified!</p>`
-        });
-
-        if (emailResult.error) {
-          return res.status(400).json({ error: `Resend Error: ${emailResult.error.message}` });
-        }
-
-        return res.json({ message: `Verification email sent to ${user.email}!` });
-      } catch (sdkErr) {
-        return res.status(500).json({ error: `SDK Error: ${sdkErr.message}` });
-      }
-    }
-
-    return res.json({ message: `Account active for ${user.username}.` });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error: ' + err.message });
-  }
-});
-
-// ADMIN CONTROLS
-app.delete('/api/admin/delete-user/:id', authenticate, requireAdmin, async (req, res) => {
-  try {
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: 'User permanently deleted.' });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to delete user: ' + err.message });
-  }
-});
-
-app.post('/api/admin/ban-user/:id', authenticate, requireAdmin, async (req, res) => {
-  try {
-    await User.findByIdAndUpdate(req.params.id, { isBanned: true });
-    res.json({ message: 'User has been banned.' });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to ban user: ' + err.message });
-  }
-});
-
-app.get('/api/users', async (req, res) => {
-  try {
-    const users = await User.find({}, 'username createdAt role isBanned').sort({ createdAt: -1 });
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
-});
-
+// POSTS & REALTIME FEEDS
 app.get('/api/posts', async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 }).limit(50);
