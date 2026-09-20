@@ -440,7 +440,68 @@ function logout() {
         alert('❌ Network Error: ' + err.message);
       }
     }
-  </script>
+  
+    async function handleLogin(e) {
+      if (e) e.preventDefault();
+      
+      const identifierInput = document.getElementById('loginIdentifier') || document.getElementById('username') || document.getElementById('phone');
+      const passwordInput = document.getElementById('loginPassword') || document.getElementById('password');
+      
+      if (!identifierInput || !passwordInput) {
+        alert('⚠️ Form error: input fields not found.');
+        return;
+      }
+
+      const identifier = identifierInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      if (!identifier || !password) {
+        alert('⚠️ Please enter both your phone/username and password.');
+        return;
+      }
+
+      const btn = document.getElementById('loginBtn');
+      if (btn) {
+        btn.innerText = 'Logging in...';
+        btn.disabled = true;
+      }
+
+      try {
+        console.log('Sending login request for:', identifier);
+        const res = await fetch('/api/auth/login-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: identifier, password })
+        });
+
+        const data = await res.json();
+        console.log('Login response:', data);
+
+        if (res.ok && data.token) {
+          localStorage.setItem('miki_token', data.token);
+          localStorage.setItem('miki_user', data.username);
+          
+          document.getElementById('authContainer').style.display = 'none';
+          document.getElementById('profileContainer').style.display = 'block';
+          if (document.getElementById('bottomNav')) {
+            document.getElementById('bottomNav').style.display = 'flex';
+          }
+          loadProfile();
+        } else {
+          alert('❌ ' + (data.error || 'Login failed. Please check your details.'));
+        }
+      } catch (err) {
+        console.error('Fetch error:', err);
+        alert('❌ Network Error: Unable to reach server. ' + err.message);
+      } finally {
+        if (btn) {
+          btn.innerText = 'Log In';
+          btn.disabled = false;
+        }
+      }
+    }
+
+</script>
 
 
   <!-- BOTTOM DATING NAVIGATION -->
