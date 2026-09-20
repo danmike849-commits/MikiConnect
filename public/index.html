@@ -2,606 +2,96 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MikiConnect</title>
-  <script src="/socket.io/socket.io.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background-color: #000000; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-
-    #auth-screen {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #0f172a; z-index: 999999; display: flex;
-      align-items: center; justify-content: center; padding: 20px;
-    }
-    .auth-card {
-      background: #1e293b; padding: 28px 24px; border-radius: 16px;
-      width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.6); text-align: center; border: 1px solid #334155;
-    }
-    .auth-card h2 { font-size: 24px; font-weight: 800; color: #ff2a5f; }
-    .auth-card input {
-      width: 100%; height: 44px; padding: 0 14px; background: #0f172a;
-      color: #fff; border: 1px solid #334155; border-radius: 10px; font-size: 14px; outline: none;
-    }
-    .auth-card button {
-      width: 100%; height: 44px; background: #3b82f6; color: #fff;
-      border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer;
-    }
-    .status-box { font-size: 13px; font-weight: 600; padding: 6px; border-radius: 8px; display: none; }
-    .auth-links { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
-    .auth-link { color: #60a5fa; font-size: 13px; text-decoration: underline; cursor: pointer; background: none; border: none; }
-
-    #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; background: #000; }
-
-    .top-nav {
-      position: absolute; top: 0; left: 0; width: 100%; height: 54px;
-      display: flex; align-items: center; justify-content: center; gap: 18px;
-      z-index: 100; background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
-      font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.6);
-    }
-    .top-nav .tab.active { color: #ffffff; font-weight: 700; font-size: 16px; }
-
-    .view-section { display: none; width: 100%; height: calc(100vh - 56px); position: relative; overflow-y: auto; }
-    .view-section.active-view { display: flex; flex-direction: column; }
-
-    .feed-container { width: 100%; height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; }
-    .feed-card {
-      width: 100%; height: calc(100vh - 106px); scroll-snap-align: start; position: relative;
-      display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; padding-bottom: 20px;
-      border-bottom: 1px solid #1e293b;
-    }
-
-    .side-actions {
-      position: absolute; right: 12px; bottom: 30px; display: flex;
-      flex-direction: column; align-items: center; gap: 18px; z-index: 90;
-    }
-    .action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
-    .action-icon {
-      width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; font-size: 20px;
-    }
-
-    .post-info { width: 75%; z-index: 90; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
-    .post-info .author { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-    .post-info .caption { font-size: 14px; line-height: 1.4; color: #e2e8f0; }
-
-    .chat-input-bar {
-      width: 100%; height: 50px; padding: 6px 12px; background: rgba(15, 23, 42, 0.95);
-      display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 95;
-    }
-    .chat-input-bar input {
-      flex: 1; height: 38px; background: #1e293b; border: 1px solid #334155;
-      border-radius: 20px; padding: 0 14px; color: #fff; font-size: 14px; outline: none;
-    }
-    .send-btn {
-      width: 38px; height: 38px; border-radius: 50%; background: #ff2a5f;
-      border: none; color: #fff; font-weight: bold; font-size: 16px; cursor: pointer;
-    }
-
-    .bottom-nav {
-      position: absolute; bottom: 0; left: 0; width: 100%; height: 56px;
-      background: #000000; border-top: 1px solid rgba(255,255,255,0.12);
-      display: flex; align-items: center; justify-content: space-around; z-index: 101;
-    }
-    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #94a3b8; font-size: 10px; font-weight: 600; cursor: pointer; }
-    .nav-item.active { color: #ffffff; }
-
-    .create-btn {
-      width: 42px; height: 28px; background: #ffffff; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;
-    }
-    .create-btn::before { content: ''; position: absolute; left: -3px; width: 14px; height: 100%; background: #25f4ee; border-radius: 6px 0 0 6px; z-index: -1; }
-    .create-btn::after { content: ''; position: absolute; right: -3px; width: 14px; height: 100%; background: #fe2c55; border-radius: 0 6px 6px 0; z-index: -1; }
-    .create-btn span { color: #000; font-weight: 900; font-size: 20px; line-height: 1; }
-
-    .page-padding { padding: 20px; height: 100%; overflow-y: auto; }
-    .page-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: #ff2a5f; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 16px; }
+    header { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #1e293b; margin-bottom: 24px; }
+    header h1 { font-size: 22px; color: #38bdf8; font-weight: 800; tracking: wide; }
+    .nav-tabs { display: flex; gap: 16px; justify-content: center; margin-bottom: 20px; font-size: 14px; color: #94a3b8; }
+    .nav-tabs span { cursor: pointer; }
+    .nav-tabs span.active { color: #ffffff; font-weight: bold; border-bottom: 2px solid #38bdf8; padding-bottom: 4px; }
     
-    .user-card {
-      background: #1e293b; padding: 14px; border-radius: 12px; margin-bottom: 10px;
-      display: flex; align-items: center; justify-content: space-between; cursor: pointer;
-      transition: background 0.2s, transform 0.1s; border: 1px solid #334155;
-    }
-    .dm-badge { background: #ff2a5f; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-
-    #camera-screen {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #000; z-index: 99999; display: none; flex-direction: column;
-      justify-content: space-between; padding: 20px 16px 30px;
-    }
-    #camera-screen.active-cam { display: flex; }
-    #camera-preview { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
-    .cam-overlay { position: relative; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
-    .cam-header { display: flex; justify-content: space-between; align-items: center; }
-    .sound-badge { background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; backdrop-filter: blur(8px); }
-    .cam-tools { position: absolute; right: 0; top: 60px; display: flex; flex-direction: column; gap: 20px; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-
-    .cam-bottom { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 10px; }
-    .mode-selector { display: flex; gap: 18px; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.6); }
-    .mode-selector span.active-mode { color: #fff; border-bottom: 2px solid #fff; padding-bottom: 2px; }
-
-    .shutter-container { display: flex; align-items: center; justify-content: space-around; width: 100%; }
-    .shutter-btn {
-      width: 76px; height: 76px; border-radius: 50%; border: 4px solid #fff;
-      background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;
-    }
-    .shutter-inner { width: 62px; height: 62px; border-radius: 50%; background: #fe2c55; }
-
-    .text-input-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); z-index: 20; display: none;
-      flex-direction: column; justify-content: center; padding: 20px; gap: 14px;
-    }
-    .text-input-overlay textarea {
-      width: 100%; height: 120px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 12px; padding: 14px; color: #fff; font-size: 16px; outline: none;
-    }
-
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.85); z-index: 99999; display: none;
-      align-items: flex-end; justify-content: center;
-    }
-    .modal-overlay.active-modal { display: flex; }
-    .modal-card {
-      width: 100%; max-width: 500px; background: #1e293b; border-radius: 20px 20px 0 0;
-      padding: 20px; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid #334155;
-    }
-    .modal-card input {
-      width: 100%; background: #0f172a; color: #fff;
-      border: 1px solid #334155; border-radius: 10px; padding: 12px; outline: none; font-size: 14px;
-    }
+    .auth-card { background: #1e293b; width: 100%; max-width: 400px; padding: 28px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; border: 1px solid #334155; margin-top: 20px; }
+    .auth-card h2 { color: #f43f5e; font-size: 24px; margin-bottom: 6px; font-weight: 700; }
+    .auth-card p { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+    .auth-input { width: 100%; padding: 12px 16px; margin-bottom: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 15px; }
+    .auth-input:focus { outline: none; border-color: #38bdf8; }
+    .btn-submit { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 4px; }
+    .btn-submit:hover { background: #2563eb; }
+    .btn-secondary { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 12px; }
+    
+    /* MODAL STYLING */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(6px); }
+    .modal-card { background: #1e293b; color: #f8fafc; width: 90%; max-width: 400px; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; border: 1px solid #334155; }
+    .modal-card h3 { margin-top: 0; color: #38bdf8; font-size: 20px; margin-bottom: 8px; }
+    .modal-card p { color: #94a3b8; font-size: 13px; margin-bottom: 16px; line-height: 1.4; }
+    .modal-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #334155; border-radius: 8px; font-size: 15px; box-sizing: border-box; background: #0f172a; color: #ffffff; }
+    .code-display { background: #0284c7; color: #ffffff; font-size: 24px; font-weight: bold; letter-spacing: 4px; padding: 10px; border-radius: 8px; margin: 12px 0; }
+    .modal-btn { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .modal-close { background: none; border: none; color: #94a3b8; font-size: 14px; margin-top: 12px; cursor: pointer; width: 100%; padding: 6px; }
   </style>
-
-    function resetAuthButton() {
-      const btns = document.querySelectorAll('button');
-      btns.forEach(btn => {
-        if (btn.innerText.includes('Authenticating')) {
-          btn.innerText = 'Log in';
-          btn.disabled = false;
-        }
-      });
-    }
-  
 </head>
 <body>
-<div style="position:fixed; top:12px; right:12px; z-index:10000;">
-  
-      </div>
-    </div>
+
+  <header>
+    <h1>MIKICONNECT</h1>
+    <div id="userSection"></div>
+  </header>
+
+  <div class="nav-tabs">
+    <span>STEM</span>
+    <span>Explore</span>
+    <span>Following</span>
+    <span class="active">For You</span>
   </div>
 
-  <div id="app-container">
-
-    <div class="top-nav" id="top-nav">
-      <div class="tab">STEM</div>
-      <div class="tab">Explore</div>
-      <div class="tab">Following</div>
-      <div class="tab active">For You</div>
-    </div>
-
-    <div id="feed-view" class="view-section active-view">
-      <div class="feed-container" id="feed-posts"></div>
-      <div class="chat-input-bar">
-        <input type="text" id="chat-msg" placeholder="Type a public message...">
-        <button class="send-btn" onclick="sendPublicMessage()">➔</button>
-      </div>
-    </div>
-
-    <div id="friends-view" class="view-section page-padding">
-      <div class="page-title">Registered Users</div>
-      <div id="users-list">Loading registered users...</div>
-    </div>
-
-    <div id="inbox-view" class="view-section page-padding">
-      <div class="page-title">Live Public Feed Chat</div>
-      <div id="live-chat-box" style="display:flex; flex-direction:column; gap:10px;"></div>
-    </div>
-
-    <div id="profile-view" class="view-section page-padding">
-      <div class="page-title">My Profile</div>
-      <div class="user-card" style="flex-direction:column; text-align:center; padding:24px;">
-        <div style="font-size:48px; margin-bottom:8px;">👤</div>
-        <h3 id="profile-username" style="color:#ff2a5f;">@guest</h3>
-      </div>
-      <button onclick="logoutUser()" style="width:100%; padding:12px; background:#ef4444; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Log Out</button>
-    </div>
-
-    <div class="bottom-nav">
-      <div class="nav-item active" onclick="switchView('feed-view', this, true)">
-        <div class="nav-icon">🏠</div><span>Home</span>
-      </div>
-      <div class="nav-item" onclick="switchView('friends-view', this, false)">
-        <div class="nav-icon">👥</div><span>Friends</span>
-      </div>
-      <div class="create-btn" onclick="openCamera()"><span>+</span></div>
-      <div class="nav-item" onclick="switchView('inbox-view', this, false)">
-        <div class="nav-icon">💬</div><span>Inbox</span>
-      </div>
-      <div class="nav-item" onclick="switchView('profile-view', this, false)">
-        <div class="nav-icon">👤</div><span>Profile</span>
-      </div>
-    </div>
-
-  </div>
-
-  <div id="camera-screen">
-    <video id="camera-preview" autoplay playsinline muted></video>
+  <!-- MAIN LOGIN CARD -->
+  <div id="authContainer" class="auth-card">
+    <h2>MikiConnect</h2>
+    <p>Log in to your MikiConnect account.</p>
     
-    <div class="cam-overlay">
-      <div class="cam-header">
-        <span style="font-size:24px; cursor:pointer;" onclick="closeCamera()">✕</span>
-        <div class="sound-badge">🎵 Add sound</div>
-        <span style="font-size:20px; cursor:pointer;" onclick="switchCameraFacing()">🔄</span>
-      </div>
+    <form id="loginForm" onsubmit="event.preventDefault(); triggerAuth();">
+      <input type="text" id="loginUsername" class="auth-input" placeholder="Phone Number or Username" required />
+      <input type="password" id="loginPassword" class="auth-input" placeholder="Password" required />
+      <button type="submit" id="loginBtn" class="btn-submit">Log in</button>
+    </form>
 
-      <div class="cam-tools">
-        <div>⚡</div>
-        <div>⏱️</div>
-        <div>🖼️</div>
-        <div>✨</div>
-      </div>
-
-      <div class="cam-bottom">
-        <div class="mode-selector">
-          <span>10m</span>
-          <span>60s</span>
-          <span>15s</span>
-          <span class="active-mode">PHOTO</span>
-          <span onclick="openTextOverlay()">TEXT</span>
-        </div>
-
-        <div class="shutter-container">
-          <div style="width:40px;"></div>
-          <div class="shutter-btn" onclick="triggerCapture()">
-            <div class="shutter-inner"></div>
-          </div>
-          <div style="width:40px; font-size:24px; cursor:pointer;" onclick="openTextOverlay()">✍️</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="text-input-overlay" id="text-overlay">
-      <h3 style="color:#fe2c55;">Write Post Caption</h3>
-      <textarea id="camera-post-caption" placeholder="What's on your mind?"></textarea>
-      <button onclick="publishCameraPost()" style="padding:14px; background:#fe2c55; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Publish Post</button>
-      <button onclick="closeTextOverlay()" style="padding:10px; background:transparent; color:#aaa; border:none; cursor:pointer;">Back to Camera</button>
-    </div>
+    <button onclick="openResetModal()" class="btn-secondary">Forgot password?</button>
   </div>
 
-  <div id="dm-modal" class="modal-overlay">
+  <!-- CREATE ACCOUNT MODAL -->
+  <div id="signUpModal" class="modal-overlay">
     <div class="modal-card">
-      <h3 style="color:#ff2a5f;" id="dm-target-title">Chat with User</h3>
-      <div id="dm-chat-history" style="height: 180px; overflow-y: auto; background: #0f172a; padding: 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="dm-input" placeholder="Type a private message...">
-        <button onclick="sendPrivateMessage()" style="padding:0 16px; background:#ff2a5f; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Send</button>
-      </div>
-      <button onclick="closeModals()" style="padding:10px; background:transparent; color:#94a3b8; border:none; cursor:pointer;">Close</button>
+      <h3>Create New Account</h3>
+      <p>Set up your MikiConnect display profile below:</p>
+
+      <input type="text" id="regIdentifier" class="modal-input" placeholder="Phone Number / Identifier" readonly style="background:#0f172a; color:#94a3b8;" />
+      <input type="text" id="regUsername" class="modal-input" placeholder="Choose Display Username (e.g. MikiUser)" />
+      <input type="password" id="regPassword" class="modal-input" placeholder="Create Password" />
+
+      <button onclick="submitRegistration()" class="modal-btn">Create Account</button>
+      <button onclick="closeSignUpModal()" class="modal-close">Cancel & Go Back</button>
     </div>
   </div>
 
-  <script>
-    const socket = io();
-    let authToken = localStorage.getItem('token');
-    let currentUser = localStorage.getItem('username');
-    let activeDmTarget = null;
-    let currentStream = null;
-    let useFacingUser = true;
-
-    function showStatus(text, isError) {
-      const box = document.getElementById('auth-status');
-      box.style.display = 'block';
-      box.style.color = isError ? '#f87171' : '#4ade80';
-      box.style.background = isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)';
-      box.textContent = text;
-    }
-
-    if (authToken && currentUser) {
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('profile-username').textContent = '@' + currentUser;
-      initData();
-    }
-
-    document.getElementById('login-btn').addEventListener('click', async () => {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-      if (!username || !password) return showStatus('Enter username and password', true);
-
-      showStatus('Authenticating...', false);
-      const res = await fetch('/api/auth/register-or-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('username', data.username);
-        authToken = data.token;
-        currentUser = data.username;
-        document.getElementById('profile-username').textContent = '@' + currentUser;
-        document.getElementById('auth-screen').style.display = 'none';
-        initData();
-      } else {
-        showStatus(data.error || 'Authentication failed', true);
-      }
-    });
-
-    async function requestForgotPassword() {
-      const identifier = prompt("Enter the email address or username you used to register:");
-      if (!identifier) return;
-
-      try {
-        const res = await fetch('/api/auth/forgot-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          alert(`✅ Accepted!\n\n${data.message}`);
-        } else {
-          alert(`❌ Rejected!\n\n${data.error || 'Account not found or request failed.'}`);
-        }
-      } catch (err) {
-        alert("❌ Network Error: Unable to connect to server.");
-      }
-    }
-
-    async function requestResendVerification() {
-      const identifier = prompt("Enter your email address to resend the verification link:");
-      if (!identifier) return;
-
-      try {
-        const res = await fetch('/api/auth/resend-verification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          alert(`✅ Accepted!\n\n${data.message}`);
-        } else {
-          alert(`❌ Rejected!\n\n${data.error || 'Verification request failed.'}`);
-        }
-      } catch (err) {
-        alert("❌ Network Error: Unable to connect to server.");
-      }
-    }
-
-    function initData() {
-      socket.emit('register_user', currentUser);
-      fetchPosts();
-      fetchUsers();
-    }
-
-    async function openCamera() {
-      document.getElementById('camera-screen').classList.add('active-cam');
-      startCameraStream();
-    }
-
-    async function startCameraStream() {
-      if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
-      try {
-        currentStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: useFacingUser ? 'user' : 'environment' },
-          audio: false
-        });
-        document.getElementById('camera-preview').srcObject = currentStream;
-      } catch (err) {
-        console.warn('Camera permission denied or unavailable');
-      }
-    }
-
-    function switchCameraFacing() {
-      useFacingUser = !useFacingUser;
-      startCameraStream();
-    }
-
-    function closeCamera() {
-      if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
-      document.getElementById('camera-screen').classList.remove('active-cam');
-      closeTextOverlay();
-    }
-
-    function openTextOverlay() { document.getElementById('text-overlay').style.display = 'flex'; }
-    function closeTextOverlay() { document.getElementById('text-overlay').style.display = 'none'; }
-    function triggerCapture() { openTextOverlay(); }
-
-    async function publishCameraPost() {
-      const caption = document.getElementById('camera-post-caption').value.trim();
-      if (!caption) return alert('Write a caption for your post');
-
-      const res = await fetch('/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + authToken
-        },
-        body: JSON.stringify({ caption })
-      });
-
-      if (res.ok) {
-        document.getElementById('camera-post-caption').value = '';
-        closeCamera();
-        switchView('feed-view', document.querySelectorAll('.bottom-nav .nav-item')[0], true);
-      } else {
-        alert('Failed to publish post');
-      }
-    }
-
-    async function fetchPosts() {
-      const res = await fetch('/api/posts');
-      const posts = await res.json();
-      const feed = document.getElementById('feed-posts');
-      feed.innerHTML = '';
-      posts.forEach(p => renderPost(p));
-    }
-
-    function renderPost(post) {
-      const feed = document.getElementById('feed-posts');
-      const card = document.createElement('div');
-      card.className = 'feed-card';
-      card.innerHTML = `
-        <div class="side-actions">
-          <div class="action-btn"><div class="action-icon">❤️</div><span class="action-count">${post.likes || 0}</span></div>
-          <div class="action-btn"><div class="action-icon">💬</div><span class="action-count">0</span></div>
-          <div class="action-btn"><div class="action-icon">🔖</div><span class="action-count">0</span></div>
-        </div>
-        <div class="post-info">
-          <div class="author">@${post.author} <span style="color:#ff2a5f;">✔</span></div>
-          <div class="caption">${post.caption}</div>
-        </div>
-      `;
-      feed.prepend(card);
-    }
-
-    async function fetchUsers() {
-      const res = await fetch('/api/users');
-      const users = await res.json();
-      const container = document.getElementById('users-list');
-      
-      container.innerHTML = users
-        .filter(u => u.username !== currentUser)
-        .map(u => `
-          <div class="user-card" onclick="openPrivateChat('${u.username}')">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-size:24px;">👤</span>
-              <div>
-                <strong>@${u.username}</strong><br>
-                <small style="color:#94a3b8;">Registered User</small>
-              </div>
-            </div>
-            <span class="dm-badge">Chat 💬</span>
-          </div>
-        `).join('');
-    }
-
-    function openPrivateChat(targetUsername) {
-      activeDmTarget = targetUsername;
-      document.getElementById('dm-target-title').textContent = 'Chat with @' + targetUsername;
-      document.getElementById('dm-chat-history').innerHTML = '';
-      document.getElementById('dm-modal').classList.add('active-modal');
-    }
-
-    function sendPrivateMessage() {
-      const input = document.getElementById('dm-input');
-      const msg = input.value.trim();
-      if (!msg || !activeDmTarget) return;
-
-      socket.emit('send_private_message', {
-        sender: currentUser,
-        recipient: activeDmTarget,
-        text: msg
-      });
-
-      appendDmMessage(currentUser, msg);
-      input.value = '';
-    }
-
-    function appendDmMessage(sender, text) {
-      const box = document.getElementById('dm-chat-history');
-      const div = document.createElement('div');
-      div.style.padding = '6px 10px';
-      div.style.borderRadius = '8px';
-      div.style.background = sender === currentUser ? '#ff2a5f' : '#1e293b';
-      div.style.alignSelf = sender === currentUser ? 'flex-end' : 'flex-start';
-      div.style.maxWidth = '80%';
-      div.innerHTML = `<small style="opacity:0.8;">@${sender}:</small><br>${text}`;
-      box.appendChild(div);
-      box.scrollTop = box.scrollHeight;
-    }
-
-    function sendPublicMessage() {
-      const input = document.getElementById('chat-msg');
-      const msg = input.value.trim();
-      if (!msg) return;
-      socket.emit('send_message', { user: currentUser, text: msg });
-      input.value = '';
-    }
-
-    socket.on('receive_private_message', (data) => {
-      if (data.sender === activeDmTarget || data.sender === currentUser) {
-        appendDmMessage(data.sender, data.text);
-      } else {
-        alert(`New message from @${data.sender}`);
-      }
-    });
-
-    socket.on('receive_message', (data) => {
-      const box = document.getElementById('live-chat-box');
-      const item = document.createElement('div');
-      item.className = 'user-card';
-      item.innerHTML = `<span>💬</span><div><strong>@${data.user}:</strong> ${data.text}</div>`;
-      box.prepend(item);
-    });
-
-    socket.on('new_post', (post) => { renderPost(post); });
-
-    function switchView(viewId, element, isHome) {
-      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active-view'));
-      document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
-      document.getElementById(viewId).classList.add('active-view');
-      if (element) element.classList.add('active');
-      document.getElementById('top-nav').style.display = isHome ? 'flex' : 'none';
-    }
-
-    function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active-modal')); }
-    function logoutUser() { localStorage.clear(); location.reload(); }
-  </script>
-
-  <!-- IN-APP CUSTOM RESET MODAL -->
-  <style>
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.7); display: none; align-items: center;
-      justify-content: center; z-index: 9999; backdrop-filter: blur(4px);
-    }
-    .modal-card {
-      background: #ffffff; width: 90%; max-width: 400px; padding: 24px;
-      border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      font-family: system-ui, -apple-system, sans-serif; text-align: center;
-    }
-    .modal-card h3 { margin-top: 0; color: #1f2937; font-size: 20px; }
-    .modal-card p { color: #6b7280; font-size: 14px; margin-bottom: 16px; }
-    .modal-input {
-      width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db;
-      border-radius: 8px; font-size: 15px; box-sizing: border-box;
-    }
-    .code-display {
-      background: #e0e7ff; color: #3730a3; font-size: 26px; font-weight: bold;
-      letter-spacing: 6px; padding: 12px; border-radius: 8px; margin: 12px 0;
-    }
-    .modal-btn {
-      width: 100%; padding: 12px; background: #4f46e5; color: white; border: none;
-      border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
-    }
-    .modal-btn:hover { background: #4338ca; }
-    .modal-close {
-      background: none; border: none; color: #9ca3af; font-size: 14px;
-      margin-top: 12px; cursor: pointer; width: 100%;
-    }
-  </style>
-
+  <!-- PASSWORD RESET MODAL -->
   <div id="resetModal" class="modal-overlay">
     <div class="modal-card">
-      <h3 id="modalTitle">Password Reset</h3>
-      <p id="modalSub">Enter your registered Phone Number or Username</p>
+      <h3>Password Reset</h3>
+      <p id="resetSub">Enter your registered Phone Number or Username</p>
 
-      <!-- Step 1: Identifier Input -->
-      <div id="modalStep1">
-        <input type="text" id="modalIdentifier" class="modal-input" placeholder="e.g. 08012345678 or MikiUser" />
+      <div id="resetStep1">
+        <input type="text" id="resetIdentifier" class="modal-input" placeholder="Phone Number or Username" />
         <button onclick="submitRequestCode()" class="modal-btn">Get Reset Code</button>
       </div>
 
-      <!-- Step 2: Code & New Password Input -->
-      <div id="modalStep2" style="display: none;">
-        <p style="margin:0; font-size:12px; color:#4f46e5;">YOUR 6-DIGIT RESET CODE:</p>
+      <div id="resetStep2" style="display: none;">
+        <p style="margin:0; font-size:12px; color:#38bdf8;">YOUR 6-DIGIT RESET CODE:</p>
         <div id="displayedCode" class="code-display">000000</div>
         
-        <input type="text" id="inputResetCode" class="modal-input" placeholder="Enter 6-digit code above" />
+        <input type="text" id="inputResetCode" class="modal-input" placeholder="Enter 6-digit code" />
         <input type="password" id="inputNewPassword" class="modal-input" placeholder="Enter new password" />
         <button onclick="submitNewPassword()" class="modal-btn">Update Password</button>
       </div>
@@ -611,249 +101,36 @@
   </div>
 
   <script>
-    function openResetModal() {
-      document.getElementById('resetModal').style.display = 'flex';
-      document.getElementById('modalStep1').style.display = 'block';
-      document.getElementById('modalStep2').style.display = 'none';
-      document.getElementById('modalIdentifier').value = '';
-    }
-
-    function closeResetModal() {
-      document.getElementById('resetModal').style.display = 'none';
-    }
-
-    async function submitRequestCode() {
-      const identifier = document.getElementById('modalIdentifier').value.trim();
-      if (!identifier) return alert('Please enter your Phone Number or Username.');
-
-      try {
-        const res = await fetch('/api/auth/forgot-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier })
-        });
-        const data = await res.json();
-
-        if (!res.ok) return alert('❌ ' + (data.error || 'Request failed'));
-
-        // Transition to Step 2 smoothly
-        document.getElementById('displayedCode').innerText = data.resetCode;
-        document.getElementById('inputResetCode').value = data.resetCode; // Auto fill for quick testing
-        document.getElementById('modalStep1').style.display = 'none';
-        document.getElementById('modalStep2').style.display = 'block';
-        document.getElementById('modalSub').innerText = 'Set your new password below';
-
-      } catch (err) {
-        alert('❌ Network Error: ' + err.message);
+    // INITIAL LOAD CHECK
+    window.onload = function() {
+      const token = localStorage.getItem('miki_token');
+      const username = localStorage.getItem('miki_username');
+      if (token && username) {
+        document.getElementById('authContainer').style.display = 'none';
+        document.getElementById('userSection').innerHTML = `
+          <span style="color:#f8fafc; font-weight:bold; margin-right:8px;">${username}</span>
+          <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Logout</button>
+        `;
       }
-    }
+    };
 
-    async function submitNewPassword() {
-      const identifier = document.getElementById('modalIdentifier').value.trim();
-      const resetCode = document.getElementById('inputResetCode').value.trim();
-      const newPassword = document.getElementById('inputNewPassword').value.trim();
-
-      if (!resetCode || !newPassword) return alert('Please enter both the code and your new password.');
-
-      try {
-        const res = await fetch('/api/auth/reset-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier, resetCode, newPassword })
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-          alert('🎉 ' + data.message);
-          closeResetModal();
-        } else {
-          alert('❌ ' + (data.error || 'Failed to update password'));
-        }
-      } catch (err) {
-        alert('❌ Network Error: ' + err.message);
-      }
-    }
-
-    function handleForgotPassword() {
-      openResetModal();
-    }
-  </script>
-
-
-  <!-- SIGN-UP CUSTOM VISUAL MODAL -->
-  
-
-  <script>
-    function openSignUpModal(identifier, password) {
-      document.getElementById('regIdentifier').value = identifier;
-      document.getElementById('regPassword').value = password;
-      // Auto-suggest username if identifier is not a raw phone number
-      if (!/^\+?[0-9]{7,15}$/.test(identifier)) {
-        document.getElementById('regUsername').value = identifier;
-      } else {
-        document.getElementById('regUsername').value = '';
-      }
-      document.getElementById('signUpModal').style.display = 'flex';
-    }
-
-    function closeSignUpModal() {
-      document.getElementById('signUpModal').style.display = 'none';
-    }
-
-    async function handleAuth(username, password) {
-      try {
-        const res = await fetch('/api/auth/login-check', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-
-        const data = await res.json();
-
-        // If account does NOT exist, open the Registration Modal Form!
-        if (res.status === 404 && data.accountExists === false) {
-          openSignUpModal(username, password);
-          return;
-        }
-
-        if (!res.ok) {
-          alert("❌ " + (data.error || "Authentication failed."));
-          return;
-        }
-
-        // Login Success
-        localStorage.setItem('miki_token', data.token);
-        localStorage.setItem('miki_username', data.username);
-        alert("🎉 Welcome back " + data.username + "!");
-        window.location.reload();
-
-      } catch (err) {
-        alert("❌ Network Error: " + err.message);
-      }
-    }
-
-    async function submitRegistration() {
-      const identifier = document.getElementById('regIdentifier').value.trim();
-      const username = document.getElementById('regUsername').value.trim();
-      const password = document.getElementById('regPassword').value.trim();
-
-      if (!identifier || !username || !password) {
-        return alert('Please fill in all registration fields.');
-      }
-
-      try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier, username, password })
-        });
-
-        const data = await res.json();
-
-        if (res.status === 201) {
-          localStorage.setItem('miki_token', data.token);
-          localStorage.setItem('miki_username', data.username);
-          alert("🎉 Account created successfully! Welcome to MikiConnect, " + data.username + "!");
-          closeSignUpModal();
-          window.location.reload();
-        } else {
-          alert("❌ " + (data.error || "Registration failed."));
-        }
-      } catch (err) {
-        alert("❌ Network Error: " + err.message);
-      }
-    }
-  </script>
-
-
-  <script>
     function logout() {
-      // Clear local session storage
       localStorage.removeItem('miki_token');
       localStorage.removeItem('miki_username');
-      
-      // Notify user & reload page to show login screen
       alert('👋 You have been logged out.');
       window.location.reload();
     }
-  </script>
 
+    // AUTH LOGIC
+    async function triggerAuth() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      const btn = document.getElementById('loginBtn');
 
-  <!-- CREATE ACCOUNT CUSTOM VISUAL MODAL -->
-  <style>
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.75); display: none; align-items: center;
-      justify-content: center; z-index: 10000; backdrop-filter: blur(5px);
-    }
-    .modal-card {
-      background: #1f2937; color: #f9fafb; width: 90%; max-width: 400px; padding: 24px;
-      border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      font-family: system-ui, -apple-system, sans-serif; text-align: center;
-      border: 1px solid #374151;
-    }
-    .modal-card h3 { margin-top: 0; color: #3b82f6; font-size: 22px; margin-bottom: 8px; }
-    .modal-card p { color: #9ca3af; font-size: 14px; margin-bottom: 18px; line-height: 1.4; }
-    .modal-input {
-      width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #4b5563;
-      border-radius: 8px; font-size: 15px; box-sizing: border-box;
-      background: #111827; color: #ffffff;
-    }
-    .modal-input:focus { outline: none; border-color: #3b82f6; }
-    .modal-btn-primary {
-      width: 100%; padding: 12px; background: #2563eb; color: white; border: none;
-      border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 12px;
-    }
-    .modal-btn-primary:hover { background: #1d4ed8; }
-    .modal-close {
-      background: none; border: none; color: #9ca3af; font-size: 14px;
-      margin-top: 12px; cursor: pointer; width: 100%; padding: 6px;
-    }
-    .modal-close:hover { color: #f3f4f6; }
-  </style>
+      if (!username || !password) return alert('Please enter phone number/username and password.');
 
-  <div id="signUpModal" class="modal-overlay">
-    <div class="modal-card">
-      <h3>Create New Account</h3>
-      <p>Fill in your details below to set up your MikiConnect profile.</p>
-
-      <input type="text" id="regIdentifier" class="modal-input" placeholder="Phone Number" readonly style="background:#374151; color:#9ca3af;" />
-      <input type="text" id="regUsername" class="modal-input" placeholder="Choose a Display Username (e.g. MikiUser)" />
-      <input type="password" id="regPassword" class="modal-input" placeholder="Create Password" />
-
-      <button onclick="submitRegistration()" class="modal-btn-primary">Create Account</button>
-      <button onclick="closeSignUpModal()" class="modal-close">Cancel & Go Back</button>
-    </div>
-  </div>
-
-  <script>
-    function openSignUpModal(identifier, password) {
-      document.getElementById('regIdentifier').value = identifier;
-      document.getElementById('regPassword').value = password;
-      
-      // If the input is not a raw phone number, auto-populate display username
-      if (!/^\+?[0-9]{7,15}$/.test(identifier)) {
-        document.getElementById('regUsername').value = identifier;
-      } else {
-        document.getElementById('regUsername').value = '';
-      }
-      document.getElementById('signUpModal').style.display = 'flex';
-    }
-
-    function closeSignUpModal() {
-      document.getElementById('signUpModal').style.display = 'none';
-    }
-
-    async function handleAuth(username, password) {
-      if (!username || !password) {
-        return alert('Please enter your phone number/username and password.');
-      }
-
-      const loginBtn = document.querySelector('form button, button[type="submit"]');
-      if (loginBtn) {
-        loginBtn.innerText = 'Authenticating...';
-        loginBtn.disabled = true;
-      }
+      btn.innerText = 'Authenticating...';
+      btn.disabled = true;
 
       try {
         const res = await fetch('/api/auth/login-check', {
@@ -863,14 +140,10 @@
         });
 
         const data = await res.json();
+        btn.innerText = 'Log in';
+        btn.disabled = false;
 
-        // Account NOT found -> Ask user explicitly BEFORE opening Sign-Up Modal
         if (res.status === 404 && data.accountExists === false) {
-          if (loginBtn) {
-            loginBtn.innerText = 'Log in';
-            loginBtn.disabled = false;
-          }
-
           const wantsToRegister = confirm("⚠️ No account found for \"" + username + "\".\n\nWould you like to create a NEW account?");
           if (wantsToRegister) {
             openSignUpModal(username, password);
@@ -879,27 +152,35 @@
         }
 
         if (!res.ok) {
-          if (loginBtn) {
-            loginBtn.innerText = 'Log in';
-            loginBtn.disabled = false;
-          }
-          alert("❌ " + (data.error || "Authentication failed."));
-          return;
+          return alert("❌ " + (data.error || "Login failed."));
         }
 
-        // Login Success
         localStorage.setItem('miki_token', data.token);
         localStorage.setItem('miki_username', data.username);
         alert("🎉 Welcome back " + data.username + "!");
         window.location.reload();
 
       } catch (err) {
-        if (loginBtn) {
-          loginBtn.innerText = 'Log in';
-          loginBtn.disabled = false;
-        }
+        btn.innerText = 'Log in';
+        btn.disabled = false;
         alert("❌ Network Error: " + err.message);
       }
+    }
+
+    // SIGN-UP MODAL
+    function openSignUpModal(identifier, password) {
+      document.getElementById('regIdentifier').value = identifier;
+      document.getElementById('regPassword').value = password;
+      if (!/^\+?[0-9]{7,15}$/.test(identifier)) {
+        document.getElementById('regUsername').value = identifier;
+      } else {
+        document.getElementById('regUsername').value = '';
+      }
+      document.getElementById('signUpModal').style.display = 'flex';
+    }
+
+    function closeSignUpModal() {
+      document.getElementById('signUpModal').style.display = 'none';
     }
 
     async function submitRegistration() {
@@ -907,9 +188,7 @@
       const username = document.getElementById('regUsername').value.trim();
       const password = document.getElementById('regPassword').value.trim();
 
-      if (!identifier || !username || !password) {
-        return alert('Please fill in all registration fields.');
-      }
+      if (!identifier || !username || !password) return alert('Please fill in all fields.');
 
       try {
         const res = await fetch('/api/auth/register', {
@@ -923,7 +202,7 @@
         if (res.status === 201) {
           localStorage.setItem('miki_token', data.token);
           localStorage.setItem('miki_username', data.username);
-          alert("🎉 Account created successfully! Welcome to MikiConnect, " + data.username + "!");
+          alert("🎉 Account created successfully! Welcome " + data.username + "!");
           closeSignUpModal();
           window.location.reload();
         } else {
@@ -931,6 +210,68 @@
         }
       } catch (err) {
         alert("❌ Network Error: " + err.message);
+      }
+    }
+
+    // RESET MODAL
+    function openResetModal() {
+      document.getElementById('resetModal').style.display = 'flex';
+      document.getElementById('resetStep1').style.display = 'block';
+      document.getElementById('resetStep2').style.display = 'none';
+      document.getElementById('resetIdentifier').value = '';
+    }
+
+    function closeResetModal() {
+      document.getElementById('resetModal').style.display = 'none';
+    }
+
+    async function submitRequestCode() {
+      const identifier = document.getElementById('resetIdentifier').value.trim();
+      if (!identifier) return alert('Please enter Phone Number or Username.');
+
+      try {
+        const res = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier })
+        });
+
+        const data = await res.json();
+        if (!res.ok) return alert('❌ ' + (data.error || 'Request failed'));
+
+        document.getElementById('displayedCode').innerText = data.resetCode;
+        document.getElementById('inputResetCode').value = data.resetCode;
+        document.getElementById('resetStep1').style.display = 'none';
+        document.getElementById('resetStep2').style.display = 'block';
+
+      } catch (err) {
+        alert('❌ Network Error: ' + err.message);
+      }
+    }
+
+    async function submitNewPassword() {
+      const identifier = document.getElementById('resetIdentifier').value.trim();
+      const resetCode = document.getElementById('inputResetCode').value.trim();
+      const newPassword = document.getElementById('inputNewPassword').value.trim();
+
+      if (!resetCode || !newPassword) return alert('Please fill in code and new password.');
+
+      try {
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, resetCode, newPassword })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert('🎉 ' + data.message);
+          closeResetModal();
+        } else {
+          alert('❌ ' + (data.error || 'Password update failed'));
+        }
+      } catch (err) {
+        alert('❌ Network Error: ' + err.message);
       }
     }
   </script>
