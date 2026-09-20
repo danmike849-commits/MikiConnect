@@ -190,7 +190,7 @@
       if (!token) return;
 
       try {
-        const res = await fetch('/api/user/profile', {
+        const res = await fetch(window.location.origin + '/api/user/profile', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         const user = await res.json();
@@ -253,7 +253,7 @@
       const bio = document.getElementById('profBio').value.trim();
 
       try {
-        const res = await fetch('/api/user/profile', {
+        const res = await fetch(window.location.origin + '/api/user/profile', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -299,7 +299,7 @@ function logout() {
       btn.disabled = true;
 
       try {
-        const res = await fetch('/api/auth/login-check', {
+        const res = await fetch(window.location.origin + '/api/auth/login-check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -357,7 +357,7 @@ function logout() {
       if (!identifier || !username || !password) return alert('Please fill in all fields.');
 
       try {
-        const res = await fetch('/api/auth/register', {
+        const res = await fetch(window.location.origin + '/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ identifier, username, password })
@@ -396,7 +396,7 @@ function logout() {
       if (!identifier) return alert('Please enter Phone Number or Username.');
 
       try {
-        const res = await fetch('/api/auth/forgot-password', {
+        const res = await fetch(window.location.origin + '/api/auth/forgot-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ identifier })
@@ -423,7 +423,7 @@ function logout() {
       if (!resetCode || !newPassword) return alert('Please fill in code and new password.');
 
       try {
-        const res = await fetch('/api/auth/reset-password', {
+        const res = await fetch(window.location.origin + '/api/auth/reset-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ identifier, resetCode, newPassword })
@@ -444,6 +444,7 @@ function logout() {
     
     async 
     
+    
     async function handleLogin(e) {
       if (e && e.preventDefault) e.preventDefault();
       
@@ -451,7 +452,7 @@ function logout() {
       const passInput = document.getElementById('loginPassword');
       
       if (!userInput || !passInput) {
-        alert('⚠️ Login fields missing. Please reload.');
+        alert('⚠️ Login inputs not found in DOM.');
         return false;
       }
 
@@ -465,12 +466,15 @@ function logout() {
 
       const btn = document.getElementById('loginBtn');
       if (btn) {
-        btn.innerText = 'Logging in...';
+        btn.innerText = 'Connecting...';
         btn.disabled = true;
       }
 
+      const endpoint = window.location.origin + '/api/auth/login-check';
+      console.log('Sending absolute request to:', endpoint);
+
       try {
-        const res = await fetch('/api/auth/login-check', {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -487,12 +491,12 @@ function logout() {
           if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
 
           if (typeof loadProfile === 'function') loadProfile();
-          alert('🎉 Welcome back, ' + data.username + '!');
+          alert('🎉 Logged in successfully as ' + data.username);
         } else {
-          alert('❌ Login Failed: ' + (data.error || 'Invalid username or password'));
+          alert('❌ ' + (data.error || 'Invalid credentials'));
         }
       } catch (err) {
-        alert('❌ Connection Error: ' + err.message);
+        alert('❌ Network Error: ' + err.message);
       } finally {
         if (btn) {
           btn.innerText = 'Log In';
@@ -501,6 +505,7 @@ function logout() {
       }
       return false;
     }
+
 
 
 
@@ -544,7 +549,7 @@ function logout() {
 
       try {
         console.log('Sending auth request...');
-        const res = await fetch('/api/auth/login-check', {
+        const res = await fetch(window.location.origin + '/api/auth/login-check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: identifier, password: password })
