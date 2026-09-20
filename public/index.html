@@ -59,7 +59,15 @@
   <!-- MAIN LOGIN CARD -->
   
   <!-- DATING PROFILE EDIT CARD -->
-  <div id="profileContainer" class="auth-card" style="display:none; max-width:480px; text-align:left;">
+  
+  <!-- DISCOVER / SWIPE DECK CONTAINER -->
+  <div id="discoverContainer" style="display:none; padding: 20px 10px; max-width: 500px; margin: 0 auto;">
+    <div id="swipeDeck" style="background:#1e293b; border-radius:16px; padding:20px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.5); min-height:420px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+      <p style="color:#94a3b8; font-size:16px;">🔥 Discover Feed Loading...</p>
+    </div>
+  </div>
+
+<div id="profileContainer" class="auth-card" style="display:none; max-width:480px; text-align:left;">
     <h2 style="color:#f43f5e; font-size:22px; text-align:center; margin-bottom:12px;">Edit Your Profile</h2>
     <p style="text-align:center; margin-bottom:20px; color:#94a3b8;">Set up your dating photos, bio, and preferences.</p>
 
@@ -486,11 +494,19 @@ function logout() {
           localStorage.setItem('miki_token', data.token);
           localStorage.setItem('miki_user', data.username);
 
+          
           if (document.getElementById('authContainer')) document.getElementById('authContainer').style.display = 'none';
-          if (document.getElementById('profileContainer')) document.getElementById('profileContainer').style.display = 'block';
+          if (document.getElementById('profileContainer')) document.getElementById('profileContainer').style.display = 'none';
+          if (document.getElementById('discoverContainer')) document.getElementById('discoverContainer').style.display = 'block';
           if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
 
-          if (typeof loadProfile === 'function') loadProfile();
+          // Set Discover tab active in bottom nav
+          document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+          const discoverBtn = document.querySelector('.nav-item[onclick*="discover"]');
+          if (discoverBtn) discoverBtn.classList.add('active');
+
+          if (typeof loadDiscoverFeed === 'function') loadDiscoverFeed();
+
           alert('🎉 Logged in successfully as ' + data.username);
         } else {
           alert('❌ ' + (data.error || 'Invalid credentials'));
@@ -561,11 +577,19 @@ function logout() {
           localStorage.setItem('miki_token', data.token);
           localStorage.setItem('miki_user', data.username);
           
-          if (document.getElementById('authContainer')) document.getElementById('authContainer').style.display = 'none';
-          if (document.getElementById('profileContainer')) document.getElementById('profileContainer').style.display = 'block';
-          if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
           
-          if (typeof loadProfile === 'function') loadProfile();
+          if (document.getElementById('authContainer')) document.getElementById('authContainer').style.display = 'none';
+          if (document.getElementById('profileContainer')) document.getElementById('profileContainer').style.display = 'none';
+          if (document.getElementById('discoverContainer')) document.getElementById('discoverContainer').style.display = 'block';
+          if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
+
+          // Set Discover tab active in bottom nav
+          document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+          const discoverBtn = document.querySelector('.nav-item[onclick*="discover"]');
+          if (discoverBtn) discoverBtn.classList.add('active');
+
+          if (typeof loadDiscoverFeed === 'function') loadDiscoverFeed();
+
           alert('🎉 Welcome back, ' + data.username + '!');
         } else {
           alert('❌ Auth Failed: ' + (data.error || 'Invalid login details'));
@@ -579,6 +603,44 @@ function logout() {
         }
       }
       return false;
+    }
+
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      
+      const discoverContainer = document.getElementById('discoverContainer');
+      const profileContainer = document.getElementById('profileContainer');
+
+      if (tabName === 'discover') {
+        if (discoverContainer) discoverContainer.style.display = 'block';
+        if (profileContainer) profileContainer.style.display = 'none';
+        const btn = document.querySelector('.nav-item[onclick*="discover"]');
+        if (btn) btn.classList.add('active');
+        if (typeof loadDiscoverFeed === 'function') loadDiscoverFeed();
+      } else if (tabName === 'profile') {
+        if (discoverContainer) discoverContainer.style.display = 'none';
+        if (profileContainer) profileContainer.style.display = 'block';
+        const btn = document.getElementById('profileTabBtn');
+        if (btn) btn.classList.add('active');
+        if (typeof loadProfile === 'function') loadProfile();
+      } else {
+        alert('🚀 ' + tabName.toUpperCase() + ' section coming next!');
+      }
+    }
+
+    async function loadDiscoverFeed() {
+      const deck = document.getElementById('swipeDeck');
+      if (!deck) return;
+      deck.innerHTML = `
+        <div style="padding:20px;">
+          <h2 style="color:#f43f5e; margin-bottom:8px;">🔥 MikiConnect Feed</h2>
+          <p style="color:#cbd5e1; font-size:14px; margin-bottom:16px;">Welcome to your discovery feed!</p>
+          <button onclick="switchTab('profile')" style="background:#f43f5e; color:white; border:none; padding:10px 20px; border-radius:20px; font-weight:bold; cursor:pointer;">
+            👤 Edit Profile First
+          </button>
+        </div>
+      `;
     }
 
 </script>
