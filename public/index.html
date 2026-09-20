@@ -122,10 +122,10 @@
     <h2>MikiConnect</h2>
     <p>Log in to your MikiConnect account.</p>
     
-    <form  onsubmit="return handleLogin(event)" id="loginForm" onsubmit="return handleLogin(event)" onsubmit="event.preventDefault(); triggerAuth();">
+    <form id="loginForm" onsubmit="return handleAuth(event)">
       <input type="text" id="loginUsername" class="auth-input" placeholder="Phone Number or Username" required />
       <input type="password" id="loginPassword" class="auth-input" placeholder="Password" required />
-      <button type="submit" id="loginBtn" onclick="handleLogin(event)" class="btn-submit" >Log in</button>
+      <button type="submit" id="loginBtn" class="btn-submit">Log in</button>
     </form>
 
     <button onclick="openResetModal()" class="btn-secondary" >Forgot password?</button>
@@ -296,50 +296,7 @@ function logout() {
     }
 
     // AUTH LOGIC
-    async function triggerAuth() {
-      const username = document.getElementById('loginUsername').value.trim();
-      const password = document.getElementById('loginPassword').value.trim();
-      const btn = document.getElementById('loginBtn');
-
-      if (!username || !password) return alert('Please enter phone number/username and password.');
-
-      btn.innerText = 'Authenticating...';
-      btn.disabled = true;
-
-      try {
-        const res = await fetch(window.location.origin + '/api/auth/login-check', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-
-        const data = await res.json();
-        btn.innerText = 'Log in';
-        btn.disabled = false;
-
-        if (res.status === 404 && data.accountExists === false) {
-          const wantsToRegister = confirm("⚠️ No account found for \"" + username + "\".\n\nWould you like to create a NEW account?");
-          if (wantsToRegister) {
-            openSignUpModal(username, password);
-          }
-          return;
-        }
-
-        if (!res.ok) {
-          return alert("❌ " + (data.error || "Login failed."));
-        }
-
-        localStorage.setItem('miki_token', data.token);
-        localStorage.setItem('miki_username', data.username);
-        alert("🎉 Welcome back " + data.username + "!");
-        window.location.reload();
-
-      } catch (err) {
-        btn.innerText = 'Log in';
-        btn.disabled = false;
-        alert("❌ Network Error: " + err.message);
-      }
-    }
+    
 
     // SIGN-UP MODAL
     function openSignUpModal(identifier, password) {
@@ -453,74 +410,7 @@ function logout() {
     async 
     
     
-    async function handleLogin(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      
-      const userInput = document.getElementById('loginUsername');
-      const passInput = document.getElementById('loginPassword');
-      
-      if (!userInput || !passInput) {
-        alert('⚠️ Login inputs not found in DOM.');
-        return false;
-      }
-
-      const username = userInput.value.trim();
-      const password = passInput.value.trim();
-
-      if (!username || !password) {
-        alert('⚠️ Please enter both your phone/username and password.');
-        return false;
-      }
-
-      const btn = document.getElementById('loginBtn');
-      if (btn) {
-        btn.innerText = 'Connecting...';
-        btn.disabled = true;
-      }
-
-      const endpoint = window.location.origin + '/api/auth/login-check';
-      console.log('Sending absolute request to:', endpoint);
-
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.token) {
-          localStorage.setItem('miki_token', data.token);
-          localStorage.setItem('miki_user', data.username);
-
-          
-          if (document.getElementById('authContainer')) document.getElementById('authContainer').style.display = 'none';
-          if (document.getElementById('profileContainer')) document.getElementById('profileContainer').style.display = 'none';
-          if (document.getElementById('discoverContainer')) document.getElementById('discoverContainer').style.display = 'block';
-          if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
-
-          // Set Discover tab active in bottom nav
-          document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-          const discoverBtn = document.querySelector('.nav-item[onclick*="discover"]');
-          if (discoverBtn) discoverBtn.classList.add('active');
-
-          if (typeof loadDiscoverFeed === 'function') loadDiscoverFeed();
-
-          alert('🎉 Logged in successfully as ' + data.username);
-        } else {
-          alert('❌ ' + (data.error || 'Invalid credentials'));
-        }
-      } catch (err) {
-        alert('❌ Network Error: ' + err.message);
-      } finally {
-        if (btn) {
-          btn.innerText = 'Log In';
-          btn.disabled = false;
-        }
-      }
-      return false;
-    }
+    
 
 
 
@@ -641,6 +531,67 @@ function logout() {
           </button>
         </div>
       `;
+    }
+
+
+    async function handleAuth(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      const userInput = document.getElementById('loginUsername');
+      const passInput = document.getElementById('loginPassword');
+
+      if (!userInput || !passInput) {
+        alert('⚠️ Login inputs not found.');
+        return false;
+      }
+
+      const username = userInput.value.trim();
+      const password = passInput.value.trim();
+
+      if (!username || !password) {
+        alert('⚠️ Please enter both your phone/username and password.');
+        return false;
+      }
+
+      const btn = document.getElementById('loginBtn');
+      if (btn) {
+        btn.innerText = 'Connecting...';
+        btn.disabled = true;
+      }
+
+      try {
+        const res = await fetch(window.location.origin + '/api/auth/login-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          localStorage.setItem('miki_token', data.token);
+          localStorage.setItem('miki_user', data.username);
+
+          // Hide Auth, Show Main App & Navigation
+          if (document.getElementById('authContainer')) document.getElementById('authContainer').style.display = 'none';
+          if (document.getElementById('profileContainer')) document.getElementById('profileContainer').style.display = 'none';
+          if (document.getElementById('discoverContainer')) document.getElementById('discoverContainer').style.display = 'block';
+          if (document.getElementById('bottomNav')) document.getElementById('bottomNav').style.display = 'flex';
+
+          if (typeof loadDiscoverFeed === 'function') loadDiscoverFeed();
+          alert('🎉 Welcome back, ' + data.username + '!');
+        } else {
+          alert('❌ ' + (data.error || 'Invalid credentials'));
+        }
+      } catch (err) {
+        alert('❌ Network Error: ' + err.message);
+      } finally {
+        if (btn) {
+          btn.innerText = 'Log in';
+          btn.disabled = false;
+        }
+      }
+      return false;
     }
 
 </script>
