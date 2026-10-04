@@ -17,3 +17,17 @@ build/
 
 # Local database backups
 backups/
+
+# Local development backups and test artifacts
+*.before-*
+*.auth-repair-*
+*.gemini-backup-*
+*-debug.js
+*-check*.js
+index_test*.html
+miki-cookie.txt
+acorn-tokens.txt
+MikiConnect-fix.zip
+
+# Local Android SDK (not required for Render)
+android-sdk/
