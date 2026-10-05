@@ -3,7 +3,7 @@ function cleanUsername(value) {
 }
 
 function validatePassword(value) {
-  return typeof value === 'string' && value.length >= 8 && value.length <= 128;
+  return typeof value === 'string' && value.length >= 6 && value.length <= 12;
 }
 
 function isValidUrl(value) {

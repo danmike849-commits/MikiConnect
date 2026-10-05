@@ -1036,8 +1036,8 @@
                 type="password"
                 autocomplete="new-password"
                 placeholder="Enter your new password"
-                minlength="8"
-                maxlength="128"
+                minlength="6"
+                maxlength="12"
                 required
             >
         </div>
@@ -1049,8 +1049,8 @@
                 type="password"
                 autocomplete="new-password"
                 placeholder="Confirm your new password"
-                minlength="8"
-                maxlength="128"
+                minlength="6"
+                maxlength="12"
                 required
             >
         </div>
@@ -5088,11 +5088,11 @@ privateVoiceButton?.addEventListener(
                                             }
 
                                             if (
-                                                passwordValues.newPassword.length < 8 ||
-                                                passwordValues.newPassword.length > 128
+                                                passwordValues.newPassword.length < 6 ||
+                                                passwordValues.newPassword.length > 12
                                             ) {
                                                 throw new Error(
-                                                    'New password must be between 8 and 128 characters.'
+                                                    'New password must be between 6 and 12 characters.'
                                                 );
                                             }
 
@@ -5165,8 +5165,8 @@ privateVoiceButton?.addEventListener(
                         throw new Error('Please complete all password fields.');
                     }
 
-                    if (values.newPassword.length < 8 || values.newPassword.length > 128) {
-                        throw new Error('New password must be between 8 and 128 characters.');
+                    if (values.newPassword.length < 6 || values.newPassword.length > 12) {
+                        throw new Error('New password must be between 6 and 12 characters.');
                     }
 
                     if (values.newPassword !== values.confirmPassword) {
@@ -5232,7 +5232,7 @@ privateVoiceButton?.addEventListener(
                         throw new Error('Please complete all fields.');
                     }
 
-                    if (values.password.length < 8) {
+                    if (values.password.length < 6) {
                         throw new Error('Password must be at least 8 characters.');
                     }
 
@@ -6073,8 +6073,8 @@ if (changePasswordForm) {
             return;
         }
 
-        if (newPassword.length < 8 || newPassword.length > 128) {
-            if (errorEl) errorEl.textContent = 'New password must be between 8 and 128 characters.';
+        if (newPassword.length < 6 || newPassword.length > 12) {
+            if (errorEl) errorEl.textContent = 'New password must be between 6 and 12 characters.';
             return;
         }
 
