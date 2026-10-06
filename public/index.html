@@ -663,6 +663,16 @@
     flex: 0 0 auto !important;
 }
 
+        /* Flat main screens: remove only the large outer frame */
+        #radar-tab > .card,
+        #sparks-tab > .card,
+        #profile-tab > .card,
+        #chatInbox.chat-inbox {
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
 </style>
 </head>
 <body>
@@ -986,7 +996,11 @@
                 <p class="muted small" style="margin:5px 0 0;">View your MikiConnect account details.</p>
             </div>
 
-            <div style="margin-top:22px; display:grid; gap:12px;">
+            <div style="margin-top:22px;">
+    <button type="button" id="openAccountInfoEditBtn">Edit Account Information</button>
+  </div>
+
+  <div style="margin-top:22px; display:grid; gap:12px;">
 
                 <div class="card" style="padding:14px;">
                     <div class="muted small">Username</div>
@@ -1009,6 +1023,56 @@
                 </div>
 
             </div>
+        </div>
+
+        <div id="accountInfoEditScreen" class="card hidden settings-subscreen" style="max-width:1050px; margin:16px auto 0; position:relative;">
+          <div>
+            <h3 style="margin:0;">Edit Account Information</h3>
+            <p class="muted small" style="margin:5px 0 0;">Update your username, email, or phone number.</p>
+          </div>
+
+          <form id="accountInfoEditForm" style="margin-top:22px; display:grid; gap:14px;">
+            <label>
+              <span class="muted small">Username</span>
+              <input
+                id="accountInfoEditUsername"
+                type="text"
+                minlength="3"
+                maxlength="30"
+                autocomplete="username"
+                required
+                style="width:100%; margin-top:6px;"
+              >
+            </label>
+
+            <label>
+              <span class="muted small">Email</span>
+              <input
+                id="accountInfoEditEmail"
+                type="email"
+                autocomplete="email"
+                required
+                style="width:100%; margin-top:6px;"
+              >
+            </label>
+
+            <label>
+              <span class="muted small">Phone</span>
+              <input
+                id="accountInfoEditPhone"
+                type="tel"
+                autocomplete="tel"
+                style="width:100%; margin-top:6px;"
+              >
+            </label>
+
+            <div class="row" style="margin-top:6px;">
+              <button type="submit">Save Changes</button>
+              <button type="button" id="accountInfoEditCancelBtn" class="secondary">Cancel</button>
+            </div>
+
+            <p id="accountInfoEditMessage" class="muted small" style="min-height:20px; margin:0;"></p>
+          </form>
         </div>
 
         <div id="changePasswordScreen" class="card hidden settings-subscreen" style="max-width:1050px; margin:16px auto 0; position:relative;">
@@ -1500,17 +1564,6 @@
 
                             <p id="sparkFeedback" class="muted" style="text-align:center; min-height:24px; margin:14px 0 0;"></p>
 
-                            <div id="sparkSafetyActions" style="display:flex; gap:8px; margin-top:10px;">
-                                <button type="button" id="sparkBlockBtn" class="secondary" style="flex:1; padding:8px 6px; font-size:12px;">
-                                    🚫 Block
-                                </button>
-                                <button type="button" id="sparkReportBtn" class="secondary" style="flex:1; padding:8px 6px; font-size:12px;">
-                                    ⚠️ Report
-                                </button>
-                                <button type="button" id="sparkBlockReportBtn" class="secondary" style="flex:1; padding:8px 6px; font-size:12px;">
-                                    🚫⚠️ Block &amp; Report
-                                </button>
-                            </div>
                         </div>
                     </div>
 
@@ -3890,6 +3943,9 @@ privateVoiceButton?.addEventListener(
         ];
 
         function switchTab(tabId, options = {}) {
+            const settingsPanel = document.getElementById("settingsPanel");
+            if (settingsPanel) settingsPanel.classList.add("hidden");
+
             document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
             document.querySelectorAll(".nav-tab").forEach(tab => tab.classList.remove("active"));
 
@@ -6146,6 +6202,132 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
                             : 'Not verified';
                     }
 
+                    openSettingsScreen('accountInfoScreen');
+                };
+            }
+
+            const openAccountInfoEditBtn = document.getElementById('openAccountInfoEditBtn');
+            if (openAccountInfoEditBtn) {
+                openAccountInfoEditBtn.onclick = () => {
+                    const usernameInput = document.getElementById('accountInfoEditUsername');
+                    const emailInput = document.getElementById('accountInfoEditEmail');
+                    const phoneInput = document.getElementById('accountInfoEditPhone');
+
+                    if (usernameInput) usernameInput.value = me?.username || '';
+                    if (emailInput) emailInput.value = me?.email || '';
+                    if (phoneInput) phoneInput.value = me?.phone || '';
+
+                    const messageEl = document.getElementById('accountInfoEditMessage');
+                    if (messageEl) messageEl.textContent = '';
+
+                    openSettingsScreen('accountInfoEditScreen');
+                };
+            }
+
+            const accountInfoEditForm = document.getElementById('accountInfoEditForm');
+            if (accountInfoEditForm) {
+                accountInfoEditForm.onsubmit = async (event) => {
+                    event.preventDefault();
+
+                    const usernameInput = document.getElementById('accountInfoEditUsername');
+                    const emailInput = document.getElementById('accountInfoEditEmail');
+                    const phoneInput = document.getElementById('accountInfoEditPhone');
+                    const messageEl = document.getElementById('accountInfoEditMessage');
+
+                    const username = String(usernameInput?.value || '').trim().toLowerCase();
+                    const email = String(emailInput?.value || '').trim().toLowerCase();
+                    const phone = String(phoneInput?.value || '').trim();
+
+                    if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+                        if (messageEl) messageEl.textContent =
+                            'Username must be 3-30 characters using letters, numbers, or underscores.';
+                        return;
+                    }
+
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        if (messageEl) messageEl.textContent =
+                            'Please provide a valid email address.';
+                        return;
+                    }
+
+                    const submitBtn = accountInfoEditForm.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Saving...';
+                    }
+
+                    if (messageEl) messageEl.textContent = '';
+
+                    try {
+                        const data = await api('/api/user/account', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                username,
+                                email,
+                                phone
+                            })
+                        });
+
+                        const updatedUser = data.user || {};
+                        me = {
+                            ...me,
+                            ...updatedUser
+                        };
+
+                        const accountUsernameEl = document.getElementById('accountInfoUsername');
+                        const accountEmailEl = document.getElementById('accountInfoEmail');
+                        const accountPhoneEl = document.getElementById('accountInfoPhone');
+                        const verificationEl = document.getElementById('accountInfoVerification');
+
+                        if (accountUsernameEl) {
+                            accountUsernameEl.textContent = me.username || '—';
+                        }
+
+                        if (accountEmailEl) {
+                            accountEmailEl.textContent = me.email || '—';
+                        }
+
+                        if (accountPhoneEl) {
+                            accountPhoneEl.textContent = me.phone || '—';
+                        }
+
+                        if (verificationEl) {
+                            verificationEl.textContent = me.emailVerified
+                                ? 'Verified'
+                                : 'Not verified';
+                        }
+
+                        openSettingsScreen('accountInfoScreen');
+
+                        showMikiAppDialog({
+                            title: 'Account Information',
+                            message: me.emailVerified
+                                ? 'Your account information has been updated.'
+                                : 'Your account information has been updated. Your new email address needs verification.',
+                            icon: '✅',
+                            confirmText: 'OK',
+                            showCancel: false
+                        });
+                    } catch (e) {
+                        if (messageEl) {
+                            messageEl.textContent =
+                                e.message || 'Unable to update account information right now.';
+                        }
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Save Changes';
+                        }
+                    }
+                };
+            }
+
+            const accountInfoEditCancelBtn = document.getElementById('accountInfoEditCancelBtn');
+            if (accountInfoEditCancelBtn) {
+                accountInfoEditCancelBtn.onclick = () => {
                     openSettingsScreen('accountInfoScreen');
                 };
             }

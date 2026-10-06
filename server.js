@@ -2475,6 +2475,100 @@ app.get('/api/user/profile', authenticate, async (req, res) => {
 });
 
 /* ---------------------------------------------------------
+   UPDATE ACCOUNT INFORMATION
+--------------------------------------------------------- */
+
+app.put('/api/user/account', authenticate, async (req, res) => {
+  try {
+    const {
+      username,
+      email,
+      phone
+    } = req.body || {};
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const nextUsername = normalizeUsername(username);
+    const nextEmail = normalizeEmail(email);
+    const nextPhone = String(phone ?? '').trim();
+
+    if (!validUsername(nextUsername)) {
+      return res.status(400).json({
+        error: 'Username must be 3-30 characters using letters, numbers, or underscores.'
+      });
+    }
+
+    if (!validEmail(nextEmail)) {
+      return res.status(400).json({
+        error: 'Please provide a valid email address.'
+      });
+    }
+
+    const usernameChanged = nextUsername !== String(user.username || '');
+    const emailChanged = nextEmail !== String(user.email || '');
+
+    if (usernameChanged || emailChanged) {
+      const existing = await User.findOne({
+        _id: { $ne: user._id },
+        $or: [
+          { username: nextUsername },
+          { email: nextEmail }
+        ]
+      });
+
+      if (existing) {
+        if (existing.username === nextUsername) {
+          return res.status(409).json({
+            error: 'Username already taken.'
+          });
+        }
+
+        if (existing.email === nextEmail) {
+          return res.status(409).json({
+            error: 'An account with that email already exists.'
+          });
+        }
+      }
+    }
+
+    user.username = nextUsername;
+    user.phone = nextPhone;
+
+    if (emailChanged) {
+      user.email = nextEmail;
+      user.emailVerified = false;
+      user.emailVerificationTokenHash = undefined;
+      user.emailVerificationExpiresAt = undefined;
+      user.emailVerificationCodeHash = undefined;
+      user.emailVerificationCodeExpiresAt = undefined;
+      user.emailVerificationCodeAttempts = 0;
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Account information updated successfully.',
+      user: {
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        emailVerified: !!user.emailVerified
+      }
+    });
+  } catch (err) {
+    console.error('Account information update error:', err);
+    res.status(500).json({
+      error: 'Failed to update account information.'
+    });
+  }
+});
+
+/* ---------------------------------------------------------
    UPDATE USER PROFILE
 --------------------------------------------------------- */
 
