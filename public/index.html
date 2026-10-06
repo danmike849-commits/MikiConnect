@@ -673,6 +673,15 @@
             box-shadow: none !important;
         }
 
+        /* Main screens: fill the available mobile screen */
+        #radar-tab > .card,
+        #sparks-tab > .card,
+        #profile-tab > .card,
+        #chatInbox.chat-inbox {
+            min-height: calc(100vh - 250px);
+            box-sizing: border-box;
+        }
+
         /* Private chat: remove only the large message-history frame */
         #privateChatMessages.chat {
             border: 0 !important;
