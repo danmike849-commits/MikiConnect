@@ -673,6 +673,32 @@
             box-shadow: none !important;
         }
 
+        /* Private chat: remove only the large message-history frame */
+        #privateChatMessages.chat {
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        /* Private chat input: keep the existing gold design, but make the outline cleaner */
+        #privateChatPanel .private-chat-input-wrap {
+            border: 1px solid #d4af37;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #privateChatPanel #privateChatInput {
+            border: 0 !important;
+            outline: none;
+            box-shadow: none !important;
+        }
+
+        #privateChatPanel #privateChatInput:focus {
+            border: 0 !important;
+            outline: none;
+            box-shadow: none !important;
+        }
+
 </style>
 </head>
 <body>
