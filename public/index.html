@@ -29,7 +29,8 @@
         body.theme-admin { background: radial-gradient(circle at top, #2b2520 0%, #070a14 58%); }
         header { position: sticky; top: 0; z-index: 5; background: #0b1020e8; backdrop-filter: blur(12px); border-bottom: 1px solid #26304a; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
         .brand { font-weight: 800; font-size: 1.25rem; color: #ff2a5f; }
-        .container { width: 100%; max-width: none; min-height: calc(100dvh - 72px); margin: 0; padding: 0; box-sizing: border-box; }
+        #app-screen { min-height: 100dvh; display: flex; flex-direction: column; }
+        .container { width: 100%; max-width: none; flex: 1 1 auto; min-height: 0; margin: 0; padding: 0; box-sizing: border-box; display: flex; flex-direction: column; }
         .card { background: #151c2f; border: 1px solid #29334d; border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: none; }
         .row { display: flex; gap: 10px; align-items: center; }
         .between { justify-content: space-between; }
@@ -49,7 +50,7 @@
         body.theme-profile .nav-tab.active { background:#8b5cf6; border-color:#8b5cf6; }
         body.theme-admin .nav-tab.active { background:#f59e0b; border-color:#f59e0b; color:#17110a; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
         .chat { height: 420px; overflow: auto; background: #0d2527; border:1px solid #245b57; border-radius: 14px; padding: 12px; }
         .chat-empty { min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; background:#0d2527; border-radius:14px; border:1px dashed #245b57; }
         .chat-inbox { background:linear-gradient(180deg,#12302f,#0e2024); border:1px solid #245b57; border-radius:16px; overflow:hidden; }
