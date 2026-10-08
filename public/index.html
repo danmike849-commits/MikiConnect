@@ -744,7 +744,7 @@
 
             <div style="position:relative; text-align:left; margin-bottom:6px;">
                 <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" style="padding-right:45px;">
-                <span id="togglePasswordBtn" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; color:#8b9bb4; font-size:1.1rem; user-select:none;">👁</span>
+                <span id="togglePasswordBtn" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; color:#8b9bb4; width:22px; height:22px; display:flex; align-items:center; justify-content:center; user-select:none;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2.5 12C4.9 7.9 8.2 5.8 12 5.8C15.8 5.8 19.1 7.9 21.5 12C19.1 16.1 15.8 18.2 12 18.2C8.2 18.2 4.9 16.1 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/></svg></span>
             </div>
 
             <div style="text-align:right; margin-bottom:20px;">
@@ -1362,6 +1362,38 @@
     <div id="privacySafetyError" class="error" style="margin-top:8px; max-width:720px;"></div>
 </div>
 
+<div id="inviteFriendsScreen" class="card hidden settings-subscreen" style="max-width:1050px; margin:16px auto 0; position:relative;">
+    <div>
+        <h3 style="margin:0;">Invite Friends</h3>
+        <p class="muted small" style="margin:5px 0 0;">Invite people to join MikiConnect using your personal invite link.</p>
+    </div>
+
+    <div style="margin-top:22px; display:grid; gap:14px; max-width:720px;">
+        <div class="card" style="padding:16px;">
+            <div class="muted small">Your invite code</div>
+            <div id="inviteReferralCode" style="font-size:1.35rem; font-weight:700; margin-top:6px;">—</div>
+        </div>
+
+        <div class="card" style="padding:16px;">
+            <div class="muted small">Your invite link</div>
+            <div id="inviteLinkText" style="margin-top:6px; word-break:break-all;">Loading…</div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+                <button type="button" id="copyInviteLinkBtn">Copy Invite Link</button>
+                <button type="button" id="shareInviteLinkBtn" class="secondary">Share Invite Link</button>
+            </div>
+
+            <div id="inviteFriendsMessage" class="success" style="margin-top:10px;"></div>
+            <div id="inviteFriendsError" class="error" style="margin-top:8px;"></div>
+        </div>
+
+        <div class="card" style="padding:16px;">
+            <div class="muted small">Friends joined</div>
+            <div id="invitedFriendsCount" style="font-size:1.35rem; font-weight:700; margin-top:6px;">0</div>
+        </div>
+    </div>
+</div>
+
 <div id="settingsPanel" class="card hidden" style="max-width:1050px; margin:16px auto 0; position:relative;">
             <div>
                 <h3 style="margin:0;">⚙️ Settings</h3>
@@ -1378,6 +1410,14 @@
                             <span>
                                 <strong>Account Information</strong>
                                 <small class="muted">Username, email and phone</small>
+                            </span>
+                            <span>›</span>
+                        </button>
+
+                        <button type="button" id="inviteFriendsBtn" class="settings-row">
+                            <span>
+                                <strong>Invite Friends</strong>
+                                <small class="muted">Invite friends to join MikiConnect</small>
                             </span>
                             <span>›</span>
                         </button>
@@ -5312,6 +5352,8 @@ privateVoiceButton?.addEventListener(
         }
 
         function handleRegister() {
+            const referralCodeFromUrl = new URLSearchParams(window.location.search).get('ref') || '';
+
             showAuthDialog(
                 'Create your MikiConnect account',
                 [
@@ -5347,10 +5389,15 @@ privateVoiceButton?.addEventListener(
                         throw new Error('Password must be at least 8 characters.');
                     }
 
+                    const registrationData = {
+                        ...values,
+                        ...(referralCodeFromUrl ? { referralCode: referralCodeFromUrl } : {})
+                    };
+
                     const data = await api('/api/auth/register', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(values)
+                        body: JSON.stringify(registrationData)
                     });
 
                     error.style.color = '#8ff0b0';
@@ -6146,6 +6193,103 @@ document.querySelectorAll('.settings-choice[data-interested-in]').forEach(button
         }
     };
 });
+
+const inviteFriendsBtn = document.getElementById('inviteFriendsBtn');
+
+if (inviteFriendsBtn) {
+    inviteFriendsBtn.onclick = async () => {
+        const referralEl = document.getElementById('inviteReferralCode');
+        const linkEl = document.getElementById('inviteLinkText');
+        const countEl = document.getElementById('invitedFriendsCount');
+        const messageEl = document.getElementById('inviteFriendsMessage');
+        const errorEl = document.getElementById('inviteFriendsError');
+
+        if (messageEl) messageEl.textContent = '';
+        if (errorEl) errorEl.textContent = '';
+        if (referralEl) referralEl.textContent = 'Loading…';
+        if (linkEl) linkEl.textContent = 'Loading…';
+        if (countEl) countEl.textContent = '0';
+
+        openSettingsScreen('inviteFriendsScreen');
+
+        try {
+            const data = await api('/api/user/invite');
+            if (referralEl) referralEl.textContent = data.referralCode || '—';
+            if (linkEl) linkEl.textContent = data.inviteLink || '—';
+            if (countEl) countEl.textContent = String(data.invitedCount || 0);
+        } catch (error) {
+            if (referralEl) referralEl.textContent = '—';
+            if (linkEl) linkEl.textContent = '—';
+            if (errorEl) errorEl.textContent = error.message || 'Unable to load invite information.';
+        }
+    };
+}
+
+const copyInviteLinkBtn = document.getElementById('copyInviteLinkBtn');
+const shareInviteLinkBtn = document.getElementById('shareInviteLinkBtn');
+
+if (copyInviteLinkBtn) {
+    copyInviteLinkBtn.onclick = async () => {
+        const linkEl = document.getElementById('inviteLinkText');
+        const messageEl = document.getElementById('inviteFriendsMessage');
+        const errorEl = document.getElementById('inviteFriendsError');
+        const inviteLink = linkEl?.textContent?.trim();
+
+        if (!inviteLink || inviteLink === 'Loading…' || inviteLink === '—') {
+            if (errorEl) errorEl.textContent = 'Invite link is not ready yet.';
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(inviteLink);
+            if (errorEl) errorEl.textContent = '';
+            if (messageEl) messageEl.textContent = 'Invite link copied.';
+        } catch (error) {
+            if (messageEl) messageEl.textContent = '';
+            if (errorEl) errorEl.textContent = 'Could not copy the invite link.';
+        }
+    };
+}
+
+if (shareInviteLinkBtn) {
+    shareInviteLinkBtn.onclick = async () => {
+        const linkEl = document.getElementById('inviteLinkText');
+        const errorEl = document.getElementById('inviteFriendsError');
+        const inviteLink = linkEl?.textContent?.trim();
+
+        if (!inviteLink || inviteLink === 'Loading…' || inviteLink === '—') {
+            if (errorEl) errorEl.textContent = 'Invite link is not ready yet.';
+            return;
+        }
+
+        const shareData = {
+            title: 'Join me on MikiConnect',
+            text: 'Join me on MikiConnect using my invite link:',
+            url: inviteLink
+        };
+
+        if (!navigator.share) {
+            try {
+                await navigator.clipboard.writeText(inviteLink);
+                const messageEl = document.getElementById('inviteFriendsMessage');
+                if (errorEl) errorEl.textContent = '';
+                if (messageEl) messageEl.textContent = 'Sharing is not available here, so the invite link was copied instead.';
+            } catch (error) {
+                if (errorEl) errorEl.textContent = 'Sharing is not available on this device.';
+            }
+            return;
+        }
+
+        try {
+            await navigator.share(shareData);
+            if (errorEl) errorEl.textContent = '';
+        } catch (error) {
+            if (error.name !== 'AbortError' && errorEl) {
+                errorEl.textContent = 'Could not share the invite link.';
+            }
+        }
+    };
+}
 
 const changePasswordBtn = document.getElementById('changePasswordBtn');
 

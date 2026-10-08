@@ -460,6 +460,19 @@ function randomToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+async function generateReferralCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const bytes = crypto.randomBytes(4);
+    let suffix = "";
+    for (const byte of bytes) suffix += alphabet[byte % alphabet.length];
+    const code = `MIKI-${suffix}`;
+    const existing = await User.findOne({ referralCode: code }).select("_id").lean();
+    if (!existing) return code;
+  }
+  throw new Error("Unable to generate a unique referral code.");
+}
+
 function hashSecret(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
@@ -833,6 +846,20 @@ const UserSchema = new mongoose.Schema({
   isPremium: {
     type: Boolean,
     default: false
+  },
+
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
+    trim: true
+  },
+
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
   },
 
   createdAt: {
@@ -1746,6 +1773,36 @@ app.get('/api/me', authenticate, async (req, res) => {
    REGISTER
 --------------------------------------------------------- */
 
+app.get('/api/user/invite', authenticate, async (req, res) => {
+  try {
+    let referralCode = req.user.referralCode;
+
+    if (!referralCode) {
+      referralCode = await generateReferralCode();
+      await User.updateOne(
+        { _id: req.user._id },
+        { $set: { referralCode } }
+      );
+    }
+
+    const invitedCount = await User.countDocuments({
+      referredBy: req.user._id
+    });
+
+    const baseUrl = String(APP_URL || '').replace(/\/$/, '');
+    const inviteLink = `${baseUrl}/register?ref=${encodeURIComponent(referralCode)}`;
+
+    res.json({
+      referralCode,
+      inviteLink,
+      invitedCount
+    });
+  } catch (error) {
+    console.error('Invite info error:', error);
+    res.status(500).json({ error: 'Unable to load invite information.' });
+  }
+});
+
 app.post('/api/auth/register', async (req, res) => {
   try {
     if (!rateLimit(clientKey(req, 'register'), 8, 15 * 60 * 1000)) {
@@ -1791,12 +1848,25 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
+    const referralCodeInput = String(req.body.referralCode || '').trim().toUpperCase();
+    let referredBy = null;
+
+    if (referralCodeInput) {
+      const inviter = await User.findOne({ referralCode: referralCodeInput }).select('_id').lean();
+      if (inviter) {
+        referredBy = inviter._id;
+      }
+    }
+
     const verificationToken = randomToken();
     const verificationCode = randomCode();
+    const referralCode = await generateReferralCode();
 
     const user = new User({
       username,
       email,
+      referralCode,
+      referredBy,
       password: await bcrypt.hash(password, 12),
       role: 'user',
       emailVerified: !REQUIRE_EMAIL_VERIFICATION,
