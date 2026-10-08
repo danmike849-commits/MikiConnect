@@ -50,7 +50,38 @@
         body.theme-profile .nav-tab.active { background:#8b5cf6; border-color:#8b5cf6; }
         body.theme-admin .nav-tab.active { background:#f59e0b; border-color:#f59e0b; color:#17110a; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+        .container > .nav-tabs { flex: 0 0 auto; }
+        .container > .tab-content.active { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+        .container > #radar-tab,
+        .container > #sparks-tab,
+        .container > #chat-tab,
+        .container > #profile-tab,
+        .container > #admin-tab { width: 100%; min-height: 0; box-sizing: border-box; }
+
+        .container > #radar-tab.active,
+        .container > #sparks-tab.active,
+        .container > #chat-tab.active,
+        .container > #profile-tab.active,
+        .container > #admin-tab.active {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        #radar-tab.active > .card,
+        #sparks-tab.active > .card,
+        #profile-tab.active > .card,
+        #chat-tab.active > #chatInbox {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: 100%;
+            margin-bottom: 0;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .tab-content.active { display: block; }
         .chat { height: 420px; overflow: auto; background: #0d2527; border:1px solid #245b57; border-radius: 14px; padding: 12px; }
         .chat-empty { min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; background:#0d2527; border-radius:14px; border:1px dashed #245b57; }
         .chat-inbox { background:linear-gradient(180deg,#12302f,#0e2024); border:1px solid #245b57; border-radius:16px; overflow:hidden; }
@@ -668,15 +699,6 @@
             border: 0 !important;
             border-radius: 0 !important;
             box-shadow: none;
-        }
-
-        /* Main screens: fill the available mobile screen */
-        #radar-tab > .card,
-        #sparks-tab > .card,
-        #profile-tab > .card,
-        #chatInbox.chat-inbox {
-            min-height: calc(100dvh - 250px);
-            box-sizing: border-box;
         }
 
         /* Private chat: remove only the large message-history frame */
