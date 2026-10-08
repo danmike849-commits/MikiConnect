@@ -120,7 +120,7 @@
         .small { font-size: .82rem; }
         .header-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
         .chat-empty { min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; background:#0d1425; border-radius:12px; }
-        .private-message { max-width:82%; padding:10px 12px; border-radius:14px; margin-bottom:10px; line-height:1.4; }
+        .private-message { max-width:82%; padding:8px 10px; border-radius:12px; margin-bottom:6px; line-height:1.35; font-size:16px; }
         .private-message.own { margin-left:auto; background:linear-gradient(135deg,#0f766e,#14b8a6); color:#fff; border:1px solid rgba(94,234,212,.35); }
         .private-message.other { margin-right:auto; background:#153b3a; color:#e6fffb; border:1px solid #245b57; }
         .private-message-meta { font-size:.72rem; opacity:.72; margin-bottom:3px; }
@@ -2288,7 +2288,8 @@
                     img.alt = user.username || "MikiConnect member";
                     img.style.width = "100%";
                     img.style.height = "100%";
-                    img.style.objectFit = "contain";
+                    img.style.objectFit = "cover";
+                    img.style.objectPosition = "center center";
                     img.onerror = () => {
                         img.remove();
                         avatar.textContent = "👤";
