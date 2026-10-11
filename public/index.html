@@ -739,7 +739,7 @@
             <p class="muted" style="font-size:0.9rem; margin-bottom:28px;">Find your match today</p>
 
             <div style="text-align:left; margin-bottom:12px;">
-                <input id="loginUsername" type="text" placeholder="Username or phone" autocomplete="username">
+                <input id="loginUsername" type="text" placeholder="Username or email" autocomplete="username">
             </div>
 
             <div style="position:relative; text-align:left; margin-bottom:6px;">
@@ -1035,9 +1035,12 @@
                     <h3 style="margin:0;">🔔 Notifications</h3>
                     <p class="muted small" style="margin:5px 0 0;">Your latest MikiConnect activity.</p>
                 </div>
-                <button id="markAllNotificationsBtn" class="secondary hidden" style="width:auto; padding:8px 12px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <button id="backFromNotificationsBtn" type="button" class="secondary" style="width:auto;padding:8px 12px;">← Back</button>
+                    <button id="markAllNotificationsBtn" class="secondary hidden" style="width:auto; padding:8px 12px;">
                     Mark all read
-                </button>
+                    </button>
+                </div>
             </div>
             <div id="notificationsList" style="margin-top:14px;">
                 <p class="muted">No notifications yet.</p>
@@ -4327,7 +4330,7 @@ privateVoiceButton?.addEventListener(
             errEl.textContent = '';
 
             if (!username || !password) {
-                errEl.textContent = 'Please enter both username and password.';
+                errEl.textContent = 'Please enter your username or email and password.';
                 return;
             }
 
@@ -4590,6 +4593,29 @@ privateVoiceButton?.addEventListener(
                     item.style.borderColor = '#ff2a5f';
                 }
 
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:12px;';
+
+                const avatar = document.createElement('div');
+                avatar.style.cssText = 'width:50px;height:50px;min-width:50px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.06);font-size:22px;';
+                avatar.textContent = '👤';
+
+                if (notification.actorAvatar) {
+                    const image = document.createElement('img');
+                    image.src = notification.actorAvatar;
+                    image.alt = '';
+                    image.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                    image.onerror = () => {
+                        image.remove();
+                        avatar.textContent = '👤';
+                    };
+                    avatar.textContent = '';
+                    avatar.appendChild(image);
+                }
+
+                const content = document.createElement('div');
+                content.style.cssText = 'flex:1;min-width:0;';
+
                 const message = document.createElement('div');
                 message.textContent = notification.message || 'New MikiConnect activity.';
 
@@ -4606,8 +4632,11 @@ privateVoiceButton?.addEventListener(
                         ? date.toLocaleString()
                         : '';
 
-                item.appendChild(message);
-                item.appendChild(time);
+                content.appendChild(message);
+                content.appendChild(time);
+                row.appendChild(avatar);
+                row.appendChild(content);
+                item.appendChild(row);
 
                 if (!notification.read) {
                     item.addEventListener('click', async () => {
@@ -4672,11 +4701,64 @@ privateVoiceButton?.addEventListener(
             }
         }
 
+        let notificationsReturnTab = null;
+
         function showNotificationPanel() {
             const panel = document.getElementById('notificationsPanel');
-            if (!panel) return;
+            if (!panel || !panel.classList.contains('hidden')) return;
 
-            panel.classList.toggle('hidden');
+            notificationsReturnTab = currentMainTab || 'radar-tab';
+
+            const mainNav = document.querySelector('.nav-tabs');
+            const headerActions = document.querySelector('.header-actions');
+            const settingsPanel = document.getElementById('settingsPanel');
+
+            if (mainNav) mainNav.classList.add('hidden');
+            if (headerActions) headerActions.classList.add('hidden');
+            if (settingsPanel) settingsPanel.classList.add('hidden');
+
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            panel.classList.remove('hidden');
+
+            if (!history.state || history.state.mikiNotifications !== true) {
+                history.pushState(
+                    {
+                        mikiNotifications: true,
+                        returnTab: notificationsReturnTab
+                    },
+                    '',
+                    '#notifications'
+                );
+            }
+
+            loadNotifications();
+        }
+
+        function closeNotificationScreen(fromBack = false) {
+            const panel = document.getElementById('notificationsPanel');
+            if (!panel || panel.classList.contains('hidden')) return false;
+
+            panel.classList.add('hidden');
+
+            const returnTab = notificationsReturnTab || 'radar-tab';
+            notificationsReturnTab = null;
+
+            if (fromBack) {
+                switchTab(returnTab, { fromBack: true });
+            } else {
+                switchTab(returnTab);
+                if (history.state && history.state.mikiNotifications === true) {
+                    history.back();
+                }
+            }
+
+            return true;
         }
 
         let sparkPopupTimer = null;
@@ -5429,6 +5511,15 @@ privateVoiceButton?.addEventListener(
                     'click',
                     showNotificationPanel
                 );
+            }
+
+            const backFromNotificationsBtn =
+                document.getElementById('backFromNotificationsBtn');
+
+            if (backFromNotificationsBtn) {
+                backFromNotificationsBtn.addEventListener('click', () => {
+                    closeNotificationScreen();
+                });
             }
 
             const markAllBtn =
@@ -6532,6 +6623,10 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
             }
 
             window.addEventListener('popstate', () => {
+                if (closeNotificationScreen(true)) {
+                    return;
+                }
+
                 if (currentSettingsScreen) {
                     closeSettingsScreen();
                     return;
