@@ -1594,16 +1594,6 @@
                     <h2>📡 MikiConnect Pulse</h2>
                     <p class="muted">A quick social game. Follow the vibe, make a choice, and see where your Pulse takes you.</p>
 
-                    <div class="pulse-stats row" style="justify-content:space-between; margin:15px 0;">
-                        <div class="card" style="margin:0; flex:1; text-align:center;">
-                            <div class="muted">Pulse</div>
-                            <strong id="pulseScore" style="font-size:28px;">0</strong>
-                        </div>
-                        <div class="card" style="margin:0; flex:1; text-align:center;">
-                            <div class="muted">Chain</div>
-                            <strong id="pulseStreak" style="font-size:28px;">0</strong>
-                        </div>
-                    </div>
 
                     <div id="pulseGame" class="card" style="margin-top:15px; text-align:center;">
                         <div class="muted" style="font-size:13px; margin-bottom:8px;">⚡ PULSE CHALLENGE</div>
@@ -1898,6 +1888,32 @@
     <!-- Socket.io & App Logic -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        function openProfileImageViewer(imageUrl, imageAlt) {
+            const viewer = document.getElementById("profileImageViewer");
+            const viewerImage = document.getElementById("profileImageViewerImage");
+            if (!viewer || !viewerImage || !imageUrl) return;
+            viewerImage.src = imageUrl;
+            viewerImage.alt = imageAlt || "Enlarged profile picture";
+            viewer.classList.remove("hidden");
+            viewer.style.display = "flex";
+            document.addEventListener("keydown", handleProfileImageViewerKey);
+        }
+
+        function closeProfileImageViewer() {
+            const viewer = document.getElementById("profileImageViewer");
+            const viewerImage = document.getElementById("profileImageViewerImage");
+            if (viewer) {
+                viewer.classList.add("hidden");
+                viewer.style.display = "none";
+            }
+            if (viewerImage) viewerImage.removeAttribute("src");
+            document.removeEventListener("keydown", handleProfileImageViewerKey);
+        }
+
+        function handleProfileImageViewerKey(event) {
+            if (event.key === "Escape") closeProfileImageViewer();
+        }
+
         let me = null;
         let socket = null;
         // =========================
@@ -2169,7 +2185,7 @@
                 top.className = 'chat-row-top';
                 const name = document.createElement('div');
                 name.className = 'chat-row-name';
-                name.textContent = participant.username || 'member';
+                name.textContent = (participant.username || 'member').replace(/^@+/, '');
                 top.appendChild(name);
 
                 info.appendChild(top);
@@ -2269,7 +2285,7 @@
                     info.style.flex = "1";
 
                     const name = document.createElement("strong");
-                    name.textContent = "@" + (user.username || "member");
+                    name.textContent = (user.username || "member").replace(/^@+/, "");
 
                     const details = document.createElement("div");
                     details.className = "muted";
@@ -2312,12 +2328,18 @@
 
             if (!panel || !title || !messages) return;
 
-            title.textContent = user.username || "Private Chat";
+            title.textContent = (user.username || "Private Chat").replace(/^@+/, "");
             status.textContent = "Opening secure conversation...";
 
             if (avatar) {
                 avatar.innerHTML = "";
                 avatar.textContent = "👤";
+                avatar.style.flex = "0 0 42px";
+                avatar.style.boxSizing = "border-box";
+                avatar.style.cursor = "pointer";
+                avatar.setAttribute("role", "button");
+                avatar.setAttribute("tabindex", "0");
+                avatar.setAttribute("aria-label", "View profile picture");
 
                 const image =
                     user.avatar ||
@@ -2325,12 +2347,28 @@
                         ? user.photos[0]
                         : "");
 
+                avatar.onclick = () => {
+                    const currentImage = avatar.querySelector("img");
+                    if (currentImage && currentImage.src) {
+                        openProfileImageViewer(currentImage.src, currentImage.alt);
+                    }
+                };
+                avatar.onkeydown = event => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        avatar.click();
+                    }
+                };
+
                 if (image) {
                     const img = document.createElement("img");
                     img.src = image;
                     img.alt = user.username || "MikiConnect member";
+                    img.style.display = "block";
                     img.style.width = "100%";
                     img.style.height = "100%";
+                    img.style.maxWidth = "100%";
+                    img.style.maxHeight = "100%";
                     img.style.objectFit = "cover";
                     img.style.objectPosition = "center center";
                     img.onerror = () => {
@@ -2935,7 +2973,7 @@
 
     const meta = document.createElement("div");
     meta.className = "private-message-meta";
-    meta.textContent = own ? "You" : (message.senderUsername || "Member");
+    meta.textContent = own ? "You" : (message.senderUsername || "Member").replace(/^@+/, "");
 
     const body = document.createElement("div");
 
@@ -2946,7 +2984,7 @@
         const replyReferenceSender = document.createElement("div");
         replyReferenceSender.className = "private-message-reply-reference-sender";
         replyReferenceSender.textContent =
-            message.replyTo.senderUsername || "Member";
+            (message.replyTo.senderUsername || "Member").replace(/^@+/, "");
 
         const replyReferenceContent = document.createElement("div");
         replyReferenceContent.className = "private-message-reply-reference-content";
@@ -3373,8 +3411,10 @@
             pulseScore += 10;
             pulseStreak += 1;
 
-            document.getElementById("pulseScore").textContent = pulseScore;
-            document.getElementById("pulseStreak").textContent = pulseStreak;
+            const pulseScoreDisplay = document.getElementById("pulseScore");
+            const pulseStreakDisplay = document.getElementById("pulseStreak");
+            if (pulseScoreDisplay) pulseScoreDisplay.textContent = pulseScore;
+            if (pulseStreakDisplay) pulseStreakDisplay.textContent = pulseStreak;
 
             const messages = [
                 "⚡ Pulse received!",
@@ -4274,7 +4314,7 @@ privateVoiceButton?.addEventListener(
 
             if (me) {
                 const userLabel = document.getElementById('userLabel');
-                if (userLabel) userLabel.textContent = '@' + me.username;
+                if (userLabel) userLabel.textContent = (me.username || "").replace(/^@+/, "");
 
                 if (me.role === 'admin') {
                     document.getElementById('admin-tab-btn')?.classList.remove('hidden');
@@ -5995,7 +6035,7 @@ async function loadBlockedUsers() {
             }
 
             const name = document.createElement('strong');
-            name.textContent = user.username || 'MikiConnect member';
+            name.textContent = (user.username || 'MikiConnect member').replace(/^@+/, '');
             name.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
             info.appendChild(name);
 
@@ -6020,7 +6060,7 @@ async function loadBlockedUsers() {
                     }
 
                     if (statusEl) {
-                        statusEl.textContent = `${user.username || 'User'} has been unblocked.`;
+                        statusEl.textContent = `${(user.username || 'User').replace(/^@+/, '')} has been unblocked.`;
                     }
                 } catch (e) {
                     if (errorEl) {
@@ -6475,7 +6515,7 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
                     const verificationEl = document.getElementById('accountInfoVerification');
 
                     if (usernameEl) {
-                        usernameEl.textContent = me?.username || '—';
+                        usernameEl.textContent = (me?.username || '—').replace(/^@+/, '');
                     }
 
                     if (emailEl) {
@@ -6573,7 +6613,7 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
                         const verificationEl = document.getElementById('accountInfoVerification');
 
                         if (accountUsernameEl) {
-                            accountUsernameEl.textContent = me.username || '—';
+                            accountUsernameEl.textContent = (me.username || '—').replace(/^@+/, '');
                         }
 
                         if (accountEmailEl) {
@@ -7020,5 +7060,379 @@ const saveProfile = document.getElementById('saveProfileBtn');
             checkSession();
         });
     </script>
+<div id="profileImageViewer" class="hidden" role="dialog" aria-modal="true" aria-label="Profile picture viewer" style="position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeProfileImageViewer()"><button type="button" aria-label="Close profile picture" onclick="closeProfileImageViewer()" style="position:absolute;top:16px;right:16px;width:auto;font-size:24px;">×</button><img id="profileImageViewerImage" alt="Enlarged profile picture" style="display:block;max-width:90vw;max-height:85vh;width:auto;height:auto;object-fit:contain;border-radius:12px;"></div>
+
+<div id="mcCallDialog" class="hidden" role="dialog" aria-modal="true" aria-label="Call" style="position:fixed;inset:0;z-index:10001;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:min(520px,100%);max-height:90vh;overflow:auto;border-radius:14px;padding:18px;background:inherit;border:1px solid currentColor;">
+    <h2 id="mcCallTitle" style="margin-top:0;">Call</h2>
+    <p id="mcCallStatus" role="status">Ready</p>
+    <video id="mcCallRemoteVideo" autoplay playsinline style="display:none;width:100%;max-height:55vh;object-fit:contain;border-radius:10px;"></video>
+    <video id="mcCallLocalVideo" autoplay muted playsinline style="display:none;width:120px;max-height:160px;object-fit:cover;border-radius:10px;"></video>
+    <audio id="mcCallRemoteAudio" autoplay></audio>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;">
+      <button id="mcCallAccept" type="button" style="display:none;width:auto;">Accept</button>
+      <button id="mcCallReject" type="button" class="secondary" style="display:none;width:auto;">Reject</button>
+      <button id="mcCallMute" type="button" class="secondary" style="display:none;width:auto;">Mute microphone</button>
+      <button id="mcCallCamera" type="button" class="secondary" style="display:none;width:auto;">Turn camera off</button>
+      <button id="mcCallHangup" type="button" class="secondary" style="display:none;width:auto;">Hang up</button>
+      <button id="mcCallClose" type="button" class="secondary" style="width:auto;">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const byId = id => document.getElementById(id);
+  let pc = null;
+  let localStream = null;
+  let remoteStream = null;
+  let activeCall = null;
+  let incomingCall = null;
+  let makingOffer = false;
+  let pendingCandidates = [];
+
+  const rtcConfig = {
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+  };
+
+  function mcCallUi(show) {
+    const dialog = byId("mcCallDialog");
+    if (!dialog) return;
+    dialog.classList.toggle("hidden", !show);
+    dialog.style.display = show ? "flex" : "none";
+  }
+
+  function mcCallStatus(text) {
+    if (byId("mcCallStatus")) byId("mcCallStatus").textContent = text;
+  }
+
+  function mcCallButtons({ incoming = false, active = false, video = false } = {}) {
+    byId("mcCallAccept").style.display = incoming ? "" : "none";
+    byId("mcCallReject").style.display = incoming ? "" : "none";
+    byId("mcCallMute").style.display = active ? "" : "none";
+    byId("mcCallCamera").style.display = active && video ? "" : "none";
+    byId("mcCallHangup").style.display = active || incoming ? "" : "none";
+  }
+
+  function mcCallPanel() {
+    const panel = byId("privateChatPanel");
+    if (!panel || panel.classList.contains("hidden")) return null;
+    if (!panel.dataset.conversationId || !panel.dataset.otherUserId) return null;
+    return panel;
+  }
+
+  function mcCallEmit(eventName, payload) {
+    return new Promise((resolve, reject) => {
+      if (typeof socket === "undefined" || !socket || !socket.connected) {
+        reject(new Error("Real-time connection is unavailable."));
+        return;
+      }
+      socket.timeout(8000).emit(eventName, payload, (err, result) => {
+        if (err) return reject(new Error("Call signaling timed out."));
+        if (!result?.success) return reject(new Error(result?.error || "Call signaling failed."));
+        resolve(result);
+      });
+    });
+  }
+
+  async function mcGetMedia(video) {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("This browser does not support microphone or camera access.");
+    }
+    return navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: video ? { facingMode: "user" } : false
+    });
+  }
+
+  function mcShowRemote(stream, video) {
+    const remoteVideo = byId("mcCallRemoteVideo");
+    const remoteAudio = byId("mcCallRemoteAudio");
+    remoteStream = stream;
+    if (video) {
+      remoteVideo.srcObject = stream;
+      remoteVideo.style.display = "block";
+      remoteAudio.srcObject = null;
+    } else {
+      remoteAudio.srcObject = stream;
+      remoteVideo.srcObject = null;
+      remoteVideo.style.display = "none";
+    }
+    const playback = video ? remoteVideo.play() : remoteAudio.play();
+    if (playback?.catch) playback.catch(() => mcCallStatus("Tap the page to allow call audio."));
+  }
+
+  function mcBuildPeer(video) {
+    pc = new RTCPeerConnection(rtcConfig);
+    remoteStream = new MediaStream();
+    pc.ontrack = event => {
+      const streams = event.streams || [];
+      if (streams[0]) {
+        mcShowRemote(streams[0], video);
+      } else {
+        remoteStream.addTrack(event.track);
+        mcShowRemote(remoteStream, video);
+      }
+    };
+    pc.onicecandidate = event => {
+      if (event.candidate && activeCall) {
+        mcCallEmit("callIceCandidate", {
+          conversationId: activeCall.conversationId,
+          candidate: event.candidate
+        }).catch(err => mcCallStatus(err.message));
+      }
+    };
+    pc.onconnectionstatechange = () => {
+      if (!pc) return;
+      if (pc.connectionState === "connected") mcCallStatus("Connected");
+      if (["failed", "disconnected"].includes(pc.connectionState)) {
+        mcCallStatus("Connection interrupted. A TURN server may be required.");
+      }
+    };
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  }
+
+  async function mcStartCall(video) {
+    if (activeCall || incomingCall) {
+      mcCallStatus("Finish the current call before starting another.");
+      mcCallUi(true);
+      return;
+    }
+    const panel = mcCallPanel();
+    if (!panel) {
+      alert("Open a private chat first.");
+      return;
+    }
+    if (typeof socket === "undefined" || !socket || !socket.connected) {
+      alert("Connecting to real-time chat. Please try again.");
+      return;
+    }
+    try {
+      activeCall = {
+        conversationId: panel.dataset.conversationId,
+        otherUserId: panel.dataset.otherUserId,
+        video
+      };
+      byId("mcCallTitle").textContent = video ? "Video call" : "Voice call";
+      mcCallUi(true);
+      mcCallStatus("Requesting microphone and camera permission…");
+      localStream = await mcGetMedia(video);
+      byId("mcCallLocalVideo").srcObject = video ? localStream : null;
+      byId("mcCallLocalVideo").style.display = video ? "block" : "none";
+      mcBuildPeer(video);
+      makingOffer = true;
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await mcCallEmit("callOffer", {
+        conversationId: activeCall.conversationId,
+        video,
+        description: pc.localDescription
+      });
+      mcCallButtons({ active: true, video });
+      mcCallStatus("Calling…");
+    } catch (err) {
+      await mcEndCall(false);
+      mcCallUi(true);
+      mcCallStatus(err.message || "Unable to start the call.");
+    } finally {
+      makingOffer = false;
+    }
+  }
+
+  async function mcAcceptCall() {
+    if (!incomingCall || activeCall) return;
+    const invitation = incomingCall;
+    incomingCall = null;
+    activeCall = {
+      conversationId: invitation.conversationId,
+      otherUserId: invitation.fromUserId,
+      video: Boolean(invitation.video)
+    };
+    try {
+      mcCallStatus("Requesting microphone and camera permission…");
+      localStream = await mcGetMedia(activeCall.video);
+      byId("mcCallLocalVideo").srcObject = activeCall.video ? localStream : null;
+      byId("mcCallLocalVideo").style.display = activeCall.video ? "block" : "none";
+      mcBuildPeer(activeCall.video);
+      await pc.setRemoteDescription(invitation.description);
+      for (const candidate of pendingCandidates.splice(0)) {
+        await pc.addIceCandidate(candidate);
+      }
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await mcCallEmit("callAnswer", {
+        conversationId: activeCall.conversationId,
+        description: pc.localDescription
+      });
+      mcCallButtons({ active: true, video: activeCall.video });
+      mcCallStatus("Connecting…");
+    } catch (err) {
+      await mcEndCall(true);
+      mcCallStatus(err.message || "Unable to accept the call.");
+    }
+  }
+
+  async function mcEndCall(notify = true) {
+    const oldCall = activeCall || incomingCall;
+    activeCall = null;
+    incomingCall = null;
+    pendingCandidates = [];
+    makingOffer = false;
+    if (notify && oldCall?.conversationId && typeof socket !== "undefined" && socket?.connected) {
+      socket.emit("callHangup", { conversationId: oldCall.conversationId });
+    }
+    if (pc) {
+      pc.ontrack = null;
+      pc.onicecandidate = null;
+      pc.close();
+      pc = null;
+    }
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+    }
+    remoteStream = null;
+    byId("mcCallRemoteVideo").srcObject = null;
+    byId("mcCallRemoteVideo").style.display = "none";
+    byId("mcCallRemoteAudio").srcObject = null;
+    byId("mcCallLocalVideo").srcObject = null;
+    byId("mcCallLocalVideo").style.display = "none";
+    byId("mcCallMute").textContent = "Mute microphone";
+    byId("mcCallCamera").textContent = "Turn camera off";
+    mcCallButtons();
+  }
+
+  function mcBindCallUi() {
+    byId("privateChatCall")?.addEventListener("click", () => mcStartCall(false));
+    byId("privateChatVideo")?.addEventListener("click", () => mcStartCall(true));
+    byId("mcCallAccept").addEventListener("click", mcAcceptCall);
+    byId("mcCallReject").addEventListener("click", async () => {
+      if (incomingCall) {
+        socket.emit("callReject", { conversationId: incomingCall.conversationId });
+      }
+      await mcEndCall(false);
+      mcCallStatus("Call rejected.");
+    });
+    byId("mcCallHangup").addEventListener("click", async () => {
+      await mcEndCall(true);
+      mcCallStatus("Call ended.");
+    });
+    byId("mcCallClose").addEventListener("click", () => {
+      if (activeCall || incomingCall) return;
+      mcCallUi(false);
+    });
+    byId("mcCallMute").addEventListener("click", () => {
+      if (!localStream) return;
+      const track = localStream.getAudioTracks()[0];
+      if (!track) return;
+      track.enabled = !track.enabled;
+      byId("mcCallMute").textContent = track.enabled ? "Mute microphone" : "Unmute microphone";
+    });
+    byId("mcCallCamera").addEventListener("click", () => {
+      if (!localStream) return;
+      const track = localStream.getVideoTracks()[0];
+      if (!track) return;
+      track.enabled = !track.enabled;
+      byId("mcCallCamera").textContent = track.enabled ? "Turn camera off" : "Turn camera on";
+    });
+  }
+
+  function mcBindSocketSignals() {
+    if (typeof socket === "undefined" || !socket || socket.__mcCallSignalsBound) return;
+    socket.__mcCallSignalsBound = true;
+
+    socket.on("callOffer", offer => {
+      if (!offer?.conversationId || !offer.description) return;
+      const panel = mcCallPanel();
+      if (!panel || panel.dataset.conversationId !== String(offer.conversationId)) {
+        socket.emit("callReject", { conversationId: offer.conversationId });
+        return;
+      }
+      if (activeCall || incomingCall) {
+        socket.emit("callReject", { conversationId: offer.conversationId });
+        return;
+      }
+      incomingCall = offer;
+      byId("mcCallTitle").textContent = offer.video ? "Incoming video call" : "Incoming voice call";
+      mcCallStatus("Incoming call from " + String(offer.fromUsername || "MikiConnect member").replace(/^@+/, ""));
+      mcCallButtons({ incoming: true });
+      mcCallUi(true);
+    });
+
+    socket.on("callAnswer", async answer => {
+      if (!activeCall || !pc || answer?.conversationId !== activeCall.conversationId || !answer.description) return;
+      try {
+        await pc.setRemoteDescription(answer.description);
+        for (const candidate of pendingCandidates.splice(0)) {
+          await pc.addIceCandidate(candidate);
+        }
+        mcCallStatus("Connected");
+      } catch (err) {
+        mcCallStatus("Unable to complete call negotiation.");
+      }
+    });
+
+    socket.on("callIceCandidate", async signal => {
+      if (!signal?.candidate) return;
+      const expectedConversationId = activeCall?.conversationId || incomingCall?.conversationId;
+      if (!expectedConversationId || signal.conversationId !== expectedConversationId) return;
+      try {
+        if (pc?.remoteDescription) await pc.addIceCandidate(signal.candidate);
+        else pendingCandidates.push(signal.candidate);
+      } catch (err) {
+        console.warn("Unable to add call ICE candidate:", err.message);
+      }
+    });
+
+    socket.on("callHangup", async signal => {
+      if (activeCall && signal?.conversationId === activeCall.conversationId) {
+        await mcEndCall(false);
+        mcCallStatus("The other person ended the call.");
+      }
+    });
+
+    socket.on("callReject", async signal => {
+      if (activeCall && signal?.conversationId === activeCall.conversationId) {
+        await mcEndCall(false);
+        mcCallStatus("Call rejected.");
+      }
+    });
+  }
+
+  function mcInitCalling() {
+    mcBindCallUi();
+
+    // Bind now if the chat socket already exists.
+    mcBindSocketSignals();
+
+    // Also bind when initSocket creates the connection later.
+    const originalInitSocket = window.initSocket;
+    if (typeof originalInitSocket === "function" && !originalInitSocket.__mcCallWrapped) {
+      const wrapped = function(...args) {
+        const result = originalInitSocket.apply(this, args);
+        mcBindSocketSignals();
+        return result;
+      };
+      wrapped.__mcCallWrapped = true;
+      window.initSocket = wrapped;
+    }
+
+    // Recover if the socket becomes available after this script initializes.
+    const bindTimer = setInterval(() => {
+      mcBindSocketSignals();
+      if (typeof socket !== "undefined" && socket && socket.__mcCallSignalsBound) {
+        clearInterval(bindTimer);
+      }
+    }, 500);
+    setTimeout(() => clearInterval(bindTimer), 15000);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mcInitCalling, { once: true });
+  } else {
+    mcInitCalling();
+  }
+})();
+</script>
+
 </body>
 </html>

@@ -182,6 +182,58 @@ io.on('connection', socket => {
     });
   }
 
+  // WebRTC call signaling: only authenticated conversation participants may signal.
+  const callSignalEvents = [
+    'callOffer',
+    'callAnswer',
+    'callIceCandidate',
+    'callHangup',
+    'callReject'
+  ];
+
+  for (const eventName of callSignalEvents) {
+    socket.on(eventName, async (payload, callback) => {
+      try {
+        const conversationId = String(payload?.conversationId || '').trim();
+        const conversation = await getAuthorizedConversation(
+          conversationId,
+          socket.user._id
+        );
+
+        if (!conversation) {
+          callback?.({ success: false, error: 'Conversation unavailable.' });
+          return;
+        }
+
+        const otherParticipant = conversation.participants.find(
+          id => String(id) !== String(socket.user._id)
+        );
+
+        if (!otherParticipant) {
+          callback?.({ success: false, error: 'Call recipient unavailable.' });
+          return;
+        }
+
+        const signalPayload = {
+          ...payload,
+          conversationId: String(conversation._id),
+          fromUserId: String(socket.user._id),
+          fromUsername: socket.user.username || ''
+        };
+
+        // Send to the recipient's authenticated sockets, never back to the sender.
+        io.to(`user:${String(otherParticipant)}`)
+          .except(socket.id)
+          .emit(eventName, signalPayload);
+
+        callback?.({ success: true });
+      } catch (err) {
+        console.error('Call signaling error:', err);
+        callback?.({ success: false, error: 'Unable to relay call signal.' });
+      }
+    });
+  }
+
   socket.on('disconnect', () => {
     const becameInactive = markUserInactive(socket.user._id);
 
