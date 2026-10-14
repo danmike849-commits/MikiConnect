@@ -1715,6 +1715,194 @@ body.theme-chat #chat-tab button:not(.secondary) {
   #mcCallDialog button { width: 48px !important; min-width: 48px; height: 48px; }
 }
 
+
+/* MikiConnect full mobile redesign */
+html {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+}
+body {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    line-height: 1.5;
+    -webkit-tap-highlight-color: transparent;
+}
+#app-screen, .container, .tab-content,
+.container > #radar-tab,
+.container > #sparks-tab,
+.container > #chat-tab,
+.container > #profile-tab,
+.container > #admin-tab {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+.container > .nav-tabs {
+    padding: 12px;
+    margin: 0;
+    gap: 8px;
+    background: rgba(7, 10, 20, .92);
+}
+.nav-tab {
+    min-width: 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-align: center;
+    overflow-wrap: anywhere;
+    transition: background .18s ease, border-color .18s ease;
+}
+.tab-content {
+    padding: 14px;
+}
+.tab-content > .card,
+#radar-tab > .card,
+#sparks-tab > .card {
+    width: 100%;
+    min-width: 0;
+    margin: 0 0 14px;
+}
+.card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.card h2 {
+    font-size: clamp(1.2rem, 5vw, 1.6rem);
+    line-height: 1.25;
+}
+.card h3 {
+    font-size: clamp(1rem, 4vw, 1.2rem);
+    line-height: 1.35;
+}
+button, input, textarea, select {
+    max-width: 100%;
+    min-width: 0;
+    font: inherit;
+}
+button {
+    min-height: 44px;
+    touch-action: manipulation;
+}
+img, video, canvas, iframe {
+    max-width: 100%;
+}
+.row {
+    min-width: 0;
+}
+#pulseChoices {
+    width: 100%;
+}
+#pulseChoices button {
+    width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+#sparkCard {
+    width: 100%;
+    min-width: 0;
+}
+#sparkPhoto {
+    max-width: 100%;
+    overflow: hidden;
+}
+.chat-inbox, #chatInbox, .chat-list, .chat-row,
+.chat-row-info, .private-message {
+    min-width: 0;
+    max-width: 100%;
+}
+.private-message {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+@media (max-width: 700px) {
+    header {
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 10px 12px;
+    }
+    .header-actions {
+        max-width: 100%;
+        flex-wrap: wrap;
+    }
+    .container > .nav-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 10px 12px;
+    }
+    .nav-tab {
+        width: 100%;
+        padding: 10px 6px;
+        font-size: .9rem;
+    }
+    .tab-content {
+        padding: 12px;
+    }
+    .card {
+        padding: 14px;
+        border-radius: 16px;
+        margin-bottom: 12px;
+    }
+    #radar-tab.active > .card,
+    #sparks-tab.active > .card {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+        overflow-y: auto;
+        box-sizing: border-box;
+    }
+    #pulseGame {
+        padding: 14px;
+        margin-top: 12px !important;
+    }
+    #pulseQuestion {
+        font-size: 1.15rem;
+        line-height: 1.4;
+    }
+    #sparkPhoto {
+        min-height: 220px !important;
+    }
+    #sparkCard .row {
+        gap: 10px;
+    }
+    #sparkCard .row button {
+        flex: 1 1 0;
+        padding: 12px 8px;
+    }
+    .chat-row {
+        padding: 12px 8px;
+    }
+    .chat-avatar {
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+    }
+}
+@media (max-width: 360px) {
+    .brand {
+        font-size: 1rem;
+    }
+    .container > .nav-tabs {
+        gap: 6px;
+        padding: 8px;
+    }
+    .nav-tab {
+        font-size: .82rem;
+        padding: 9px 4px;
+    }
+    .tab-content {
+        padding: 8px;
+    }
+    .card {
+        padding: 12px;
+    }
+}
+
 </style>
 </head>
 <body>
@@ -7653,6 +7841,10 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
             }
 
             window.addEventListener('popstate', () => {
+                if (typeof window.mcHandleBackDuringCall === 'function' &&
+                    window.mcHandleBackDuringCall()) {
+                    // End the call, then continue normal Back navigation.
+                }
                 if (closeNotificationScreen(true)) {
                     return;
                 }
@@ -8081,6 +8273,54 @@ const saveProfile = document.getElementById('saveProfileBtn');
   let pendingCandidates = [];
   let callTimeout = null;
   let connectionRecoveryTimer = null;
+  let mcRingtoneContext = null;
+  let mcRingtoneTimer = null;
+
+  function mcStopRingtone() {
+    clearInterval(mcRingtoneTimer);
+    mcRingtoneTimer = null;
+    if (mcRingtoneContext) {
+      mcRingtoneContext.close().catch(() => {});
+      mcRingtoneContext = null;
+    }
+  }
+
+  function mcStartRingtone() {
+    mcStopRingtone();
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+
+    try {
+      mcRingtoneContext = new AudioCtx();
+      const ring = () => {
+        if (!mcRingtoneContext || mcRingtoneContext.state === "closed") return;
+        const ctx = mcRingtoneContext;
+        if (ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
+        const now = ctx.currentTime;
+        [0, 0.28].forEach(offset => {
+          const oscillator = ctx.createOscillator();
+          const gain = ctx.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.value = 880;
+          gain.gain.setValueAtTime(0.0001, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.12, now + offset + 0.025);
+          gain.gain.setValueAtTime(0.12, now + offset + 0.16);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.2);
+          oscillator.connect(gain);
+          gain.connect(ctx.destination);
+          oscillator.start(now + offset);
+          oscillator.stop(now + offset + 0.22);
+        });
+      };
+      ring();
+      mcRingtoneTimer = setInterval(ring, 1800);
+    } catch (error) {
+      console.warn("MikiConnect: Ringtone could not start.", error);
+      mcStopRingtone();
+    }
+  }
 
   const rtcConfig = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
@@ -8121,12 +8361,17 @@ const saveProfile = document.getElementById('saveProfileBtn');
     if (byId("mcCallStatus")) byId("mcCallStatus").textContent = text;
   }
 
-  function mcCallButtons({ incoming = false, active = false, video = false } = {}) {
+  function mcCallButtons({ incoming = false, active = false, video = false, outgoing = false } = {}) {
     byId("mcCallAccept").style.display = incoming ? "" : "none";
     byId("mcCallReject").style.display = incoming ? "" : "none";
     byId("mcCallMute").style.display = active ? "" : "none";
-    byId("mcCallCamera").style.display = active && video ? "" : "none";
-    byId("mcCallHangup").style.display = active || incoming ? "" : "none";
+    byId("mcCallCamera").style.display = "none";
+    byId("mcCallHangup").style.display = active || outgoing ? "" : "none";
+    byId("mcCallClose").style.display = "none";
+
+    if (outgoing) byId("mcCallHangup").setAttribute("aria-label", "Cancel call");
+    else if (incoming) byId("mcCallHangup").setAttribute("aria-label", "Decline call");
+    else byId("mcCallHangup").setAttribute("aria-label", "End call");
   }
 
   function mcCallPanel() {
@@ -8206,6 +8451,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
         callTimeout = null;
         clearTimeout(connectionRecoveryTimer);
         connectionRecoveryTimer = null;
+        mcCallButtons({ active: true, video: Boolean(activeCall?.video) });
         mcCallStatus("Connected");
         return;
       }
@@ -8268,7 +8514,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
         video,
         description: pc.localDescription
       });
-      mcCallButtons({ active: true, video });
+      mcCallButtons({ outgoing: true });
       mcCallStatus("Calling…");
 
       clearTimeout(callTimeout);
@@ -8289,6 +8535,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
 
   async function mcAcceptCall() {
     if (!incomingCall || activeCall) return;
+    mcStopRingtone();
     const invitation = incomingCall;
     incomingCall = null;
     activeCall = {
@@ -8321,6 +8568,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
   }
 
   async function mcEndCall(notify = true) {
+    mcStopRingtone();
     const oldCall = activeCall || incomingCall;
     clearTimeout(callTimeout);
     callTimeout = null;
@@ -8352,6 +8600,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
     byId("mcCallMute").textContent = "Mute microphone";
     byId("mcCallCamera").textContent = "Turn camera off";
     mcCallButtons();
+    mcCallUi(false);
   }
 
   function mcBindCallUi() {
@@ -8409,6 +8658,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
       mcCallStatus("Incoming call from " + String(offer.fromUsername || "MikiConnect member").replace(/^@+/, ""));
       mcCallButtons({ incoming: true });
       mcCallUi(true);
+      mcStartRingtone();
     });
 
     socket.on("callAnswer", async answer => {
@@ -8418,6 +8668,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
         for (const candidate of pendingCandidates.splice(0)) {
           await pc.addIceCandidate(candidate);
         }
+        mcCallButtons({ active: true, video: Boolean(activeCall?.video) });
         mcCallStatus("Connected");
       } catch (err) {
         mcCallStatus("Unable to complete call negotiation.");
@@ -8450,6 +8701,12 @@ const saveProfile = document.getElementById('saveProfileBtn');
       }
     });
   }
+
+  window.mcHandleBackDuringCall = function() {
+    if (!activeCall && !incomingCall) return false;
+    mcEndCall(true);
+    return true;
+  };
 
   function mcInitCalling() {
     mcBindCallUi();
