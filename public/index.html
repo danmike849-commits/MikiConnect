@@ -1562,6 +1562,159 @@ body.theme-chat #chat-tab button:not(.secondary) {
     }
 }
 
+
+/* MikiConnect premium call screen */
+#mcCallDialog {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10001 !important;
+  display: none;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  padding: 0 !important;
+  overflow: hidden;
+  color: #f8fafc;
+  background: #070a12;
+  font-family: Inter, system-ui, sans-serif;
+}
+#mcCallDialog:not(.hidden) {
+  display: flex;
+}
+#mcCallDialog > div {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  padding: max(24px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom)) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: radial-gradient(ellipse at 50% 36%, #202943 0%, #101727 42%, #070a12 100%) !important;
+  box-shadow: none !important;
+}
+#mcCallTitle {
+  order: 0;
+  margin: 8px 0 0 !important;
+  font-size: clamp(23px, 6vw, 30px);
+  font-weight: 750;
+  letter-spacing: -.6px;
+  text-align: center;
+}
+#mcCallStatus {
+  order: 1;
+  margin: 0;
+  color: #a8b5ca;
+  font-size: 14px;
+  text-align: center;
+}
+#mcCallRemoteVideo {
+  order: 2;
+  display: none;
+  width: 100% !important;
+  height: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  max-height: none !important;
+  object-fit: cover !important;
+  background: #03050a;
+  border-radius: 22px !important;
+}
+#mcCallLocalVideo {
+  display: none;
+  position: absolute;
+  z-index: 3;
+  top: max(82px, calc(env(safe-area-inset-top) + 72px));
+  right: 16px;
+  width: clamp(100px, 28vw, 132px) !important;
+  height: clamp(140px, 23vh, 190px) !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  background: #202943;
+  border: 2px solid #ffffffcc;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 28px #0008;
+}
+#mcCallDialog > div > audio {
+  display: none;
+}
+#mcCallDialog > div > div {
+  order: 4;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px !important;
+  width: 100%;
+  margin-top: auto !important;
+  padding: 18px 0 max(10px, env(safe-area-inset-bottom));
+}
+#mcCallDialog button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px !important;
+  min-width: 62px;
+  height: 62px;
+  padding: 8px !important;
+  border: 1px solid #ffffff18;
+  border-radius: 50% !important;
+  background: #28334e !important;
+  color: #fff !important;
+  box-shadow: 0 5px 18px #0004;
+  font-size: 0;
+  line-height: 1.1;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+#mcCallMute::before { content: "🎙"; font-size: 25px; }
+#mcCallCamera::before { content: "▣"; font-size: 26px; }
+#mcCallHangup::before { content: "☎"; font-size: 27px; }
+#mcCallAccept::before { content: "☎"; font-size: 27px; }
+#mcCallReject::before { content: "✕"; font-size: 24px; }
+#mcCallClose::before { content: "×"; font-size: 30px; }
+#mcCallDialog #mcCallHangup,
+#mcCallDialog #mcCallReject {
+  background: #e53950 !important;
+  border-color: #ff7788 !important;
+}
+#mcCallDialog #mcCallAccept {
+  background: #16a765 !important;
+  border-color: #4ade80 !important;
+}
+#mcCallDialog #mcCallClose {
+  background: #34415c !important;
+}
+#mcCallMute:focus-visible,
+#mcCallCamera:focus-visible,
+#mcCallHangup:focus-visible,
+#mcCallAccept:focus-visible,
+#mcCallReject:focus-visible,
+#mcCallClose:focus-visible {
+  outline: 3px solid #ff6b91;
+  outline-offset: 4px;
+}
+@media (max-width: 480px) {
+  #mcCallDialog > div { padding-left: 16px !important; padding-right: 16px !important; }
+  #mcCallDialog > div > div { gap: 14px !important; }
+  #mcCallDialog button { width: 58px !important; min-width: 58px; height: 58px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  #mcCallDialog > div { padding: 8px 16px !important; gap: 4px; }
+  #mcCallTitle { margin-top: 0 !important; font-size: 20px; }
+  #mcCallStatus { font-size: 12px; }
+  #mcCallLocalVideo { top: 8px; right: 12px; height: 110px !important; width: 82px !important; }
+  #mcCallDialog > div > div { padding: 4px 0 !important; gap: 12px !important; }
+  #mcCallDialog button { width: 48px !important; min-width: 48px; height: 48px; }
+}
+
 </style>
 </head>
 <body>
