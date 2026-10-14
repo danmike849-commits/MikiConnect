@@ -727,6 +727,841 @@
             box-shadow: none;
         }
 
+
+/* MIKICONNECT_CHAT_REDESIGN_V1
+   Chat-only redesign: dark teal + gold.
+   Existing HTML IDs and JavaScript behavior are preserved.
+*/
+
+/* Chat inbox */
+#chat-tab #chatInbox {
+    background: #102c2b;
+    color: #f5f2e8;
+    border: 1px solid rgba(212, 175, 55, 0.20);
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+#chat-tab .chat-inbox-header {
+    padding: 18px 16px;
+    background: #123735;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+#chat-tab .chat-inbox-header h2 {
+    color: #e3c66b;
+    font-size: 22px;
+    letter-spacing: -0.4px;
+}
+
+#chat-tab .chat-search {
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 14px;
+    padding: 12px 15px;
+    color: #f5f2e8;
+    background: #0b2423;
+    border: 1px solid rgba(212, 175, 55, 0.24);
+    border-radius: 24px;
+    outline: none;
+}
+
+#chat-tab .chat-search:focus {
+    border-color: #d4af37;
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.12);
+}
+
+#chat-tab .chat-search::placeholder {
+    color: #a5b8b2;
+}
+
+#chat-tab .chat-list {
+    background: #102c2b;
+}
+
+#chat-tab .chat-list > * {
+    border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+#chat-tab .chat-empty {
+    padding: 28px 18px;
+    color: #f5f2e8;
+}
+
+#chat-tab .chat-empty .muted {
+    color: #afc0ba;
+}
+
+/* Private conversation: retain the existing full-screen behavior */
+#privateChatPanel {
+    background: #0b2423 !important;
+    color: #f5f2e8;
+    border: 0 !important;
+    padding: 12px 14px max(12px, env(safe-area-inset-bottom)) !important;
+    gap: 0;
+}
+
+#privateChatPanel #privateChatHeader {
+    min-height: 60px;
+    margin: -12px -14px 0;
+    padding: 10px 12px !important;
+    background: #123735;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+    box-sizing: border-box;
+}
+
+#privateChatPanel #closePrivateChat,
+#privateChatPanel #privateChatActions button {
+    min-width: 42px;
+    min-height: 42px;
+    color: #e3c66b;
+    background: #194441;
+    border: 1px solid rgba(212, 175, 55, 0.24);
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+#privateChatPanel #closePrivateChat {
+    font-size: 23px !important;
+}
+
+#privateChatPanel #privateChatActions button:hover,
+#privateChatPanel #closePrivateChat:hover {
+    background: #245550;
+}
+
+#privateChatPanel #privateChatAvatar {
+    border: 2px solid #d4af37;
+    background: #194441 !important;
+    color: #f5f2e8;
+}
+
+#privateChatPanel #privateChatTitle {
+    color: #f5f2e8;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+#privateChatPanel #privateChatStatus {
+    color: #b3c7c0;
+    font-size: 12px;
+}
+
+/* Conversation area */
+#privateChatPanel #privateChatMessages {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 14px 3px;
+    background-color: #0b2423;
+    background-image:
+        radial-gradient(rgba(212, 175, 55, 0.055) 0.8px, transparent 0.8px);
+    background-size: 19px 19px;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #45615a transparent;
+}
+
+/* Message bubble styling.
+   Supports common existing chat message class names without
+   changing message rendering or JavaScript. */
+#privateChatMessages .message {
+    max-width: 82%;
+    overflow-wrap: anywhere;
+    border-radius: 15px;
+}
+
+#privateChatMessages .message.sent,
+#privateChatMessages .message.outgoing,
+#privateChatMessages .sent-message,
+#privateChatMessages .outgoing-message {
+    border-radius: 15px 15px 4px 15px;
+}
+
+#privateChatMessages .message.received,
+#privateChatMessages .message.incoming,
+#privateChatMessages .received-message,
+#privateChatMessages .incoming-message {
+    border-radius: 15px 15px 15px 4px;
+}
+
+/* Composer */
+#privateChatPanel > .row:last-child {
+    flex: 0 0 auto !important;
+}
+
+#privateChatPanel .private-chat-input-wrap {
+    min-height: 48px;
+    align-items: center;
+    background: #123735;
+    border: 1px solid rgba(212, 175, 55, 0.65) !important;
+    border-radius: 25px !important;
+    overflow: hidden;
+}
+
+#privateChatPanel #privateChatInput {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 82px 10px 16px !important;
+    color: #f5f2e8;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 25px !important;
+    font-size: 15px;
+    box-shadow: none !important;
+}
+
+#privateChatPanel #privateChatInput::placeholder {
+    color: #afc0ba;
+}
+
+#privateChatPanel #privateChatInput:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+#privateChatPanel #privateChatSend {
+    color: #142b25;
+    background: #d4af37;
+    border: 0;
+    border-radius: 20px;
+    font-weight: 700;
+}
+
+#privateChatPanel #privateChatSend:hover {
+    background: #e3c66b;
+}
+
+#privateChatPanel #privateReplyPreview,
+#privateChatPanel #privateEditPreview {
+    color: #f5f2e8;
+    background: #163a37;
+    border-color: rgba(212, 175, 55, 0.35);
+}
+
+/* Mobile spacing */
+@media (max-width: 600px) {
+    #chat-tab #chatInbox {
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+    }
+
+    #privateChatPanel {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    #privateChatPanel #privateChatHeader {
+        margin-left: -10px;
+        margin-right: -10px;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        gap: 7px !important;
+    }
+
+    #privateChatMessages .message {
+        max-width: 88%;
+    }
+}
+
+
+/* MIKICONNECT_CHAT_BUBBLES_V2
+   Chat-only message styling. Preserve existing message logic.
+*/
+
+/* Message alignment and spacing */
+#privateChatMessages {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+#privateChatMessages .private-message-wrap {
+    display: flex;
+    width: 100%;
+    margin: 2px 0;
+    box-sizing: border-box;
+}
+
+#privateChatMessages .private-message-wrap.own {
+    justify-content: flex-end;
+}
+
+#privateChatMessages .private-message-wrap.other {
+    justify-content: flex-start;
+}
+
+/* Shared bubble appearance */
+#privateChatMessages .private-message {
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: min(82%, 460px);
+    min-width: 76px;
+    padding: 9px 11px 6px;
+    margin: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    line-height: 1.42;
+    font-size: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.13);
+    transition: background-color 0.15s ease;
+}
+
+/* Messages sent by you */
+#privateChatMessages .private-message.own {
+    margin-left: 0;
+    margin-right: 0;
+    color: #fffaf0;
+    background: linear-gradient(145deg, #174b46, #123a37);
+    border: 1px solid rgba(212, 175, 55, 0.38);
+    border-radius: 15px 15px 4px 15px;
+}
+
+/* Messages received */
+#privateChatMessages .private-message.other {
+    margin-left: 0;
+    margin-right: 0;
+    color: #f1f5ee;
+    background: #183533;
+    border: 1px solid rgba(153, 190, 177, 0.15);
+    border-radius: 15px 15px 15px 4px;
+}
+
+/* Sender label */
+#privateChatMessages .private-message-meta {
+    margin-bottom: 4px;
+    color: #e1c56c;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.1px;
+    opacity: 1;
+}
+
+#privateChatMessages .private-message.own .private-message-meta {
+    color: #e7cf83;
+}
+
+/* Timestamp and delivery indicators */
+#privateChatMessages .private-message-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    margin-top: 5px;
+    color: #afc4bb;
+    font-size: 10px;
+    line-height: 1.2;
+    opacity: 1;
+}
+
+#privateChatMessages .private-message.own .private-message-footer {
+    color: #c8d8c9;
+}
+
+#privateChatMessages .private-message-delivery {
+    color: #e1c56c;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: -1px;
+}
+
+/* Quoted replies */
+#privateChatMessages .private-message-reply-reference {
+    margin-bottom: 7px;
+    padding: 7px 9px;
+    background: rgba(4, 20, 19, 0.38);
+    border-left: 3px solid #d4af37;
+    border-radius: 5px;
+    overflow-wrap: anywhere;
+}
+
+#privateChatMessages .private-message-reply-reference-sender {
+    margin-bottom: 3px;
+    color: #e3c66b;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+#privateChatMessages .private-message-reply-reference-content {
+    color: #d7e4dc;
+    font-size: 12px;
+}
+
+/* Voice messages */
+#privateChatMessages .private-message audio {
+    display: block;
+    width: min(270px, 100%);
+    min-width: 190px;
+    max-width: 100%;
+    margin: 3px 0;
+}
+
+/* Message action controls */
+#privateChatMessages .private-message-menu {
+    margin-top: 7px;
+}
+
+#privateChatMessages .private-message-menu button {
+    border-radius: 9px;
+}
+
+/* Keep long messages comfortable on small screens */
+@media (max-width: 600px) {
+    #privateChatMessages {
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+
+    #privateChatMessages .private-message {
+        max-width: 88%;
+        padding: 9px 10px 6px;
+        font-size: 15px;
+    }
+
+    #privateChatMessages .private-message audio {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #privateChatMessages .private-message {
+        transition: none;
+    }
+}
+
+
+/* MIKICONNECT_LOGIN_PALETTE_V3
+   Only the chat list and private conversation are restyled.
+   Match the existing MikiConnect login palette.
+*/
+
+#chat-tab #chatInbox,
+#chat-tab #chatConversationList,
+#chat-tab .chat-list {
+    color: #fff;
+    background: #070916 !important;
+    border-color: #2a304b !important;
+}
+
+#chat-tab #chatInbox {
+    border-radius: 16px;
+}
+
+#chat-tab .chat-inbox-header {
+    background: #070916 !important;
+    border-color: #2a304b !important;
+}
+
+#chat-tab .chat-inbox-header h2,
+#chat-tab .chat-row-name {
+    color: #fff !important;
+}
+
+#chat-tab .chat-search {
+    color: #fff !important;
+    background: #14182a !important;
+    border: 1px solid #2a304b !important;
+    border-radius: 14px;
+}
+
+#chat-tab .chat-search::placeholder,
+#chat-tab .chat-row-time,
+#chat-tab .chat-row-preview {
+    color: #8794ad !important;
+}
+
+#chat-tab .chat-row:hover,
+#chat-tab .chat-row.unread {
+    background: #14182a !important;
+    border-color: #2a304b !important;
+}
+
+#chat-tab .chat-unread-dot {
+    color: #fff !important;
+    background: linear-gradient(135deg, #ff2a5f, #ff7e5f) !important;
+}
+
+#privateChatPanel {
+    color: #fff !important;
+    background: #070916 !important;
+    border-color: #2a304b !important;
+}
+
+#privateChatPanel #privateChatHeader {
+    background: #070916 !important;
+    border-bottom: 1px solid #2a304b !important;
+}
+
+#privateChatPanel #privateChatTitle {
+    color: #fff !important;
+}
+
+#privateChatPanel #privateChatStatus {
+    color: #8794ad !important;
+}
+
+#privateChatPanel #closePrivateChat,
+#privateChatPanel #privateChatActions button {
+    color: #ff4b79 !important;
+    background: #14182a !important;
+    border: 1px solid #2a304b !important;
+    border-radius: 12px !important;
+}
+
+#privateChatPanel #privateChatAvatar {
+    border-color: #ff2a5f !important;
+    background: #14182a !important;
+}
+
+#privateChatPanel #privateChatMessages {
+    background: #070916 !important;
+    background-image: none !important;
+}
+
+/* Actual message classes used by renderPrivateMessage() */
+#privateChatMessages .private-message.own {
+    color: #fff !important;
+    background: linear-gradient(135deg, #ff2a5f, #ff7e5f) !important;
+    border: 1px solid rgba(255, 126, 95, .65) !important;
+    border-radius: 16px 16px 4px 16px !important;
+}
+
+#privateChatMessages .private-message.other {
+    color: #fff !important;
+    background: #14182a !important;
+    border: 1px solid #2a304b !important;
+    border-radius: 16px 16px 16px 4px !important;
+}
+
+#privateChatMessages .private-message-meta {
+    color: #ff6a91 !important;
+}
+
+#privateChatMessages .private-message.own .private-message-meta {
+    color: #fff !important;
+}
+
+#privateChatMessages .private-message-footer {
+    color: #d5d9e5 !important;
+}
+
+#privateChatMessages .private-message-delivery {
+    color: #fff !important;
+}
+
+#privateChatMessages .private-message-reply-reference {
+    background: rgba(7, 9, 22, .65) !important;
+    border-left-color: #ff2a5f !important;
+}
+
+#privateChatMessages .private-message-reply-reference-sender {
+    color: #ff6a91 !important;
+}
+
+#privateChatPanel .private-chat-input-wrap {
+    background: #14182a !important;
+    border: 1px solid #2a304b !important;
+    border-radius: 24px !important;
+}
+
+#privateChatPanel #privateChatInput {
+    color: #fff !important;
+    background: transparent !important;
+}
+
+#privateChatPanel #privateChatInput::placeholder {
+    color: #8794ad !important;
+}
+
+#privateChatPanel #privateChatSend,
+body.theme-chat #chat-tab button:not(.secondary) {
+    color: #fff !important;
+    background: linear-gradient(110deg, #ff2a5f, #ff7e5f) !important;
+    border: 0 !important;
+}
+
+#privateChatPanel #privateChatSend {
+    border-radius: 20px !important;
+}
+
+#privateChatPanel #privateVoiceRecording,
+#privateChatPanel #privateReplyPreview,
+#privateChatPanel #privateEditPreview {
+    color: #fff !important;
+    background: #14182a !important;
+    border-color: #2a304b !important;
+}
+
+@media (max-width: 600px) {
+    #chat-tab #chatInbox {
+        border-radius: 0 !important;
+    }
+
+    #privateChatPanel #privateChatMessages {
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+}
+
+
+/* PRIVATE CHAT POLISH: hide three-dot header control */
+#privateChatMore, #privateChatMoreMenu { display: none !important; }
+
+/* PRIVATE CHAT POLISH: clean white call controls */
+#privateChatActions > #privateChatVideo,
+#privateChatActions > #privateChatCall {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    background: linear-gradient(135deg, #f04476, #fa6b83) !important;
+    border: 1px solid rgba(255,255,255,.2) !important;
+    border-radius: 13px !important;
+    min-width: 42px;
+    min-height: 42px;
+    box-shadow: 0 4px 12px rgba(240,68,118,.18);
+}
+#privateChatActions > #privateChatVideo:active,
+#privateChatActions > #privateChatCall:active {
+    transform: scale(.96);
+}
+
+/* MIKICONNECT WHATSAPP-INSPIRED PRIVATE CHAT FINISH */
+#privateChatPanel {
+    overflow: hidden;
+    background: #0b1020 !important;
+    border: 1px solid #252c43 !important;
+    border-radius: 20px !important;
+    box-shadow: 0 14px 36px rgba(0,0,0,.24);
+}
+#privateChatHeader {
+    padding: 12px !important;
+    background: #101629 !important;
+    border-bottom: 1px solid #252c43;
+}
+#privateChatPerson {
+    min-width: 0;
+}
+#privateChatTitle {
+    color: #fff !important;
+    font-weight: 700 !important;
+    letter-spacing: .1px;
+}
+#privateChatPanel #privateChatStatus {
+    color: #a8b2c8 !important;
+}
+#privateChatPanel #closePrivateChat {
+    color: #fff !important;
+    background: #202941 !important;
+    border: 1px solid #303b57 !important;
+    border-radius: 50% !important;
+    min-width: 40px;
+    min-height: 40px;
+}
+#privateChatPanel #privateChatActions > button {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    background: #202941 !important;
+    border: 1px solid #39435d !important;
+    border-radius: 50% !important;
+    min-width: 42px;
+    min-height: 42px;
+    box-shadow: none !important;
+}
+#privateChatPanel #privateChatActions > button:active {
+    transform: scale(.95);
+}
+#privateChatPanel #privateChatMessages {
+    padding: 16px 12px !important;
+    gap: 8px;
+    background-color: #090e1c !important;
+    background-image: none !important;
+}
+#privateChatMessages .private-message {
+    max-width: min(84%, 480px);
+    padding: 10px 12px !important;
+    margin-bottom: 7px !important;
+    line-height: 1.42;
+    overflow-wrap: anywhere;
+    box-shadow: 0 2px 5px rgba(0,0,0,.13);
+}
+#privateChatMessages .private-message.own {
+    background: linear-gradient(145deg, #e93c70, #f45c7e) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    border-radius: 16px 16px 4px 16px !important;
+}
+#privateChatMessages .private-message.other {
+    background: #192238 !important;
+    border: 1px solid #2b3650 !important;
+    border-radius: 16px 16px 16px 4px !important;
+}
+#privateChatMessages .private-message-meta {
+    font-size: 11px !important;
+    letter-spacing: .1px;
+}
+#privateChatMessages .private-message audio {
+    display: block;
+    width: min(260px, 100%);
+    max-width: 100%;
+    min-height: 40px;
+    margin-top: 5px;
+    border-radius: 24px;
+}
+#privateChatPanel .private-chat-input-wrap {
+    margin: 10px !important;
+    padding: 5px 8px !important;
+    background: #171f32 !important;
+    border: 1px solid #303b55 !important;
+    border-radius: 28px !important;
+    box-shadow: 0 3px 12px rgba(0,0,0,.14);
+}
+#privateChatPanel #privateChatInput {
+    min-height: 42px;
+    padding: 10px 8px !important;
+    font-size: 15px;
+    outline: none;
+}
+#privateChatPanel #privateChatInput::placeholder {
+    color: #98a4bb !important;
+}
+#privateChatPanel #privateChatInput:focus {
+    box-shadow: none !important;
+}
+@media (max-width: 600px) {
+    #privateChatPanel {
+        border-radius: 16px !important;
+    }
+    #privateChatHeader {
+        padding: 9px !important;
+    }
+    #privateChatMessages {
+        padding: 12px 8px !important;
+    }
+    #privateChatMessages .private-message {
+        max-width: 88%;
+    }
+}
+
+
+/* MikiConnect composer layout correction */
+#privateChatPanel .private-chat-input-wrap {
+    flex-direction: row !important;
+    align-items: center !important;
+    min-height: 54px !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+}
+#privateChatPanel .private-chat-input-wrap #privateChatInput {
+    flex: 1 1 auto !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+}
+#privateChatPanel .private-chat-input-wrap #privateChatSend {
+    position: static !important;
+    inset: auto !important;
+    align-self: center !important;
+    flex: 0 0 auto !important;
+    height: 42px !important;
+    margin: 0 !important;
+}
+#privateChatPanel .private-chat-input-wrap #privateEditPreview {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 100%;
+    z-index: 3;
+}
+@media (max-width: 600px) {
+    #privateChatPanel .private-chat-input-wrap {
+        min-height: 50px !important;
+    }
+}
+
+/* MikiConnect private chat composer polish */
+#privateChatPanel .private-chat-input-wrap {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 5px 6px 5px 14px !important;
+    min-height: 54px;
+    background: #171f32 !important;
+    border: 1px solid #35415d !important;
+    border-radius: 30px !important;
+}
+#privateChatPanel #privateChatInput {
+    flex: 1 !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    padding: 10px 4px !important;
+    color: #f7f8fc !important;
+    background: transparent !important;
+    border: 0 !important;
+    font-size: 15px !important;
+}
+#privateChatPanel #privateChatInput::placeholder {
+    color: #a5afc3 !important;
+}
+#privateChatPanel #privateChatSend {
+    position: static !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 48px !important;
+    min-height: 42px !important;
+    padding: 0 16px !important;
+    color: #fff !important;
+    background: linear-gradient(135deg, #ed3e75, #fb6684) !important;
+    border: 0 !important;
+    border-radius: 24px !important;
+    font-weight: 700 !important;
+    box-shadow: 0 3px 10px rgba(237,62,117,.24) !important;
+}
+#privateChatPanel #privateChatVoice {
+    flex: 0 0 48px !important;
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #fff !important;
+    background: linear-gradient(145deg, #ed3e75, #fb6684) !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    box-shadow: 0 4px 12px rgba(237,62,117,.24) !important;
+    touch-action: manipulation;
+}
+#privateChatPanel #privateChatVoice svg {
+    width: 23px !important;
+    height: 23px !important;
+}
+#privateChatPanel #privateChatSend:active,
+#privateChatPanel #privateChatVoice:active {
+    transform: scale(.95);
+}
+@media (max-width: 600px) {
+    #privateChatPanel .private-chat-input-wrap {
+        min-height: 50px;
+        padding-left: 11px !important;
+    }
+    #privateChatPanel #privateChatSend {
+        min-width: 44px !important;
+        min-height: 40px !important;
+        padding: 0 12px !important;
+    }
+    #privateChatPanel #privateChatVoice {
+        flex-basis: 44px !important;
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+    }
+}
+
 </style>
 </head>
 <body>
@@ -2810,6 +3645,21 @@
             }
         }
 
+        const closePrivateChatButton = document.getElementById("closePrivateChat");
+        if (closePrivateChatButton) {
+            closePrivateChatButton.addEventListener("click", () => {
+                const panel = document.getElementById("privateChatPanel");
+                if (panel) {
+                    panel.classList.add("hidden");
+                    panel.dataset.conversationId = "";
+                    panel.dataset.otherUserId = "";
+
+                    const emptyState = document.getElementById("chatEmptyState");
+                    if (emptyState) emptyState.classList.remove("hidden");
+                }
+            });
+        }
+
         const privateChatSendButton = document.getElementById("privateChatSend");
         if (privateChatSendButton) {
             privateChatSendButton.addEventListener("click", sendPrivateMessage);
@@ -3040,20 +3890,7 @@
     time.textContent = formatChatTime(message.createdAt);
     footer.appendChild(time);
 
-    if (own) {
-        const delivery = document.createElement("span");
-        delivery.className = "private-message-delivery";
 
-        if (message.readAt) {
-            delivery.textContent = "☑️ ☑️";
-            delivery.title = "Read";
-        } else {
-            delivery.textContent = "☑️";
-            delivery.title = "Sent";
-        }
-
-        footer.appendChild(delivery);
-    }
 
     bubble.appendChild(meta);
     bubble.appendChild(body);
@@ -3788,7 +4625,7 @@ async function startPrivateVoiceRecording() {
         privateVoiceRecorder.onstop = async () => {
 
             const duration = Math.min(
-                300,
+                1800,
                 Math.max(0, (Date.now() - privateVoiceStartedAt) / 1000)
             );
 
@@ -3928,7 +4765,7 @@ async function startPrivateVoiceRecording() {
             );
         };
 
-        privateVoiceRecorder.start();
+        privateVoiceRecorder.start(250);
         startPrivateVoiceTimer();
 
         setPrivateVoiceRecordingUi();
@@ -3946,7 +4783,7 @@ async function startPrivateVoiceRecording() {
             ) {
                 privateVoiceRecorder.stop();
             }
-        }, 300000);
+        }, 1800000);
 
     } catch (error) {
         console.error("Microphone error:", error);
@@ -7089,10 +7926,36 @@ const saveProfile = document.getElementById('saveProfileBtn');
   let incomingCall = null;
   let makingOffer = false;
   let pendingCandidates = [];
+  let callTimeout = null;
+  let connectionRecoveryTimer = null;
 
   const rtcConfig = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
   };
+
+  async function mcLoadRtcConfig() {
+    try {
+      const response = await fetch("/api/call/ice-servers", {
+        credentials: "same-origin",
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        throw new Error("TURN configuration unavailable");
+      }
+
+      const config = await response.json();
+
+      if (Array.isArray(config.iceServers) && config.iceServers.length) {
+        rtcConfig.iceServers = config.iceServers;
+        console.log("MikiConnect: TURN configuration loaded.");
+      }
+    } catch (error) {
+      console.warn("MikiConnect: Using fallback STUN configuration.", error);
+    }
+  }
+
+  const mcRtcConfigReady = mcLoadRtcConfig();
 
   function mcCallUi(show) {
     const dialog = byId("mcCallDialog");
@@ -7161,7 +8024,8 @@ const saveProfile = document.getElementById('saveProfileBtn');
     if (playback?.catch) playback.catch(() => mcCallStatus("Tap the page to allow call audio."));
   }
 
-  function mcBuildPeer(video) {
+  async function mcBuildPeer(video) {
+    await mcRtcConfigReady;
     pc = new RTCPeerConnection(rtcConfig);
     remoteStream = new MediaStream();
     pc.ontrack = event => {
@@ -7183,9 +8047,33 @@ const saveProfile = document.getElementById('saveProfileBtn');
     };
     pc.onconnectionstatechange = () => {
       if (!pc) return;
-      if (pc.connectionState === "connected") mcCallStatus("Connected");
-      if (["failed", "disconnected"].includes(pc.connectionState)) {
-        mcCallStatus("Connection interrupted. A TURN server may be required.");
+
+      if (pc.connectionState === "connected") {
+        clearTimeout(callTimeout);
+        callTimeout = null;
+        clearTimeout(connectionRecoveryTimer);
+        connectionRecoveryTimer = null;
+        mcCallStatus("Connected");
+        return;
+      }
+
+      if (pc.connectionState === "disconnected") {
+        mcCallStatus("Connection interrupted. Trying to reconnect…");
+        clearTimeout(connectionRecoveryTimer);
+        connectionRecoveryTimer = setTimeout(async () => {
+          if (pc && pc.connectionState === "disconnected") {
+            await mcEndCall(true);
+            mcCallStatus("Connection lost. Call ended.");
+          }
+        }, 10000);
+        return;
+      }
+
+      if (pc.connectionState === "failed") {
+        clearTimeout(connectionRecoveryTimer);
+        connectionRecoveryTimer = null;
+        mcCallStatus("Connection failed. Ending call…");
+        mcEndCall(true).then(() => mcCallStatus("Connection failed. Call ended."));
       }
     };
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
@@ -7218,7 +8106,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
       localStream = await mcGetMedia(video);
       byId("mcCallLocalVideo").srcObject = video ? localStream : null;
       byId("mcCallLocalVideo").style.display = video ? "block" : "none";
-      mcBuildPeer(video);
+      await mcBuildPeer(video);
       makingOffer = true;
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -7229,6 +8117,14 @@ const saveProfile = document.getElementById('saveProfileBtn');
       });
       mcCallButtons({ active: true, video });
       mcCallStatus("Calling…");
+
+      clearTimeout(callTimeout);
+      callTimeout = setTimeout(async () => {
+        if (activeCall && pc && pc.connectionState !== "connected") {
+          await mcEndCall(true);
+          mcCallStatus("No answer. Call ended.");
+        }
+      }, 30000);
     } catch (err) {
       await mcEndCall(false);
       mcCallUi(true);
@@ -7252,7 +8148,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
       localStream = await mcGetMedia(activeCall.video);
       byId("mcCallLocalVideo").srcObject = activeCall.video ? localStream : null;
       byId("mcCallLocalVideo").style.display = activeCall.video ? "block" : "none";
-      mcBuildPeer(activeCall.video);
+      await mcBuildPeer(activeCall.video);
       await pc.setRemoteDescription(invitation.description);
       for (const candidate of pendingCandidates.splice(0)) {
         await pc.addIceCandidate(candidate);
@@ -7273,6 +8169,10 @@ const saveProfile = document.getElementById('saveProfileBtn');
 
   async function mcEndCall(notify = true) {
     const oldCall = activeCall || incomingCall;
+    clearTimeout(callTimeout);
+    callTimeout = null;
+    clearTimeout(connectionRecoveryTimer);
+    connectionRecoveryTimer = null;
     activeCall = null;
     incomingCall = null;
     pendingCandidates = [];

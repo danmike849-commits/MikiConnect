@@ -33,7 +33,7 @@ const avatarUpload = multer({
 const voiceUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024
+    fileSize: 50 * 1024 * 1024
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -1234,6 +1234,32 @@ async function authenticate(req, res, next) {
     return res.status(401).json({ error: 'Invalid session' });
   }
 }
+
+app.get('/api/call/ice-servers', authenticate, (req, res) => {
+  const username = process.env.TURN_USERNAME;
+  const credential = process.env.TURN_PASSWORD;
+
+  if (!username || !credential) {
+    return res.status(503).json({ error: 'Call connection service is not configured.' });
+  }
+
+  res.set('Cache-Control', 'no-store');
+  return res.json({
+    iceServers: [
+      { urls: 'stun:stun.relay.metered.ca:80' },
+      {
+        urls: [
+          'turn:global.relay.metered.ca:80',
+          'turn:global.relay.metered.ca:80?transport=tcp',
+          'turn:global.relay.metered.ca:443',
+          'turns:global.relay.metered.ca:443?transport=tcp'
+        ],
+        username,
+        credential
+      }
+    ]
+  });
+});
 
 function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
@@ -2924,6 +2950,7 @@ function convertVoiceToMp3(inputBuffer) {
       '-vn',
       '-acodec', 'libmp3lame',
       '-b:a', '128k',
+      '-compression_level', '2',
       '-f', 'mp3',
       'pipe:1'
     ]);
