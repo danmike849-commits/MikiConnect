@@ -1674,9 +1674,29 @@ body.theme-chat #chat-tab button:not(.secondary) {
   overflow-wrap: anywhere;
   cursor: pointer;
 }
-#mcCallMute::before { content: "🎙"; font-size: 25px; }
-#mcCallCamera::before { content: "▣"; font-size: 26px; }
-#mcCallHangup::before { content: "☎"; font-size: 27px; }
+#mcCallMute::before {
+  content: "";
+  display: block;
+  width: 26px;
+  height: 26px;
+  background: #fff;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='9' y='2' width='6' height='12' rx='3' fill='black'/%3E%3Cpath d='M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='9' y='2' width='6' height='12' rx='3' fill='black'/%3E%3Cpath d='M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+#mcCallSpeaker::before {
+  content: "";
+  display: block;
+  width: 27px;
+  height: 27px;
+  background: #fff;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 9v6h4l5 4V5L7 9H3zm12-1a6 6 0 0 1 0 8m2-11a10 10 0 0 1 0 14' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 9v6h4l5 4V5L7 9H3zm12-1a6 6 0 0 1 0 8m2-11a10 10 0 0 1 0 14' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+#mcCallCamera { display: none !important; }
+#mcCallHangup::before { content: "☎"; font-size: 27px; transform: rotate(135deg); }
+#mcCallDialog #mcCallMute,
+#mcCallDialog #mcCallSpeaker { background: #28334e !important; }
+#mcCallDialog #mcCallHangup { background: #e53950 !important; border-color: #ff7788 !important; }
 #mcCallAccept::before { content: "☎"; font-size: 27px; }
 #mcCallReject::before { content: "✕"; font-size: 24px; }
 #mcCallClose::before { content: "×"; font-size: 30px; }
@@ -1693,6 +1713,7 @@ body.theme-chat #chat-tab button:not(.secondary) {
   background: #34415c !important;
 }
 #mcCallMute:focus-visible,
+#mcCallSpeaker:focus-visible,
 #mcCallCamera:focus-visible,
 #mcCallHangup:focus-visible,
 #mcCallAccept:focus-visible,
@@ -7843,7 +7864,7 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
             window.addEventListener('popstate', () => {
                 if (typeof window.mcHandleBackDuringCall === 'function' &&
                     window.mcHandleBackDuringCall()) {
-                    // End the call, then continue normal Back navigation.
+                    // Minimize the call and continue normal Back navigation.
                 }
                 if (closeNotificationScreen(true)) {
                     return;
@@ -8244,6 +8265,14 @@ const saveProfile = document.getElementById('saveProfileBtn');
     </script>
 <div id="profileImageViewer" class="hidden" role="dialog" aria-modal="true" aria-label="Profile picture viewer" style="position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeProfileImageViewer()"><button type="button" aria-label="Close profile picture" onclick="closeProfileImageViewer()" style="position:absolute;top:16px;right:16px;width:auto;font-size:24px;">×</button><img id="profileImageViewerImage" alt="Enlarged profile picture" style="display:block;max-width:90vw;max-height:85vh;width:auto;height:auto;object-fit:contain;border-radius:12px;"></div>
 
+<div id="mcFloatingCall" class="hidden" role="region" aria-label="Ongoing call" style="display:none;position:fixed;top:max(8px,env(safe-area-inset-top));left:12px;right:12px;z-index:10002;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:#151d30;color:#fff;border:1px solid #34415c;box-shadow:0 6px 24px #0006;">
+  <button id="mcFloatingMute" type="button" aria-label="Mute microphone" style="width:42px;height:42px;min-width:42px;border-radius:50%;background:#28334e;color:#fff;border:0;">🎙</button>
+  <button id="mcFloatingRestore" type="button" aria-label="Return to call" style="flex:1;min-width:0;background:transparent;color:#fff;border:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+    <strong id="mcFloatingName">MikiConnect call</strong><br><small id="mcFloatingStatus">Call in progress</small>
+  </button>
+  <button id="mcFloatingEnd" type="button" aria-label="End call" style="width:44px;height:44px;min-width:44px;border-radius:50%;background:#e53950;color:#fff;border:0;font-size:22px;">☎</button>
+</div>
+
 <div id="mcCallDialog" class="hidden" role="dialog" aria-modal="true" aria-label="Call" style="position:fixed;inset:0;z-index:10001;align-items:center;justify-content:center;padding:20px;">
   <div style="width:min(520px,100%);max-height:90vh;overflow:auto;border-radius:14px;padding:18px;background:inherit;border:1px solid currentColor;">
     <h2 id="mcCallTitle" style="margin-top:0;">Call</h2>
@@ -8254,7 +8283,8 @@ const saveProfile = document.getElementById('saveProfileBtn');
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;">
       <button id="mcCallAccept" type="button" style="display:none;width:auto;">Accept</button>
       <button id="mcCallReject" type="button" class="secondary" style="display:none;width:auto;">Reject</button>
-      <button id="mcCallMute" type="button" class="secondary" style="display:none;width:auto;">Mute microphone</button>
+      <button id="mcCallMute" type="button" class="secondary" style="display:none;width:auto;" aria-label="Mute microphone">Mute microphone</button>
+      <button id="mcCallSpeaker" type="button" class="secondary" style="display:none;width:auto;" aria-label="Speaker control" aria-pressed="false">Speaker</button>
       <button id="mcCallCamera" type="button" class="secondary" style="display:none;width:auto;">Turn camera off</button>
       <button id="mcCallHangup" type="button" class="secondary" style="display:none;width:auto;">Hang up</button>
       <button id="mcCallClose" type="button" class="secondary" style="width:auto;">Close</button>
@@ -8269,6 +8299,8 @@ const saveProfile = document.getElementById('saveProfileBtn');
   let remoteStream = null;
   let activeCall = null;
   let incomingCall = null;
+  let mcCallMinimized = false;
+  let mcSpeakerEnabled = false;
   let makingOffer = false;
   let pendingCandidates = [];
   let callTimeout = null;
@@ -8355,16 +8387,45 @@ const saveProfile = document.getElementById('saveProfileBtn');
     if (!dialog) return;
     dialog.classList.toggle("hidden", !show);
     dialog.style.display = show ? "flex" : "none";
+    if (show) mcCallMinimized = false;
+    mcUpdateFloatingCall();
   }
 
   function mcCallStatus(text) {
     if (byId("mcCallStatus")) byId("mcCallStatus").textContent = text;
+    const floatingStatus = byId("mcFloatingStatus");
+    if (floatingStatus) floatingStatus.textContent = text;
+  }
+
+  function mcUpdateFloatingCall() {
+    const bar = byId("mcFloatingCall");
+    if (!bar) return;
+    const call = activeCall || incomingCall;
+    const visible = Boolean(call && mcCallMinimized);
+    bar.classList.toggle("hidden", !visible);
+    bar.style.display = visible ? "flex" : "none";
+    const name = byId("mcFloatingName");
+    if (name) name.textContent = call?.otherUserName || call?.fromUsername || "MikiConnect call";
+  }
+
+  window.mcMinimizeCall = function() {
+    if (!activeCall && !incomingCall) return;
+    mcCallMinimized = true;
+    mcCallUi(false);
+    mcUpdateFloatingCall();
+  };
+
+  function mcRestoreCall() {
+    if (!activeCall && !incomingCall) return;
+    mcCallMinimized = false;
+    mcCallUi(true);
   }
 
   function mcCallButtons({ incoming = false, active = false, video = false, outgoing = false } = {}) {
     byId("mcCallAccept").style.display = incoming ? "" : "none";
     byId("mcCallReject").style.display = incoming ? "" : "none";
     byId("mcCallMute").style.display = active ? "" : "none";
+    byId("mcCallSpeaker").style.display = active ? "" : "none";
     byId("mcCallCamera").style.display = "none";
     byId("mcCallHangup").style.display = active || outgoing ? "" : "none";
     byId("mcCallClose").style.display = "none";
@@ -8598,9 +8659,19 @@ const saveProfile = document.getElementById('saveProfileBtn');
     byId("mcCallLocalVideo").srcObject = null;
     byId("mcCallLocalVideo").style.display = "none";
     byId("mcCallMute").textContent = "Mute microphone";
+    byId("mcCallMute").setAttribute("aria-label", "Mute microphone");
     byId("mcCallCamera").textContent = "Turn camera off";
+    mcSpeakerEnabled = false;
+    byId("mcCallSpeaker").setAttribute("aria-pressed", "false");
+    byId("mcCallSpeaker").setAttribute("aria-label", "Speaker control");
+    byId("mcCallSpeaker").title = "Speaker control";
     mcCallButtons();
     mcCallUi(false);
+    const floatingBar = byId("mcFloatingCall");
+    if (floatingBar) {
+      floatingBar.classList.add("hidden");
+      floatingBar.style.display = "none";
+    }
   }
 
   function mcBindCallUi() {
@@ -8622,12 +8693,58 @@ const saveProfile = document.getElementById('saveProfileBtn');
       if (activeCall || incomingCall) return;
       mcCallUi(false);
     });
-    byId("mcCallMute").addEventListener("click", () => {
+    function mcToggleMicrophone() {
       if (!localStream) return;
       const track = localStream.getAudioTracks()[0];
       if (!track) return;
       track.enabled = !track.enabled;
-      byId("mcCallMute").textContent = track.enabled ? "Mute microphone" : "Unmute microphone";
+      const label = track.enabled ? "Mute microphone" : "Unmute microphone";
+      byId("mcCallMute").textContent = label;
+      byId("mcCallMute").setAttribute("aria-label", label);
+      const floatingMute = byId("mcFloatingMute");
+      if (floatingMute) {
+        floatingMute.textContent = track.enabled ? "🎙" : "🔇";
+        floatingMute.setAttribute("aria-label", label);
+      }
+    }
+
+    byId("mcCallMute").addEventListener("click", mcToggleMicrophone);
+    byId("mcCallSpeaker").addEventListener("click", async () => {
+      mcSpeakerEnabled = !mcSpeakerEnabled;
+      const button = byId("mcCallSpeaker");
+      button.setAttribute("aria-pressed", String(mcSpeakerEnabled));
+      button.setAttribute(
+        "aria-label",
+        mcSpeakerEnabled ? "Speaker enabled (browser dependent)" : "Speaker control"
+      );
+      button.title = mcSpeakerEnabled
+        ? "Speaker enabled (actual routing depends on your browser)"
+        : "Speaker control (actual routing depends on your browser)";
+      button.style.outline = mcSpeakerEnabled ? "2px solid #8da9ff" : "";
+      const audio = byId("mcCallRemoteAudio");
+      if (audio && typeof audio.setSinkId === "function") {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const output = devices.find(device =>
+            device.kind === "audiooutput" &&
+            /speaker|loudspeaker/i.test(device.label)
+          );
+          if (output) {
+            await audio.setSinkId(mcSpeakerEnabled ? output.deviceId : "default");
+          }
+        } catch (error) {
+          console.warn("MikiConnect: Audio output selection is unavailable.", error);
+        }
+      }
+      if (mcSpeakerEnabled && typeof byId("mcCallRemoteAudio").setSinkId !== "function") {
+        mcCallStatus("Speaker preference changed; Android audio routing is controlled by the browser.");
+      }
+    });
+    byId("mcFloatingMute")?.addEventListener("click", mcToggleMicrophone);
+    byId("mcFloatingRestore")?.addEventListener("click", mcRestoreCall);
+    byId("mcFloatingEnd")?.addEventListener("click", async () => {
+      await mcEndCall(true);
+      mcCallStatus("Call ended.");
     });
     byId("mcCallCamera").addEventListener("click", () => {
       if (!localStream) return;
@@ -8704,7 +8821,9 @@ const saveProfile = document.getElementById('saveProfileBtn');
 
   window.mcHandleBackDuringCall = function() {
     if (!activeCall && !incomingCall) return false;
-    mcEndCall(true);
+    if (typeof window.mcMinimizeCall === "function") {
+      window.mcMinimizeCall();
+    }
     return true;
   };
 
