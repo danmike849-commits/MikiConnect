@@ -1737,6 +1737,24 @@ body.theme-chat #chat-tab button:not(.secondary) {
 }
 
 
+/* Responsive Notifications and Settings panels */
+#notificationsPanel,
+#settingsPanel {
+    width: calc(100% - 32px);
+    max-width: 1050px;
+    margin: 16px auto 0;
+    min-width: 0;
+}
+@media (max-width: 600px) {
+    #notificationsPanel,
+    #settingsPanel {
+        width: 100%;
+        margin: 0;
+        border-radius: 0;
+        padding: 16px;
+    }
+}
+
 /* MikiConnect full mobile redesign */
 html {
     width: 100%;
