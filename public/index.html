@@ -2796,15 +2796,15 @@ img, video, canvas, iframe {
 
             <!-- Dating App Navigation Tabs -->
             <div class="nav-tabs">
-                <div class="nav-tab active" onclick="switchTab('radar-tab')">📡 Pulse</div>
-                <div class="nav-tab" onclick="switchTab('sparks-tab')">✨ Spark</div>
+                <div class="nav-tab active" onclick="switchTab('sparks-tab')">✨ Spark</div>
+                <div class="nav-tab" onclick="switchTab('radar-tab')">📡 Pulse</div>
                 <div class="nav-tab" onclick="switchTab('chat-tab')">💬 Chat <span id="chatUnreadBadge" class="hidden" style="margin-left:4px; font-size:15px; line-height:1; vertical-align:middle;">①</span></div>
                 <div class="nav-tab" onclick="switchTab('profile-tab')">👤 Profile</div>
                 <div id="admin-tab-btn" class="nav-tab hidden" onclick="switchTab('admin-tab')">🛡️ Admin</div>
             </div>
 
             <!-- 1. PULSE TAB -->
-            <div id="radar-tab" class="tab-content active">
+            <div id="radar-tab" class="tab-content">
                 <div class="card">
                     <h2>📡 MikiConnect Pulse</h2>
                     <p class="muted">A quick social game. Follow the vibe, make a choice, and see where your Pulse takes you.</p>
@@ -2839,7 +2839,7 @@ img, video, canvas, iframe {
             </div>
 
             <!-- 2. SPARK TAB -->
-            <div id="sparks-tab" class="tab-content">
+            <div id="sparks-tab" class="tab-content active">
                 <div class="card">
                     <h2>✨ Spark</h2>
                     <p class="muted">Meet someone whose vibe catches your attention.</p>
@@ -5286,13 +5286,13 @@ privateVoiceButton?.addEventListener(
             loadPulse();
         });
 
-        let currentMainTab = "radar-tab";
+        let currentMainTab = "sparks-tab";
         let innerScreenBackTab = null;
         let currentSettingsScreen = null;
 
         const mainTabIds = [
-            "radar-tab",
             "sparks-tab",
+            "radar-tab",
             "chat-tab",
             "profile-tab",
             "admin-tab"
@@ -5310,15 +5310,15 @@ privateVoiceButton?.addEventListener(
 
             const mainNav = document.querySelector(".nav-tabs");
             if (mainNav) {
-                mainNav.classList.toggle("hidden", tabId !== "radar-tab");
+                mainNav.classList.toggle("hidden", tabId !== "sparks-tab");
             }
 
             const headerActions = document.querySelector(".header-actions");
             if (headerActions) {
-                headerActions.classList.toggle("hidden", tabId !== "radar-tab");
+                headerActions.classList.toggle("hidden", tabId !== "sparks-tab");
             }
 
-            if (tabId !== "radar-tab") {
+            if (tabId !== "sparks-tab") {
                 const notificationsPanel = document.getElementById("notificationsPanel");
                 const settingsPanel = document.getElementById("settingsPanel");
 
@@ -5355,7 +5355,7 @@ privateVoiceButton?.addEventListener(
                 innerScreenBackTab = null;
 
                 if (
-                    tabId !== "radar-tab" &&
+                    tabId !== "sparks-tab" &&
                     !options.fromBack &&
                     (!history.state || history.state.mikiMainScreen !== true)
                 ) {
@@ -5640,7 +5640,7 @@ privateVoiceButton?.addEventListener(
           });
         }, 150);
       } else {
-        switchTab('radar-tab');
+        switchTab('sparks-tab');
       }
             } catch (e) {
                 errEl.textContent = e.message || 'Login failed.';
@@ -8258,7 +8258,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
                             confirmText: "OK",
                             showCancel: false
                         });
-                        switchTab('radar-tab');
+                        switchTab('sparks-tab');
                     } catch (e) {
                         console.error('Profile completion error:', e);
                         showMikiAppDialog({
