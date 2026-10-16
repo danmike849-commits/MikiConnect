@@ -4226,10 +4226,22 @@ img, video, canvas, iframe {
     const messages = document.getElementById("privateChatMessages");
     if (!panel || !messages) return;
 
+    if (message.id) {
+        const existing = messages.querySelector(`[data-message-id="${message.id}"]`);
+        if (existing) {
+            if (existing.dataset.pendingVoice === "true") {
+                existing.remove();
+            } else {
+                return;
+            }
+        }
+    }
+
     const own = me && String(message.senderId) === String(me.id);
 
     const wrap = document.createElement("div");
     wrap.className = "private-message-wrap " + (own ? "own" : "other");
+    if (message.id) wrap.dataset.messageId = String(message.id);
 
     const bubble = document.createElement("div");
     bubble.className = "private-message " + (own ? "own" : "other") +
@@ -5037,6 +5049,8 @@ async function startPrivateVoiceRecording() {
         };
 
         privateVoiceRecorder.onstop = async () => {
+    let pendingVoiceWrap = null;
+    let pendingVoiceObjectUrl = null;
 
             const duration = Math.min(
                 1800,
@@ -5076,6 +5090,34 @@ async function startPrivateVoiceRecording() {
 
                 if (!audioBlob.size) {
                     throw new Error("No audio was recorded.");
+                }
+
+                const messages = document.getElementById("privateChatMessages");
+                document.getElementById("privateVoicePreparingPreview")?.remove();
+                if (messages) {
+                    pendingVoiceWrap = document.createElement("div");
+                    pendingVoiceWrap.className = "private-message-wrap own";
+                    pendingVoiceWrap.dataset.pendingVoice = "true";
+                    pendingVoiceWrap.dataset.messageId = "pending-voice-" + Date.now();
+
+                    const pendingBubble = document.createElement("div");
+                    pendingBubble.className = "private-message own private-voice-message";
+
+                    const pendingAudio = document.createElement("audio");
+                    pendingAudio.controls = true;
+                    pendingAudio.preload = "metadata";
+                    pendingVoiceObjectUrl = URL.createObjectURL(audioBlob);
+                    pendingAudio.src = pendingVoiceObjectUrl;
+                    pendingBubble.appendChild(pendingAudio);
+
+                    const pendingStatus = document.createElement("div");
+                    pendingStatus.textContent = "Sending…";
+                    pendingStatus.className = "private-voice-pending-status";
+                    pendingBubble.appendChild(pendingStatus);
+
+                    pendingVoiceWrap.appendChild(pendingBubble);
+                    messages.appendChild(pendingVoiceWrap);
+                    messages.scrollTop = messages.scrollHeight;
                 }
 
                 const formData = new FormData();
@@ -5141,6 +5183,9 @@ async function startPrivateVoiceRecording() {
                     );
                 }
 
+                if (pendingVoiceWrap && messageData.message.id) {
+                    pendingVoiceWrap.dataset.messageId = String(messageData.message.id);
+                }
                 renderPrivateMessage(messageData.message);
 
                 const replyInput =
@@ -5165,6 +5210,8 @@ async function startPrivateVoiceRecording() {
 
                 await loadChatConversations();
             } catch (error) {
+                if (pendingVoiceWrap) pendingVoiceWrap.remove();
+                document.getElementById("privateVoicePreparingPreview")?.remove();
                 console.error("Voice message error:", error);
                 showMikiAppDialog({
                     title: "Voice Message",
@@ -5174,6 +5221,8 @@ async function startPrivateVoiceRecording() {
                     showCancel: false
                 });
             } finally {
+                document.getElementById("privateVoicePreparingPreview")?.remove();
+                if (pendingVoiceObjectUrl) URL.revokeObjectURL(pendingVoiceObjectUrl);
                 privateVoiceChunks = [];
                 privateVoiceRecorder = null;
 
@@ -5234,6 +5283,26 @@ function stopPrivateVoiceRecording() {
     }
 
     privateVoicePressActive = false;
+
+    const messages = document.getElementById("privateChatMessages");
+    if (messages && !document.getElementById("privateVoicePreparingPreview")) {
+        const wrap = document.createElement("div");
+        wrap.id = "privateVoicePreparingPreview";
+        wrap.className = "private-message-wrap own";
+        wrap.dataset.pendingVoice = "preparing";
+
+        const bubble = document.createElement("div");
+        bubble.className = "private-message own private-voice-message";
+
+        const status = document.createElement("div");
+        status.textContent = "Preparing voice message…";
+        status.className = "private-voice-pending-status";
+
+        bubble.appendChild(status);
+        wrap.appendChild(bubble);
+        messages.appendChild(wrap);
+        messages.scrollTop = messages.scrollHeight;
+    }
 
     const button = document.getElementById("privateChatVoice");
     if (button) {
