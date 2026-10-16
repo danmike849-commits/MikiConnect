@@ -5064,10 +5064,19 @@ async function startPrivateVoiceRecording() {
                 }
 
                 const formData = new FormData();
+                const audioMimeType = blobType.split(";")[0].trim().toLowerCase();
+                const audioExtension = {
+                    "audio/webm": "webm",
+                    "audio/ogg": "ogg",
+                    "audio/mp4": "mp4",
+                    "audio/mpeg": "mp3",
+                    "audio/wav": "wav"
+                }[audioMimeType] || "webm";
+
                 formData.append(
                     "audio",
                     audioBlob,
-                    "voice-message.webm"
+                    `voice-message.${audioExtension}`
                 );
 
                 console.time("VOICE_UPLOAD_REQUEST");

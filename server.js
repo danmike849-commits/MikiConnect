@@ -1,6 +1,5 @@
 const http = require('http');
 const express = require('express');
-const { spawn } = require('child_process');
 const mongoose = require('mongoose');
 const jwt = require('jwt-simple');
 const bcrypt = require('bcryptjs');
@@ -44,7 +43,8 @@ const voiceUpload = multer({
       'audio/wav'
     ];
 
-    if (!file.mimetype || !allowedTypes.includes(file.mimetype)) {
+    const baseMimeType = (file.mimetype || '').split(';')[0].trim().toLowerCase();
+    if (!allowedTypes.includes(baseMimeType)) {
       return cb(new Error('Unsupported audio format.'));
     }
 
@@ -2941,70 +2941,6 @@ app.post('/api/media/avatar', authenticate, avatarUpload.single('avatar'), async
 --------------------------------------------------------- */
 
 
-function convertVoiceToMp3(inputBuffer) {
-  return new Promise((resolve, reject) => {
-    const ffmpeg = spawn('ffmpeg', [
-      '-hide_banner',
-      '-loglevel', 'error',
-      '-i', 'pipe:0',
-      '-vn',
-      '-acodec', 'libmp3lame',
-      '-b:a', '128k',
-      '-compression_level', '2',
-      '-f', 'mp3',
-      'pipe:1'
-    ]);
-
-    const outputChunks = [];
-    const errorChunks = [];
-
-    ffmpeg.stdout.on('data', chunk => {
-      outputChunks.push(chunk);
-    });
-
-    ffmpeg.stderr.on('data', chunk => {
-      errorChunks.push(chunk);
-    });
-
-    ffmpeg.on('error', error => {
-      reject(error);
-    });
-
-    ffmpeg.on('close', code => {
-      if (code !== 0) {
-        const errorMessage = Buffer.concat(errorChunks)
-          .toString()
-          .trim();
-
-        return reject(
-          new Error(
-            errorMessage ||
-            `FFmpeg exited with code ${code}.`
-          )
-        );
-      }
-
-      const outputBuffer = Buffer.concat(outputChunks);
-
-      if (!outputBuffer.length) {
-        return reject(
-          new Error('FFmpeg produced an empty audio file.')
-        );
-      }
-
-      resolve(outputBuffer);
-    });
-
-    ffmpeg.stdin.on('error', error => {
-      if (error.code !== 'EPIPE') {
-        reject(error);
-      }
-    });
-
-    ffmpeg.stdin.end(inputBuffer);
-  });
-}
-
 app.post('/api/media/voice', authenticate, voiceUpload.single('audio'), async (req, res) => {
   try {
     if (!req.file) {
@@ -3013,14 +2949,11 @@ app.post('/api/media/voice', authenticate, voiceUpload.single('audio'), async (r
       });
     }
 
-    const mp3Buffer = await convertVoiceToMp3(req.file.buffer);
-
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: 'mikiconnect/voice-messages',
-          resource_type: 'video',
-          format: 'mp3'
+          resource_type: 'video'
         },
         (error, uploaded) => {
           if (error) return reject(error);
@@ -3028,7 +2961,7 @@ app.post('/api/media/voice', authenticate, voiceUpload.single('audio'), async (r
         }
       );
 
-      stream.end(mp3Buffer);
+      stream.end(req.file.buffer);
     });
 
 
