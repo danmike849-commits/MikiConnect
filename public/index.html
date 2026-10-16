@@ -1030,6 +1030,20 @@
 }
 
 /* Sender label */
+
+/* Voice messages: wider bubble and responsive audio player */
+#privateChatMessages .private-message.private-voice-message {
+    width: min(92%, 420px);
+    max-width: 92% !important;
+}
+#privateChatMessages .private-message.private-voice-message audio {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
 #privateChatMessages .private-message-meta {
     margin-bottom: 4px;
     color: #e1c56c;
@@ -4218,7 +4232,8 @@ img, video, canvas, iframe {
     wrap.className = "private-message-wrap " + (own ? "own" : "other");
 
     const bubble = document.createElement("div");
-    bubble.className = "private-message " + (own ? "own" : "other");
+    bubble.className = "private-message " + (own ? "own" : "other") +
+        (message.type === "voice" ? " private-voice-message" : "");
 
     const meta = document.createElement("div");
     meta.className = "private-message-meta";
