@@ -1090,13 +1090,15 @@
     font-size: 12px;
 }
 
-/* Voice messages */
+/* Voice messages: responsive player that fits the message bubble */
 #privateChatMessages .private-message audio {
     display: block;
-    width: min(270px, 100%);
-    min-width: 190px;
-    max-width: 100%;
-    margin: 3px 0;
+    width: 100%;
+    max-width: 320px;
+    min-width: 0;
+    min-height: 44px;
+    box-sizing: border-box;
+    margin: 5px 0;
 }
 
 /* Message action controls */
@@ -1308,23 +1310,33 @@ body.theme-chat #chat-tab button:not(.secondary) {
 }
 
 
-/* PRIVATE CHAT POLISH: hide three-dot header control */
-#privateChatMore, #privateChatMoreMenu { display: none !important; }
+/* PRIVATE CHAT POLISH: visible header controls */
+#privateChatMoreMenu { display: none; }
 
-/* PRIVATE CHAT POLISH: clean white call controls */
 #privateChatActions > #privateChatVideo,
-#privateChatActions > #privateChatCall {
+#privateChatActions > #privateChatCall,
+#privateChatActions > #privateChatMore {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
     color: #fff !important;
     -webkit-text-fill-color: #fff !important;
-    background: linear-gradient(135deg, #f04476, #fa6b83) !important;
-    border: 1px solid rgba(255,255,255,.2) !important;
-    border-radius: 13px !important;
+    background: transparent !important;
+    border: 1px solid rgba(255,255,255,.28) !important;
     min-width: 42px;
     min-height: 42px;
+}
+
+#privateChatActions > #privateChatVideo,
+#privateChatActions > #privateChatCall {
+    background: linear-gradient(135deg, #f04476, #fa6b83) !important;
+    border-radius: 13px !important;
     box-shadow: 0 4px 12px rgba(240,68,118,.18);
 }
+
 #privateChatActions > #privateChatVideo:active,
-#privateChatActions > #privateChatCall:active {
+#privateChatActions > #privateChatCall:active,
+#privateChatActions > #privateChatMore:active {
     transform: scale(.96);
 }
 
@@ -1403,10 +1415,12 @@ body.theme-chat #chat-tab button:not(.secondary) {
 }
 #privateChatMessages .private-message audio {
     display: block;
-    width: min(260px, 100%);
-    max-width: 100%;
-    min-height: 40px;
-    margin-top: 5px;
+    width: 100%;
+    max-width: 320px;
+    min-width: 0;
+    min-height: 44px;
+    box-sizing: border-box;
+    margin: 5px 0;
     border-radius: 24px;
 }
 #privateChatPanel .private-chat-input-wrap {
@@ -2907,8 +2921,12 @@ img, video, canvas, iframe {
                         </div>
 
                         <div id="privateChatActions" style="display:flex;align-items:center;gap:4px;flex:0 0 auto;">
-                            <button id="privateChatVideo" type="button" class="secondary" aria-label="Video call" title="Video call" style="width:auto;min-width:42px;padding:8px 9px;">📹</button>
-                            <button id="privateChatCall" type="button" class="secondary" aria-label="Voice call" title="Voice call" style="width:auto;min-width:42px;padding:8px 9px;">📞</button>
+                            <button id="privateChatVideo" type="button" class="secondary" aria-label="Video call" title="Video call" style="width:auto;min-width:42px;padding:8px 9px;">
+                                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="12" height="12" rx="2"></rect><path d="m15 10 6-3v10l-6-3z"></path></svg>
+                            </button>
+                            <button id="privateChatCall" type="button" class="secondary" aria-label="Voice call" title="Voice call" style="width:auto;min-width:42px;padding:8px 9px;">
+                                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 3.18 2 2 0 0 1 4.11 1h3a2 2 0 0 1 2 1.72c.12.96.35 1.9.69 2.79a2 2 0 0 1-.45 2.11L8.08 8.9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.89.34 1.83.57 2.79.69A2 2 0 0 1 22 16.92z"></path></svg>
+                            </button>
                             <button id="privateChatMore" type="button" class="secondary" aria-label="More options" title="More options" style="width:auto;min-width:42px;padding:8px 9px;">⋮</button>
                         </div>
                     </div>
