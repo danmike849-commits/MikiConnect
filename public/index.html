@@ -1548,7 +1548,7 @@ body.theme-chat #chat-tab button:not(.secondary) {
     border: 0 !important;
     border-radius: 50% !important;
     box-shadow: 0 4px 12px rgba(237,62,117,.24) !important;
-    touch-action: manipulation;
+    touch-action: none;
 }
 #privateChatPanel #privateChatVoice svg {
     width: 23px !important;
@@ -5211,6 +5211,12 @@ function stopPrivateVoiceRecording() {
 
     privateVoicePressActive = false;
 
+    const button = document.getElementById("privateChatVoice");
+    if (button) {
+        button.classList.add("is-uploading");
+        button.title = "Preparing voice message...";
+    }
+
     if (
         privateVoiceRecorder &&
         privateVoiceRecorder.state === "recording"
@@ -5279,12 +5285,9 @@ privateVoiceButton?.addEventListener(
     "pointercancel",
     event => {
         event.preventDefault();
-
-        if (privateVoiceSlideCancelled) {
-            cancelPrivateVoiceRecording();
-        } else {
-            stopPrivateVoiceRecording();
-        }
+        // The browser interrupted the gesture; never send a possibly
+        // incomplete recording as if the user released normally.
+        cancelPrivateVoiceRecording();
     }
 );
 
