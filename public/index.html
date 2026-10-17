@@ -5049,19 +5049,27 @@ async function startPrivateVoiceRecording() {
         };
 
         privateVoiceRecorder.onstop = async () => {
-    let pendingVoiceWrap = null;
-    let pendingVoiceObjectUrl = null;
+            let pendingVoiceWrap = null;
+            let pendingVoiceObjectUrl = null;
+            const stoppedRecorder = privateVoiceRecorder;
+            const stoppedChunks = privateVoiceChunks;
+            const stoppedStream = privateVoiceStream;
+            const preparingPreview = document.getElementById("privateVoicePreparingPreview");
 
             const duration = Math.min(
                 1800,
                 Math.max(0, (Date.now() - privateVoiceStartedAt) / 1000)
             );
 
-            privateVoiceStream?.getTracks().forEach(track => track.stop());
-            privateVoiceStream = null;
+            stoppedStream?.getTracks().forEach(track => track.stop());
+            if (privateVoiceStream === stoppedStream) privateVoiceStream = null;
             stopPrivateVoiceTimer();
 
             const wasCancelled = privateVoiceSlideCancelled;
+            if (privateVoiceRecorder === stoppedRecorder) privateVoiceRecorder = null;
+            if (privateVoiceChunks === stoppedChunks) privateVoiceChunks = [];
+
+            resetPrivateVoiceUi();
 
             if (wasCancelled) {
                 privateVoiceChunks = [];
@@ -5072,19 +5080,13 @@ async function startPrivateVoiceRecording() {
                 return;
             }
 
-            if (button) {
-                button.disabled = true;
-                button.classList.add("is-uploading");
-                button.title = "Sending voice message...";
-            }
-
             try {
                 const blobType =
-                    privateVoiceRecorder?.mimeType ||
+                    stoppedRecorder?.mimeType ||
                     mimeType ||
                     "audio/webm";
 
-                const audioBlob = new Blob(privateVoiceChunks, {
+                const audioBlob = new Blob(stoppedChunks, {
                     type: blobType
                 });
 
@@ -5093,7 +5095,7 @@ async function startPrivateVoiceRecording() {
                 }
 
                 const messages = document.getElementById("privateChatMessages");
-                document.getElementById("privateVoicePreparingPreview")?.remove();
+                preparingPreview?.remove();
                 if (messages) {
                     pendingVoiceWrap = document.createElement("div");
                     pendingVoiceWrap.className = "private-message-wrap own";
@@ -5211,7 +5213,7 @@ async function startPrivateVoiceRecording() {
                 await loadChatConversations();
             } catch (error) {
                 if (pendingVoiceWrap) pendingVoiceWrap.remove();
-                document.getElementById("privateVoicePreparingPreview")?.remove();
+                preparingPreview?.remove();
                 console.error("Voice message error:", error);
                 showMikiAppDialog({
                     title: "Voice Message",
@@ -5221,12 +5223,8 @@ async function startPrivateVoiceRecording() {
                     showCancel: false
                 });
             } finally {
-                document.getElementById("privateVoicePreparingPreview")?.remove();
+                preparingPreview?.remove();
                 if (pendingVoiceObjectUrl) URL.revokeObjectURL(pendingVoiceObjectUrl);
-                privateVoiceChunks = [];
-                privateVoiceRecorder = null;
-
-                resetPrivateVoiceUi();
             }
         };
 
