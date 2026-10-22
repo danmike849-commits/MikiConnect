@@ -274,6 +274,18 @@
     cursor: pointer;
 }
 
+/* Keep the Reply preview × button white with a dark symbol */
+#privateChatPanel #privateReplyCancel,
+#privateChatPanel #privateReplyCancel:hover,
+#privateChatPanel #privateReplyCancel:focus,
+#privateChatPanel #privateReplyCancel:focus-visible,
+#privateChatPanel #privateReplyCancel:active {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #20243a !important;
+    border: 1px solid #d9dce5 !important;
+}
+
 
 .private-chat-input-wrap {
     flex-direction: column !important;
@@ -1150,6 +1162,64 @@
 }
 
 
+
+/* MIKICONNECT_MOBILE_CHAT_SIZE_V1
+   Improve private-chat readability and use mobile width more effectively.
+   Keep existing colors, alignment, and message behavior.
+*/
+@media (max-width: 600px) {
+    #privateChatPanel #privateChatMessages .private-message {
+        max-width: 90% !important;
+        padding: 11px 13px !important;
+        font-size: 16px !important;
+        line-height: 1.45 !important;
+    }
+
+    #privateChatPanel #privateChatMessages .private-message.private-voice-message {
+        width: 94% !important;
+        max-width: 94% !important;
+    }
+
+    #privateChatPanel #privateChatMessages .private-message audio {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+/* MIKICONNECT_CHAT_HEADER_POLISH_V1 */
+#privateChatPanel #privateChatAvatar {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    flex: 0 0 42px !important;
+    box-sizing: border-box !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+#privateChatPanel #privateChatAvatar img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    flex: 0 0 100% !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    border-radius: 50% !important;
+}
+#privateChatPanel #privateEditCancel {
+    background: #ffffff !important;
+    color: #20243a !important;
+    border: 1px solid #d9dce5 !important;
+}
+#privateChatPanel #privateEditCancel:hover {
+    background: #f1f2f6 !important;
+}
+
 /* MIKICONNECT_LOGIN_PALETTE_V3
    Only the chat list and private conversation are restyled.
    Match the existing MikiConnect login palette.
@@ -1970,6 +2040,842 @@ img, video, canvas, iframe {
     }
 }
 
+
+/* MIKICONNECT_PRIVATE_CHAT_VISUAL_REDESIGN_V2 */
+/* Visual-only overrides: preserve all chat and voice-message behavior. */
+#privateChatPanel:not(.hidden) {
+    background: #090d1b !important;
+    color: #f4f5ff !important;
+    padding: 0 0 max(10px, env(safe-area-inset-bottom)) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    gap: 0 !important;
+}
+#privateChatPanel #privateChatHeader {
+    flex: 0 0 auto !important;
+    min-height: 70px !important;
+    margin: 0 !important;
+    padding: 12px 14px !important;
+    gap: 10px !important;
+    background: #101629 !important;
+    border-bottom: 1px solid #252d46 !important;
+    box-shadow: 0 5px 18px rgba(0,0,0,.14);
+}
+#privateChatPanel #closePrivateChat,
+#privateChatPanel #privateChatActions button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 8px !important;
+    color: #f1f2ff !important;
+    background: #1b233a !important;
+    border: 1px solid #303955 !important;
+    border-radius: 14px !important;
+}
+#privateChatPanel #closePrivateChat {
+    font-size: 22px !important;
+}
+#privateChatPanel #privateChatVideo {
+    color: #ff6b91 !important;
+}
+#privateChatPanel #privateChatCall {
+    color: #ff7896 !important;
+}
+#privateChatPanel #privateChatAvatar {
+    flex-shrink: 0 !important;
+    border: 2px solid #ff5a85 !important;
+    background: #25243c !important;
+    box-shadow: 0 0 0 3px rgba(255,80,127,.10);
+}
+#privateChatPanel #privateChatTitle {
+    color: #fff !important;
+    font-size: 16px !important;
+    font-weight: 750 !important;
+    letter-spacing: -.25px !important;
+}
+#privateChatPanel #privateChatStatus {
+    color: #9ca8c5 !important;
+    font-size: 12px !important;
+}
+#privateChatPanel #privateChatMessages {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 18px 13px 16px !important;
+    margin: 0 !important;
+    gap: 7px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(48,55,94,.16), transparent 60%),
+        #090d1b !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    scrollbar-width: thin;
+    scrollbar-color: #343c59 transparent;
+}
+#privateChatPanel .private-message-wrap {
+    margin-bottom: 5px !important;
+}
+#privateChatPanel .private-message {
+    max-width: min(84%, 440px) !important;
+    min-width: 68px !important;
+    padding: 10px 12px 7px !important;
+    color: #f4f5ff !important;
+    background: #192238 !important;
+    border: 1px solid #29334e !important;
+    border-radius: 17px 17px 17px 6px !important;
+    box-shadow: 0 3px 10px rgba(0,0,0,.12) !important;
+    font-size: 14px !important;
+    line-height: 1.45 !important;
+    overflow-wrap: anywhere;
+}
+#privateChatPanel .private-message.own {
+    color: #fff !important;
+    background: linear-gradient(135deg, #ed3975 0%, #fa5d83 100%) !important;
+    border: 1px solid rgba(255,155,181,.36) !important;
+    border-radius: 17px 17px 6px 17px !important;
+    box-shadow: 0 4px 13px rgba(232,50,111,.14) !important;
+}
+#privateChatPanel .private-message.other {
+    background: #192238 !important;
+    border-color: #29334e !important;
+}
+#privateChatPanel .private-message .muted,
+#privateChatPanel .private-message-meta {
+    color: #aeb9d4 !important;
+    font-size: 10px !important;
+}
+#privateChatPanel .private-message.own .muted,
+#privateChatPanel .private-message.own .private-message-meta {
+    color: rgba(255,255,255,.86) !important;
+}
+#privateChatPanel .private-voice-message {
+    width: min(100%, 330px) !important;
+    max-width: 100% !important;
+    padding: 10px !important;
+    background: rgba(8,13,29,.24) !important;
+    border: 1px solid rgba(255,255,255,.13) !important;
+    border-radius: 14px !important;
+}
+#privateChatPanel audio {
+    max-width: 100% !important;
+}
+#privateChatPanel #privateReplyPreview,
+#privateChatPanel #privateEditPreview {
+    flex: 0 0 auto !important;
+    margin: 8px 10px 0 !important;
+    color: #e8ebff !important;
+    background: #171f33 !important;
+    border: 1px solid #303b57 !important;
+    border-left: 3px solid #ff5683 !important;
+    border-radius: 12px !important;
+}
+#privateChatPanel .private-reply-preview-title,
+#privateChatPanel .private-edit-preview-title {
+    color: #ff83a4 !important;
+}
+#privateChatPanel > .row:last-child {
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 8px 10px 0 !important;
+    padding: 0 !important;
+}
+#privateChatPanel .private-chat-input-wrap {
+    align-items: center !important;
+    min-width: 0 !important;
+    min-height: 54px !important;
+    padding: 5px 6px 5px 14px !important;
+    gap: 6px !important;
+    background: #171f33 !important;
+    border: 1px solid #303b57 !important;
+    border-radius: 28px !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,.16) !important;
+    overflow: visible !important;
+}
+#privateChatPanel .private-chat-input-wrap #privateChatInput {
+    min-width: 0 !important;
+    min-height: 40px !important;
+    padding: 8px 4px !important;
+    color: #f5f6ff !important;
+    background: transparent !important;
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    font-size: 14px !important;
+}
+#privateChatPanel #privateChatInput::placeholder {
+    color: #929fbd !important;
+}
+#privateChatPanel .private-chat-input-wrap #privateChatSend {
+    position: static !important;
+    flex: 0 0 auto !important;
+    min-width: 48px !important;
+    width: auto !important;
+    min-height: 42px !important;
+    padding: 0 15px !important;
+    color: #fff !important;
+    background: linear-gradient(135deg, #f43e79, #ff6b88) !important;
+    border: 0 !important;
+    border-radius: 23px !important;
+    box-shadow: 0 3px 10px rgba(244,62,121,.2) !important;
+    font-weight: 700 !important;
+}
+#privateChatPanel .private-voice-recording {
+    flex: 0 0 auto !important;
+}
+@media (max-width: 480px) {
+    #privateChatPanel #privateChatHeader {
+        padding: 10px 11px !important;
+        gap: 8px !important;
+    }
+    #privateChatPanel #privateChatActions {
+        gap: 4px !important;
+    }
+    #privateChatPanel #closePrivateChat,
+    #privateChatPanel #privateChatActions button {
+        min-width: 36px !important;
+        min-height: 38px !important;
+        border-radius: 12px !important;
+    }
+    #privateChatPanel #privateChatActions svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+    #privateChatPanel #privateChatMessages {
+        padding: 14px 10px !important;
+    }
+    #privateChatPanel .private-message {
+        max-width: 88% !important;
+        padding: 9px 11px 7px !important;
+        font-size: 14px !important;
+    }
+    #privateChatPanel > .row:last-child {
+        margin: 7px 8px 0 !important;
+    }
+}
+
+
+/* MIKICONNECT_MESSAGE_MENU_VISIBILITY_FIX */
+#privateChatPanel #privateChatMessages {
+    gap: 3px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+}
+#privateChatPanel .private-message-wrap {
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
+}
+#privateChatPanel .private-message-menu {
+    position: fixed !important;
+    left: auto !important;
+    bottom: auto !important;
+    z-index: 2000 !important;
+    display: none;
+    max-width: calc(100vw - 20px) !important;
+    padding: 5px !important;
+    gap: 4px !important;
+    background: #171f33 !important;
+    border: 1px solid #46516f !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45) !important;
+    transform: none !important;
+    white-space: nowrap !important;
+}
+#privateChatPanel .private-message-menu.is-visible {
+    display: flex !important;
+    animation: none !important;
+}
+#privateChatPanel .private-message-menu button {
+    min-width: 54px !important;
+    min-height: 34px !important;
+    padding: 0 9px !important;
+    color: #111827 !important;
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+}
+#privateChatPanel .private-message-menu button:hover,
+#privateChatPanel .private-message-menu button:focus-visible {
+    color: #ffffff !important;
+    background: rgba(255,255,255,.10) !important;
+    outline: none !important;
+}
+
+
+/* MIKICONNECT_FINAL_PINK_NAVY_TUNING */
+
+/* Conversation background and comfortable spacing */
+#privateChatPanel {
+    background: #0b1020 !important;
+    color: #f8f9ff !important;
+}
+#privateChatPanel #privateChatMessages {
+    background: radial-gradient(circle at top, #172039 0%, #0b1020 65%) !important;
+    background-image: none !important;
+    gap: 5px !important;
+    padding: 12px 5px !important;
+}
+
+/* Compact, slightly longer text bubbles */
+#privateChatMessages .private-message-wrap {
+    margin: 1px 0 !important;
+}
+#privateChatMessages .private-message {
+    max-width: min(88%, 460px) !important;
+    min-width: 90px !important;
+    padding: 10px 13px 7px !important;
+    line-height: 1.4 !important;
+    box-shadow: 0 2px 7px rgba(0,0,0,.16) !important;
+}
+
+/* Outgoing pink messages */
+#privateChatMessages .private-message.own {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #f04480, #d92f70) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    border-radius: 16px 16px 5px 16px !important;
+}
+#privateChatMessages .private-message.own .private-message-meta,
+#privateChatMessages .private-message.own .private-message-footer,
+#privateChatMessages .private-message.own .private-message-delivery {
+    color: #ffffff !important;
+}
+
+/* Incoming navy messages */
+#privateChatMessages .private-message.other {
+    color: #ffffff !important;
+    background: #202b45 !important;
+    border: 1px solid rgba(174,190,230,.12) !important;
+    border-radius: 16px 16px 16px 5px !important;
+}
+#privateChatMessages .private-message.other .private-message-meta {
+    color: #d4def7 !important;
+}
+#privateChatMessages .private-message.other .private-message-footer {
+    color: #b9c5df !important;
+}
+
+/* Smaller voice bubbles and responsive audio player */
+#privateChatMessages .private-message.private-voice-message {
+    width: min(78%, 340px) !important;
+    max-width: min(78%, 340px) !important;
+    min-width: 0 !important;
+    padding: 7px 10px 6px !important;
+}
+#privateChatMessages .private-message audio {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    margin: 3px 0 !important;
+    color-scheme: dark;
+    accent-color: #ff2a75;
+    border-radius: 18px;
+}
+
+/* White-only floating message actions */
+#privateChatPanel .private-message-menu {
+    background: #171f33 !important;
+    border: 1px solid #46516f !important;
+}
+#privateChatPanel .private-message-menu button,
+#privateChatPanel .private-message-menu button:hover,
+#privateChatPanel .private-message-menu button:focus-visible {
+    color: #111827 !important;
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+}
+#privateChatPanel .private-message-menu button:hover,
+#privateChatPanel .private-message-menu button:focus-visible {
+    text-decoration: underline;
+}
+
+/* Composer colors; retain every existing control */
+#privateChatPanel #privateChatHeader {
+    background: #141d33 !important;
+    border-bottom-color: rgba(235,61,117,.25) !important;
+}
+#privateChatPanel .private-chat-input-wrap {
+    background: #172039 !important;
+    border: 1px solid #35415e !important;
+}
+#privateChatPanel #privateChatInput {
+    color: #ffffff !important;
+}
+#privateChatPanel #privateChatInput::placeholder {
+    color: #aeb9d1 !important;
+}
+#privateChatPanel #privateChatSend {
+    color: #ffffff !important;
+    background: #e93c75 !important;
+}
+#privateChatPanel #privateChatAvatar {
+    border-color: #e93c75 !important;
+    background: #202b45 !important;
+}
+#privateChatPanel #closePrivateChat,
+#privateChatPanel #privateChatActions button {
+    color: #ffffff !important;
+    background: #202b45 !important;
+    border-color: #35415e !important;
+}
+
+@media (max-width: 600px) {
+    #privateChatMessages .private-message {
+        max-width: 90% !important;
+    }
+    #privateChatMessages .private-message.private-voice-message {
+        width: min(82%, 320px) !important;
+        max-width: min(82%, 320px) !important;
+    }
+}
+
+
+/* Final private-chat polish */
+#privateChatPanel .private-chat-input-wrap {
+    overflow: visible !important;
+    background: #123735 !important;
+}
+#privateChatPanel #privateChatInput {
+    padding-right: 16px !important;
+}
+#privateChatPanel #privateChatSend {
+    position: static !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 70px !important;
+    min-height: 38px !important;
+    margin: 4px !important;
+    padding: 0 14px !important;
+    border-radius: 20px !important;
+    white-space: nowrap !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+}
+#privateChatPanel #privateChatAttach {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 50% !important;
+}
+#privateChatMessages .private-message-wrap.own {
+    align-self: flex-end !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+#privateChatMessages .private-message-wrap.other {
+    align-self: flex-start !important;
+    margin-right: auto !important;
+    margin-left: 0 !important;
+}
+
+
+
+/* MIKICONNECT MOBILE BOTTOM NAVIGATION */
+@media (max-width: 700px) {
+  #app-screen:not(.hidden) {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0 !important;
+  }
+
+  #app-screen > header {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: nowrap !important;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px !important;
+  }
+
+  #app-screen > header .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  #app-screen > header .header-actions {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #app-screen > header #userLabel {
+    display: none !important;
+  }
+
+  #app-screen > .container {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0 !important;
+  }
+
+  #app-screen > .container > .nav-tabs {
+    position: fixed !important;
+    z-index: 1000 !important;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 2px !important;
+    padding: 8px 6px max(8px, env(safe-area-inset-bottom)) !important;
+    margin: 0 !important;
+    background: #090b13 !important;
+    border-top: 1px solid rgba(255,255,255,.14);
+    box-sizing: border-box;
+  }
+
+  #app-screen > .container > .nav-tabs .nav-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    width: 100%;
+    padding: 10px 2px !important;
+    font-size: .78rem !important;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  #app-screen > .container > .nav-tabs #admin-tab-btn {
+    display: none !important;
+  }
+
+  #app-screen > .container > .tab-content.active {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-bottom: 82px !important;
+    box-sizing: border-box;
+  }
+
+  #app-screen > .container > #sparks-tab.active {
+    overflow: hidden !important;
+  }
+
+  #app-screen > .container > #sparks-tab.active > .card:first-child {
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  #app-screen > .container > #sparks-tab.active #sparkCard {
+    min-height: 0 !important;
+  }
+}
+
+/* MIKICONNECT SPARK FULL-SCREEN PROFILE */
+        #sparks-tab.active {
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+
+        #sparks-tab.active > .card:first-child {
+            position: relative !important;
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            height: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: #090b13 !important;
+        }
+
+        #sparks-tab.active > .card:first-child > h2,
+        #sparks-tab.active > .card:first-child > p.muted {
+            display: none !important;
+        }
+
+        #sparkCard {
+            position: relative !important;
+            flex: 1 1 auto !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: #101018 !important;
+        }
+
+        #sparkPhoto {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-width: none !important;
+            overflow: hidden !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #101018 !important;
+            font-size: 64px !important;
+        }
+
+        #sparkPhoto img {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: none !important;
+            object-fit: cover !important;
+            object-position: center center !important;
+        }
+
+        #sparkCard > div:not(#sparkPhoto) {
+            position: absolute !important;
+            z-index: 2 !important;
+            inset: auto 0 90px 0 !important;
+            padding: 80px 18px max(22px, env(safe-area-inset-bottom)) !important;
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(0,0,0,.18) 18%,
+                rgba(0,0,0,.78) 55%,
+                rgba(0,0,0,.94) 100%
+            ) !important;
+            color: #fff !important;
+        }
+
+        #sparkName {
+            color: #fff !important;
+            font-size: clamp(1.4rem, 6vw, 2rem) !important;
+            text-shadow: 0 2px 10px rgba(0,0,0,.55) !important;
+        }
+
+        #sparkMeta,
+        #sparkBio,
+        #sparkFeedback {
+            color: #f3f3f7 !important;
+            text-shadow: 0 1px 6px rgba(0,0,0,.6) !important;
+        }
+
+        #sparkCard #sparkPassBtn,
+        #sparkCard #sparkLikeBtn {
+            min-height: 54px !important;
+            border-radius: 999px !important;
+            box-shadow: 0 4px 18px rgba(0,0,0,.28) !important;
+        }
+
+        #sparkCard .row {
+            gap: 14px !important;
+            margin-top: 16px !important;
+        }
+
+        #sparkEmpty {
+            position: absolute !important;
+            z-index: 5 !important;
+            inset: 0 !important;
+            overflow-y: auto !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            background: #151020 !important;
+        }
+
+        @media (max-width: 700px) {
+            #sparks-tab.active > .card:first-child {
+                border-radius: 0 !important;
+            }
+
+            #sparkCard > div:not(#sparkPhoto) {
+                padding-left: 16px !important;
+                padding-right: 16px !important;
+            }
+        }
+
+
+
+/* MIKICONNECT SPARK BUTTON SINGLE COLOR */
+#app-screen .nav-tabs .nav-tab:first-child,
+#app-screen .nav-tabs .nav-tab:first-child.active,
+body.theme-spark #app-screen .nav-tabs .nav-tab:first-child,
+body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
+    background: #a855f7 !important;
+    border-color: #a855f7 !important;
+    color: #ffffff !important;
+}
+
+
+/* MIKICONNECT NOTIFICATIONS SCREEN LAYOUT */
+@media (max-width: 700px) {
+  #app-screen > #notificationsPanel:not(.hidden) {
+    position: fixed !important;
+    z-index: 1000 !important;
+    top: 70px !important;
+    bottom: 76px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    box-sizing: border-box !important;
+    background: #101018 !important;
+  }
+}
+
+/* MIKICONNECT SETTINGS INNER SCROLL */
+@media (max-width: 700px) {
+  #app-screen > #settingsPanel:not(.hidden),
+  #app-screen #settingsPanel:not(.hidden) {
+    position: fixed !important;
+    top: 70px !important;
+    bottom: 76px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* MIKICONNECT SPARK REMOVE RESERVED NAV SPACE */
+@media (max-width: 700px) {
+  #app-screen > .container > #sparks-tab.active {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  #app-screen > .container > #sparks-tab.active > .card:first-child {
+    flex: 1 1 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+  }
+
+  #app-screen > .container > #sparks-tab.active #sparkCard {
+    flex: 1 1 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+  }
+}
+
+/* MIKICONNECT FIXED MOBILE SCREEN */
+@media (max-width: 700px) {
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  #app-screen:not(.hidden) {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  #app-screen > .container {
+    flex: 1 1 auto !important;
+    height: 0;
+    min-height: 0 !important;
+    overflow: hidden;
+  }
+
+  #app-screen > .container:has(> #sparks-tab.active) {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  #app-screen > .container > #sparks-tab.active {
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  #app-screen > .container > .tab-content.active {
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+
+  #app-screen > .container > #sparks-tab.active {
+    overflow: hidden !important;
+  }
+
+  #app-screen > .container > #sparks-tab.active > .card:first-child {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #app-screen > .container > #sparks-tab.active #sparkCard {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
+
+/* MIKICONNECT PULSE PROFILE INNER SCROLL FIX */
+@media (max-width: 700px) {
+  #app-screen > .container > #radar-tab.active,
+  #app-screen > .container > #profile-tab.active {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #app-screen > .container > #radar-tab.active > .card,
+  #app-screen > .container > #profile-tab.active > .card {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+}
+
+
 </style>
 </head>
 <body>
@@ -2168,7 +3074,1057 @@ img, video, canvas, iframe {
             background: #ff2a5f !important;
             color: #ffffff !important;
         }
-    </style>
+
+/* MIKICONNECT_CUSTOM_VOICE_PLAYER_STYLES */
+#privateChatMessages .private-custom-voice-player {
+    display:flex; align-items:center; gap:10px; width:100%;
+    min-width:0; box-sizing:border-box; padding:8px 10px;
+    margin:3px 0; border-radius:14px; background:rgba(7,13,31,.62);
+}
+#privateChatMessages .private-custom-voice-play {
+    flex:0 0 36px; width:36px; height:36px; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    border:0; border-radius:50%; background:#ff2a75; color:#fff;
+    font-size:15px; font-weight:700; cursor:pointer;
+}
+#privateChatMessages .private-custom-voice-track {
+    display:flex; flex:1; flex-direction:column; justify-content:center;
+    gap:5px; min-width:0;
+}
+#privateChatMessages .private-custom-voice-waveform {
+    display:flex; align-items:center; justify-content:space-between;
+    gap:3px; width:100%; height:30px; overflow:hidden; cursor:pointer;
+}
+#privateChatMessages .private-custom-voice-waveform span {
+    flex:1 1 2px; min-width:2px; max-width:5px; border-radius:5px;
+    background:#71809e; transition:background .12s ease;
+}
+#privateChatMessages .private-custom-voice-waveform span.played {
+    background:#ff4b8a;
+}
+#privateChatMessages .private-custom-voice-duration {
+    color:#d5dced; font-size:11px; line-height:1;
+    font-variant-numeric:tabular-nums;
+}
+#privateChatMessages .private-custom-voice-player audio {
+    position:absolute; width:1px; height:1px;
+    opacity:.01; pointer-events:none;
+}
+
+
+/* MIKICONNECT_COMPACT_PRIVATE_MEDIA */
+#privateChatPanel #privateChatMessages {
+    gap: 5px !important;
+    padding: 12px 9px !important;
+}
+
+#privateChatMessages .private-message-wrap {
+    margin: 1px 0 !important;
+}
+
+#privateChatMessages .private-message {
+    max-width: min(70%, 300px) !important;
+    padding: 7px 9px 5px !important;
+    margin-bottom: 3px !important;
+    line-height: 1.35 !important;
+}
+
+#privateChatMessages .private-message img,
+#privateChatMessages .private-message video {
+    display: block;
+    width: auto !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 200px !important;
+    object-fit: contain;
+    border-radius: 10px;
+}
+
+#privateChatMessages .private-message.private-voice-message {
+    width: min(88%, 300px) !important;
+    max-width: 88% !important;
+}
+
+
+/* MIKICONNECT_SOFT_TEXT_BUBBLES */
+#privateChatMessages .private-message.own {
+    background: linear-gradient(145deg, #d82f62, #e74770) !important;
+}
+
+#privateChatMessages .private-message {
+    padding: 5px 7px 4px !important;
+    line-height: 1.28 !important;
+}
+
+#privateChatMessages .private-message:not(:has(img, video, audio)) {
+    width: fit-content !important;
+    max-width: min(65%, 260px) !important;
+}
+
+
+/* MIKICONNECT_COMPACT_VOICE_BUBBLES */
+#privateChatMessages .private-message.private-voice-message {
+    width: min(70%, 280px) !important;
+    max-width: min(70%, 280px) !important;
+    padding: 5px 7px 4px !important;
+    margin-bottom: 3px !important;
+}
+
+#privateChatMessages .private-message.private-voice-message audio {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    margin: 3px 0 !important;
+}
+
+
+/* MIKICONNECT_TIGHTER_CHAT_V3 */
+#privateChatPanel #privateChatMessages {
+    gap: 3px !important;
+    padding: 8px 7px !important;
+}
+
+#privateChatMessages .private-message-wrap {
+    margin: 0 !important;
+}
+
+#privateChatMessages .private-message {
+    max-width: min(62%, 250px) !important;
+    padding: 4px 6px 3px !important;
+    margin-bottom: 2px !important;
+    line-height: 1.25 !important;
+}
+
+#privateChatMessages .private-message:not(:has(img, video, audio)) {
+    max-width: min(60%, 230px) !important;
+}
+
+#privateChatMessages .private-message img,
+#privateChatMessages .private-message video {
+    max-height: 200px !important;
+    max-width: 100% !important;
+    height: auto !important;
+    width: auto !important;
+}
+
+#privateChatMessages .private-message.private-voice-message {
+    width: min(90%, 360px) !important;
+    max-width: min(90%, 360px) !important;
+    padding: 4px 6px 3px !important;
+}
+
+#privateChatMessages .private-message.private-voice-message audio {
+    min-height: 32px !important;
+    max-height: 40px !important;
+    margin: 2px 0 !important;
+}
+
+
+/* MIKICONNECT_SMALLER_VOICE_CONTROLS */
+#privateChatMessages .private-custom-voice-player {
+    gap: 7px !important;
+    padding: 5px 7px !important;
+    margin: 2px 0 !important;
+    border-radius: 11px !important;
+}
+#privateChatMessages .private-custom-voice-play {
+    flex: 0 0 26px !important;
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 11px !important;
+}
+#privateChatMessages .private-custom-voice-track {
+    gap: 3px !important;
+}
+#privateChatMessages .private-custom-voice-waveform {
+    gap: 2px !important;
+    height: 20px !important;
+}
+#privateChatMessages .private-custom-voice-waveform span {
+    max-width: 4px !important;
+    border-radius: 3px !important;
+}
+#privateChatMessages .private-custom-voice-duration {
+    font-size: 10px !important;
+}
+
+
+/* MIKICONNECT_CUSTOM_VIDEO_BUTTON */
+#privateChatMessages .private-custom-video-play {
+    box-sizing: border-box !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+}
+
+
+/* MIKICONNECT_WHITE_MESSAGE_MENU */
+#privateChatPanel .private-message-menu button {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+}
+#privateChatPanel .private-message-menu button:hover,
+#privateChatPanel .private-message-menu button:focus-visible,
+#privateChatPanel .private-message-menu button:active {
+    background: #f3f4f6 !important;
+    color: #111827 !important;
+}
+
+/* MIKICONNECT_WHITE_PRIVATE_MEDIA_PLAY_BUTTONS */
+#privateChatMessages .private-custom-voice-play {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+}
+#privateChatMessages .private-custom-video-play {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+
+/* MIKICONNECT CLEAN MOBILE CONTAINER EDGES */
+@media (max-width: 700px) {
+  #app-screen > .container > #radar-tab.active,
+  #app-screen > .container > #sparks-tab.active,
+  #app-screen > .container > #chat-tab.active,
+  #app-screen > .container > #profile-tab.active,
+  #app-screen > .container > #admin-tab.active {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  #app-screen > .container > #radar-tab.active > .card,
+  #app-screen > .container > #sparks-tab.active > .card,
+  #app-screen > .container > #chat-tab.active > .card,
+  #app-screen > .container > #profile-tab.active > .card,
+  #app-screen > .container > #admin-tab.active > .card {
+    box-sizing: border-box !important;
+  }
+
+  #app-screen > #notificationsPanel:not(.hidden),
+  #app-screen > #settingsPanel:not(.hidden) {
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+
+/* MIKICONNECT SETTINGS INNER LAYOUT FIX */
+@media (max-width: 700px) {
+  #app-screen > #settingsPanel:not(.hidden) {
+    display: block !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    background: #101018 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #settingsPanel > div:first-child {
+    margin-bottom: 20px !important;
+  }
+
+  #settingsPanel > div:nth-child(2) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 20px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #settingsPanel > div:nth-child(2) > div,
+  #settingsPanel .card {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #settingsPanel .settings-row {
+    min-height: 64px !important;
+    padding: 14px 12px !important;
+    gap: 12px !important;
+    border-bottom: 1px solid rgba(255,255,255,.12) !important;
+    color: #f3f4f6 !important;
+    text-align: left !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  #settingsPanel .settings-row > span:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  #settingsPanel .settings-row strong {
+    line-height: 1.35 !important;
+  }
+
+  #settingsPanel .settings-row small {
+    line-height: 1.4 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  #settingsPanel .settings-row > span:last-child {
+    flex: 0 0 auto !important;
+  }
+}
+
+
+/* MIKICONNECT FULL-SCREEN SETTINGS SUBSCREENS */
+@media (max-width: 700px) {
+  #app-screen > .settings-subscreen:not(.hidden) {
+    position: fixed !important;
+    z-index: 1001 !important;
+    top: 70px !important;
+    bottom: 76px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 20px 16px 28px !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: #101018 !important;
+  }
+
+  #app-screen > .settings-subscreen:not(.hidden) > * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #app-screen > .settings-subscreen:not(.hidden) input,
+  #app-screen > .settings-subscreen:not(.hidden) select,
+  #app-screen > .settings-subscreen:not(.hidden) textarea {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* MIKICONNECT COMPACT HEADER ACTIONS */
+@media (max-width: 700px) {
+  #app-screen > header {
+    position: relative !important;
+    z-index: 1002 !important;
+    background: #0d1020 !important;
+  }
+
+  #app-screen > header .header-actions {
+    flex: 0 0 auto !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  #app-screen > header #notificationsBtn,
+  #app-screen > header #settingsBtn {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    box-shadow: none !important;
+  }
+
+  #app-screen > header #notificationsBtn svg {
+    width: 23px !important;
+    height: 23px !important;
+  }
+
+  #app-screen > header #settingsBtn {
+    font-size: 20px !important;
+  }
+
+  #app-screen > header #settingsBtn .settings-label {
+    display: none !important;
+  }
+}
+
+
+/* MIKICONNECT PRIVATE CHAT POSITION FIX */
+@media (max-width: 700px) {
+  #privateChatPanel:not(.hidden) {
+    top: 60px !important;
+    bottom: 76px !important;
+    left: 0 !important;
+    right: 0 !important;
+    inset: 0 0 76px 0 !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+  }
+}
+
+/* MIKICONNECT HIDE BRAND DURING PRIVATE CHAT */
+@media (max-width: 700px) {
+  #app-screen.private-chat-open > header {
+    display: none !important;
+  }
+}
+
+/* MIKICONNECT MULTILINE COMPOSER FIX */
+@media (max-width: 700px) {
+  #privateChatPanel .private-chat-input-wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-end !important;
+    min-height: 54px !important;
+    height: auto !important;
+    max-height: 132px !important;
+    overflow: visible !important;
+    padding: 5px 7px !important;
+    box-sizing: border-box !important;
+  }
+
+  #privateChatPanel #privateChatInput {
+    display: block !important;
+    flex: 1 1 auto !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    max-height: 120px !important;
+    height: 42px;
+    margin: 0 !important;
+    padding: 10px 8px !important;
+    resize: none !important;
+    overflow-y: auto !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    line-height: 1.4 !important;
+    box-sizing: border-box !important;
+  }
+
+  #privateChatPanel #privateChatSend {
+    position: static !important;
+    flex: 0 0 auto !important;
+    align-self: flex-end !important;
+    min-height: 42px !important;
+    height: 42px !important;
+    margin: 0 0 0 6px !important;
+  }
+}
+
+/* MIKICONNECT PRIVATE CHAT FULLSCREEN FIX */
+@media (max-width: 700px) {
+  #app-screen.private-chat-open > .container > .nav-tabs {
+    display: none !important;
+  }
+
+  #app-screen.private-chat-open > .container > #chat-tab.active {
+    padding-bottom: 0 !important;
+    overflow: hidden !important;
+    min-height: 0 !important;
+  }
+
+  #app-screen.private-chat-open #privateChatPanel:not(.hidden) {
+    top: 0 !important;
+    bottom: 0 !important;
+    inset: 0 0 0 0 !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  #app-screen.private-chat-open #privateChatMessages {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* MIKICONNECT FULLSCREEN MAIN TAB NAV FIX */
+@media (max-width: 700px) {
+  #app-screen > .container > .nav-tabs.hidden {
+    display: none !important;
+  }
+}
+\n
+/* MIKICONNECT FULLSCREEN NON-SPARK TABS */
+@media (max-width: 700px) {
+  #app-screen > .container > .tab-content.active:not(#sparks-tab) {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+    min-height: 0 !important;
+  }
+}
+
+
+/* MIKICONNECT FOUR NAV BUTTON COLORS */
+@media (max-width: 700px) {
+  #app-screen .nav-tabs .nav-tab:nth-child(1) {
+    --nav-color: #a855f7;
+  }
+  #app-screen .nav-tabs .nav-tab:nth-child(2) {
+    --nav-color: #06b6d4;
+  }
+  #app-screen .nav-tabs .nav-tab:nth-child(3) {
+    --nav-color: #22c55e;
+  }
+  #app-screen .nav-tabs .nav-tab:nth-child(4) {
+    --nav-color: #f97316;
+  }
+
+  #app-screen .nav-tabs .nav-tab {
+    color: var(--nav-color) !important;
+    border-color: var(--nav-color) !important;
+    background: color-mix(in srgb, var(--nav-color) 10%, #090b13) !important;
+  }
+
+  #app-screen .nav-tabs .nav-tab.active {
+    color: #ffffff !important;
+    border-color: var(--nav-color) !important;
+    background: var(--nav-color) !important;
+  }
+}
+
+
+/* MIKICONNECT SPARK CIRCULAR ACTION BUTTONS */
+@media (max-width: 700px) {
+  #sparkCard .row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 28px !important;
+    margin-top: 24px !important;
+  }
+
+  #sparkCard #sparkPassBtn,
+  #sparkCard #sparkLikeBtn {
+    flex: 0 0 66px !important;
+    width: 66px !important;
+    min-width: 66px !important;
+    max-width: 66px !important;
+    height: 66px !important;
+    min-height: 66px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 27px !important;
+    line-height: 1 !important;
+    box-shadow: 0 5px 18px rgba(0,0,0,.35) !important;
+  }
+
+  #sparkCard #sparkPassBtn {
+    background: #182641 !important;
+    color: #ff496c !important;
+    border: 2px solid #ff496c !important;
+  }
+
+  #sparkCard #sparkLikeBtn {
+    background: #063d2b !important;
+    color: #22e58f !important;
+    border: 2px solid #22e58f !important;
+  }
+}
+
+
+/* Spark bottom navigation visibility handled by app navigation. */
+
+
+/* MIKICONNECT SPARK UNDO BUTTON STYLE */
+@media (max-width: 700px) {
+  #sparkCard #sparkUndoBtn {
+    flex: 0 0 54px !important;
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+    height: 54px !important;
+    min-height: 54px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 27px !important;
+    color: #ffd166 !important;
+    background: #302711 !important;
+    border: 2px solid #ffd166 !important;
+  }
+}
+
+
+/* MIKICONNECT SUPER SPARK BLUE BUTTON */
+@media (max-width: 700px) {
+  #sparkCard #sparkSuperBtn {
+    flex: 0 0 66px !important;
+    width: 66px !important;
+    min-width: 66px !important;
+    max-width: 66px !important;
+    height: 66px !important;
+    min-height: 66px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 27px !important;
+    line-height: 1 !important;
+    color: #38bdf8 !important;
+    background: #082f49 !important;
+    border: 2px solid #38bdf8 !important;
+    box-shadow: 0 5px 18px rgba(0,0,0,.35) !important;
+  }
+}
+
+
+/* MIKICONNECT SPARK TARGET FINAL CONTROLS */
+#sparkInfoBtn { display: none !important; }
+
+@media (max-width: 700px) {
+  #sparkInfoBtn { display: none !important; }
+
+  #sparkName {
+    font-size: clamp(1.1rem, 4.5vw, 1.35rem) !important;
+    margin-bottom: 4px !important;
+    white-space: nowrap !important;
+  }
+
+  #sparkMeta {
+    font-size: 0.95rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  #sparkCard .row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    margin-top: 14px !important;
+  }
+
+  #sparkCard #sparkUndoBtn,
+  #sparkCard #sparkPassBtn,
+  #sparkCard #sparkSuperBtn,
+  #sparkCard #sparkLikeBtn {
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 19px !important;
+    line-height: 1 !important;
+  }
+
+  #sparkCard #sparkUndoBtn {
+    color: #ffd166 !important;
+    background: #302711 !important;
+    border: 2px solid #ffd166 !important;
+  }
+
+  #sparkCard #sparkPassBtn {
+    color: #ff496c !important;
+    background: #182641 !important;
+    border: 2px solid #ff496c !important;
+  }
+
+  #sparkCard #sparkSuperBtn {
+    color: #38bdf8 !important;
+    background: #082f49 !important;
+    border: 2px solid #38bdf8 !important;
+    font-size: 0 !important;
+  }
+
+  #sparkCard #sparkSuperBtn::before {
+    content: "★";
+    font-size: 22px !important;
+    color: #38bdf8 !important;
+  }
+
+  #sparkCard #sparkLikeBtn {
+    color: #22e58f !important;
+    background: #063d2b !important;
+    border: 2px solid #22e58f !important;
+  }
+}
+
+
+/* MIKICONNECT SPARK RIGHT-SIDE VERTICAL CONTROLS */
+@media (max-width: 700px) {
+  #sparkCard > div:not(#sparkPhoto) {
+    padding-right: 76px !important;
+  }
+
+  #sparkInfoBtn {
+    display: inline-flex !important;
+    position: absolute !important;
+    z-index: 6 !important;
+    top: auto !important;
+    right: 12px !important;
+    bottom: 292px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0,0,0,.72) !important;
+    color: #fff !important;
+    border: 2px solid #fff !important;
+    font-size: 21px !important;
+  }
+
+  #sparkCard .row {
+    position: absolute !important;
+    z-index: 5 !important;
+    top: 50% !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: translateY(-20%) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #sparkCard #sparkUndoBtn,
+  #sparkCard #sparkPassBtn,
+  #sparkCard #sparkSuperBtn,
+  #sparkCard #sparkLikeBtn {
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  #sparkName,
+  #sparkMeta {
+    position: relative !important;
+    z-index: 4 !important;
+  }
+}
+
+
+/* FINAL SPARK RIGHT BUTTON STACK */
+@media (max-width: 700px) {
+  #sparkCard #sparkInfoBtn {
+    top: 50% !important;
+    bottom: auto !important;
+    right: 12px !important;
+    transform: translateY(-185px) !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+  }
+
+  #sparkCard .row {
+    position: absolute !important;
+    top: 50% !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: translateY(-137px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 3px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #sparkCard #sparkUndoBtn,
+  #sparkCard #sparkPassBtn,
+  #sparkCard #sparkSuperBtn,
+  #sparkCard #sparkLikeBtn {
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+  }
+}
+
+
+/* FINAL COMPACT SPARK BUTTON COLUMN */
+@media (max-width: 700px) {
+  #sparkCard #sparkInfoBtn {
+    position: absolute !important;
+    z-index: 8 !important;
+    top: 50% !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: translateY(-126px) !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  #sparkCard .row {
+    position: absolute !important;
+    z-index: 7 !important;
+    top: 50% !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: translateY(-78px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #sparkCard #sparkUndoBtn,
+  #sparkCard #sparkPassBtn,
+  #sparkCard #sparkSuperBtn,
+  #sparkCard #sparkLikeBtn {
+    box-sizing: border-box !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+  }
+}
+
+
+/* SPARK CONTROLS - SINGLE ALIGNED RIGHT COLUMN */
+@media (max-width: 700px) {
+  #sparkCard #sparkInfoBtn {
+    top: 50% !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: translateY(-105px) !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 8 !important;
+  }
+
+  #sparkCard .row {
+    position: absolute !important;
+    top: 50% !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: translateY(-63px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 7 !important;
+  }
+
+  #sparkCard #sparkUndoBtn,
+  #sparkCard #sparkPassBtn,
+  #sparkCard #sparkSuperBtn,
+  #sparkCard #sparkLikeBtn {
+    box-sizing: border-box !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+
+/* DEFINITIVE SPARK BUTTON ALIGNMENT */
+@media (max-width: 700px) {
+  #sparkCard {
+    position: relative !important;
+  }
+
+  #sparkCard #sparkInfoBtn {
+    position: absolute !important;
+    top: 50% !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: translateY(-105px) !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 10 !important;
+  }
+
+  #sparkCard > div:not(#sparkPhoto) {
+    padding-right: 64px !important;
+  }
+
+  #sparkCard .row {
+    position: absolute !important;
+    top: 50% !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: translateY(-63px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 9 !important;
+  }
+
+  #sparkCard #sparkUndoBtn,
+  #sparkCard #sparkPassBtn,
+  #sparkCard #sparkSuperBtn,
+  #sparkCard #sparkLikeBtn {
+    box-sizing: border-box !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+
+/* SPARK SHARED CONTROL COLUMN */
+@media (max-width: 700px) {
+  #sparkCard {
+    position: relative !important;
+  }
+
+  #sparkCard #sparkControlColumn {
+    position: absolute !important;
+    z-index: 20 !important;
+    top: 50% !important;
+    right: 12px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: translateY(calc(-50% - 50px)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #sparkCard #sparkControlColumn #sparkInfoBtn,
+  #sparkCard #sparkControlColumn #sparkUndoBtn,
+  #sparkCard #sparkControlColumn #sparkPassBtn,
+  #sparkCard #sparkControlColumn #sparkSuperBtn,
+  #sparkCard #sparkControlColumn #sparkLikeBtn {
+    position: static !important;
+    transform: none !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+  }
+
+  #sparkCard #sparkControlColumn .row {
+    position: static !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+  }
+}
+
+</style>
 
     <div id="mikiAppDialog" class="miki-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="mikiAppDialogTitle">
         <div class="miki-modal">
@@ -2262,12 +4218,23 @@ img, video, canvas, iframe {
             <div class="header-actions">
                 <span id="userLabel" class="muted small"></span>
 
-                <button id="notificationsBtn" class="secondary" style="width:auto; padding:8px 12px; position:relative;">
-                    🔔
+                <button id="notificationsBtn" class="secondary" style="width:auto; padding:8px 12px; position:relative; display:inline-flex; align-items:center; justify-content:center;">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+                        <path d="M10 21h4"/>
+                        <path d="M12 2v1"/>
+                    </svg>
                     <span id="notificationBadge" class="hidden" style="position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:2px 5px; border-radius:999px; background:#ff2a5f; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center;">0</span>
                 </button>
 
-                <button id="settingsBtn" class="secondary" style="width:auto; padding:8px 12px;">⚙️ <span class="settings-label">Settings</span></button>
+                <button id="settingsBtn" class="secondary" aria-label="Settings" title="Settings" style="width:auto; padding:8px 12px;">
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" style="display:block;">
+        <path d="M4 6h16"/>
+        <path d="M4 12h16"/>
+        <path d="M4 18h16"/>
+    </svg>
+    <span class="settings-label">Settings</span>
+</button>
 
             </div>
         </header>
@@ -2275,14 +4242,12 @@ img, video, canvas, iframe {
         <div id="notificationsPanel" class="card hidden" style="max-width:1050px; margin:16px auto 0; position:relative;">
             <div class="row between">
                 <div>
-                    <h3 style="margin:0;">🔔 Notifications</h3>
-                    <p class="muted small" style="margin:5px 0 0;">Your latest MikiConnect activity.</p>
+                    <h3 style="margin:0;">Notifications</h3>
+
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <button id="backFromNotificationsBtn" type="button" class="secondary" style="width:auto;padding:8px 12px;">← Back</button>
-                    <button id="markAllNotificationsBtn" class="secondary hidden" style="width:auto; padding:8px 12px;">
-                    Mark all read
-                    </button>
+
+
                 </div>
             </div>
             <div id="notificationsList" style="margin-top:14px;">
@@ -2873,7 +4838,8 @@ img, video, canvas, iframe {
                     <p class="muted">Meet someone whose vibe catches your attention.</p>
 
                     <div id="sparkCard" class="card" style="margin-top:15px; padding:0; overflow:hidden;">
-                        <div id="sparkPhoto"
+
+                    <div id="sparkPhoto"
                              style="width:100%; min-height:280px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.04); font-size:64px;">
                             👤
                         </div>
@@ -2883,14 +4849,23 @@ img, video, canvas, iframe {
                             <p id="sparkMeta" class="muted" style="margin:0 0 10px;"></p>
                             <p id="sparkBio" style="margin:0;"></p>
 
-                            <div class="row" style="margin-top:18px;">
-                                <button id="sparkPassBtn" class="secondary" style="flex:1;">
-                                    ✕ Pass
+                            <div id="sparkControlColumn" style="display:flex; flex-direction:column; align-items:center; gap:0;">
+<button id="sparkInfoBtn" type="button" aria-label="Profile information" title="Profile information" style="position:absolute; z-index:4; top:16px; right:16px; width:44px; height:44px; min-height:44px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.55); color:#fff; border:2px solid rgba(255,255,255,.85); font-size:22px;">ⓘ</button>
+<div class="row" style="margin-top:0; display:flex; flex-direction:column; align-items:center; gap:0;">
+                                <button id="sparkUndoBtn" class="secondary" style="flex:1;" aria-label="Undo" title="Undo previous profile">
+                                    ↶
                                 </button>
-                                <button id="sparkLikeBtn" style="flex:1;">
-                                    ✨ Spark
+                                <button id="sparkPassBtn" class="secondary" style="flex:1;" aria-label="Pass">
+                                    ❌
+                                </button>
+                                <button id="sparkSuperBtn" style="flex:1;" aria-label="Super Spark" title="Send a Super Spark">
+                                    💙
+                                </button>
+                                <button id="sparkLikeBtn" style="flex:1;" aria-label="Spark">
+                                    💚
                                 </button>
                             </div>
+</div>
 
                             <p id="sparkFeedback" class="muted" style="text-align:center; min-height:24px; margin:14px 0 0;"></p>
 
@@ -2922,10 +4897,11 @@ img, video, canvas, iframe {
 
                 <div id="privateChatPanel" class="card hidden" style="margin-top:15px;">
                     <div id="privateChatHeader" class="row" style="align-items:center;justify-content:space-between;gap:10px;padding:8px 0;">
-                        <button id="closePrivateChat" type="button" class="secondary" aria-label="Back to chats" style="width:auto;min-width:44px;padding:8px 10px;font-size:20px;">←</button>
+
+
 
                         <div id="privateChatPerson" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-                            <div id="privateChatAvatar" style="width:42px;height:42px;min-width:42px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#eee;font-size:20px;">
+                            <div id="privateChatAvatar" style="width:42px;height:42px;min-width:42px;flex:0 0 42px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#eee;font-size:20px;">
                                 👤
                             </div>
                             <div style="min-width:0;">
@@ -2951,11 +4927,13 @@ img, video, canvas, iframe {
                         <div class="private-reply-preview-content">
                             <div id="privateReplyPreviewTitle" class="private-reply-preview-title">Replying to</div>
                             <div id="privateReplyPreviewText" class="private-reply-preview-text"></div>
+                            <div id="privateReplyPreviewMedia" class="private-reply-preview-media"></div>
                         </div>
                         <button id="privateReplyCancel" type="button" class="private-reply-preview-cancel" aria-label="Cancel reply">×</button>
                     </div>
 
-                    <div class="row" style="margin-top:10px;align-items:stretch;gap:8px;">
+                            <div class="row" style="margin-top:10px;align-items:stretch;gap:8px;">
+        <button id="privateChatAttach" type="button" aria-label="Attach photo" title="Attach photo">＋</button>
     <div class="private-chat-input-wrap" style="display:flex;flex:1;min-width:0;gap:0;position:relative;">
         <div id="privateEditPreview" class="private-edit-preview hidden" aria-hidden="true">
             <div class="private-edit-preview-content">
@@ -2965,8 +4943,11 @@ img, video, canvas, iframe {
             <button id="privateEditCancel" type="button" class="private-edit-preview-cancel" aria-label="Cancel edit">×</button>
         </div>
 
-        <input id="privateChatInput" placeholder="Write a private message..." autocomplete="off"
-               style="margin:0;flex:1;min-width:0;padding-right:82px;">
+        <input id="privateChatImagePicker" type="file" accept="image/*,video/*" hidden style="display:none;">
+
+        <textarea id="privateChatInput" placeholder="Write a message" autocomplete="off"
+               rows="1"
+               style="margin:0;flex:1;min-width:0;padding-right:82px;resize:none;overflow-y:auto;min-height:42px;max-height:180px;line-height:1.4;"></textarea>
 
         <button id="privateChatSend" type="button"
                 style="position:absolute;right:5px;top:5px;bottom:5px;width:auto;padding:0 16px;z-index:2;">
@@ -3135,30 +5116,100 @@ img, video, canvas, iframe {
     <!-- Socket.io & App Logic -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        let profileImageViewerHistoryActive = false;
+
         function openProfileImageViewer(imageUrl, imageAlt) {
             const viewer = document.getElementById("profileImageViewer");
             const viewerImage = document.getElementById("profileImageViewerImage");
             if (!viewer || !viewerImage || !imageUrl) return;
+
+            if (viewer.style.display === "flex" &&
+                viewerImage.src === new URL(imageUrl, location.href).href) {
+                closeProfileImageViewer(true);
+                return;
+            }
+
             viewerImage.src = imageUrl;
             viewerImage.alt = imageAlt || "Enlarged profile picture";
             viewer.classList.remove("hidden");
             viewer.style.display = "flex";
             document.addEventListener("keydown", handleProfileImageViewerKey);
+
+            if (!profileImageViewerHistoryActive) {
+                history.pushState({ mcProfileImageViewer: true }, "", location.href);
+                profileImageViewerHistoryActive = true;
+            }
         }
 
-        function closeProfileImageViewer() {
+        function closeProfileImageViewer(fromBack = false) {
             const viewer = document.getElementById("profileImageViewer");
             const viewerImage = document.getElementById("profileImageViewerImage");
-            if (viewer) {
-                viewer.classList.add("hidden");
-                viewer.style.display = "none";
-            }
+            if (!viewer || viewer.style.display === "none") return false;
+
+            viewer.classList.add("hidden");
+            viewer.style.display = "none";
             if (viewerImage) viewerImage.removeAttribute("src");
             document.removeEventListener("keydown", handleProfileImageViewerKey);
+
+            if (profileImageViewerHistoryActive) {
+                profileImageViewerHistoryActive = false;
+                if (!fromBack) history.back();
+            }
+            return true;
         }
 
         function handleProfileImageViewerKey(event) {
             if (event.key === "Escape") closeProfileImageViewer();
+        }
+
+
+        let activePrivateVideoViewer = null;
+
+        function stopOtherPrivateMedia(currentMedia) {
+            document.querySelectorAll("audio, video").forEach(media => {
+                if (media !== currentMedia && !media.paused) media.pause();
+            });
+        }
+
+        function openPrivateVideoViewer(videoUrl) {
+            if (!videoUrl) return;
+            if (activePrivateVideoViewer) closePrivateVideoViewer();
+
+            const viewer = document.createElement("div");
+            viewer.setAttribute("role", "dialog");
+            viewer.setAttribute("aria-modal", "true");
+            viewer.setAttribute("aria-label", "Video viewer");
+            viewer.style.cssText = "position:fixed;inset:0;z-index:10010;display:flex;align-items:center;justify-content:center;background:#000;padding:12px;box-sizing:border-box;";
+
+            const video = document.createElement("video");
+            video.src = videoUrl;
+            video.controls = true;
+            video.playsInline = true;
+            video.preload = "metadata";
+            video.style.cssText = "display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;background:#000;";
+            video.addEventListener("play", () => stopOtherPrivateMedia(video));
+
+            viewer.appendChild(video);
+            viewer.video = video;
+            document.body.appendChild(viewer);
+            activePrivateVideoViewer = viewer;
+            history.pushState({ mcPrivateVideoViewer: true }, "", location.href);
+            stopOtherPrivateMedia(video);
+            video.play().catch(() => {});
+        }
+
+        function closePrivateVideoViewer() {
+            if (!activePrivateVideoViewer) return false;
+            const viewer = activePrivateVideoViewer;
+            activePrivateVideoViewer = null;
+            const video = viewer.video;
+            if (video) {
+                video.pause();
+                video.removeAttribute("src");
+                video.load();
+            }
+            viewer.remove();
+            return true;
         }
 
         let me = null;
@@ -3168,6 +5219,7 @@ img, video, canvas, iframe {
         // =========================
         let sparkProfiles = [];
         let sparkIndex = 0;
+        let sparkBrowseHistory = [];
 
         async function loadSparkProfiles() {
             const card = document.getElementById("sparkCard");
@@ -3181,8 +5233,21 @@ img, video, canvas, iframe {
             try {
                 const data = await api("/api/spark/discover");
 
+                const sparkDebug = document.getElementById("sparkFeedback");
+                if (sparkDebug) {
+                    sparkDebug.textContent = "Spark API: success=" + Boolean(data.success) +
+                        ", profiles=" + (Array.isArray(data.profiles) ? data.profiles.length : "missing");
+                }
+                console.log("SPARK DIAGNOSTIC:", {
+                    success: data.success,
+                    profilesIsArray: Array.isArray(data.profiles),
+                    profileCount: Array.isArray(data.profiles) ? data.profiles.length : "missing"
+                });
+
                 sparkProfiles = Array.isArray(data.profiles) ? data.profiles : [];
                 sparkIndex = 0;
+                sparkBrowseHistory = [];
+                sparkProfilesLoaded = true;
 
                 if (!sparkProfiles.length) {
                     card.classList.add("hidden");
@@ -3245,16 +5310,28 @@ img, video, canvas, iframe {
                 photo.textContent = "👤";
             }
 
-            name.textContent =
-                profile.username || "MikiConnect member";
+            name.replaceChildren();
 
-            const details = [];
+            const displayName = document.createElement("span");
+            displayName.textContent = profile.username || "MikiConnect member";
+            name.appendChild(displayName);
 
-            if (profile.age) details.push(profile.age);
-            if (profile.location) details.push("📍 " + profile.location);
+            if (profile.age !== undefined && profile.age !== null && profile.age !== "") {
+                const age = document.createElement("span");
+                age.textContent = " " + profile.age;
+                name.appendChild(age);
+            }
 
-            meta.textContent = details.join(" • ");
-            bio.textContent = profile.bio || "No bio yet.";
+            if (profile.isOnline) {
+                const onlineDot = document.createElement("span");
+                onlineDot.setAttribute("aria-label", "Online");
+                onlineDot.title = "Online";
+                onlineDot.style.cssText = "display:inline-block;width:9px;height:9px;margin-left:8px;border-radius:50%;background:#22e58f;vertical-align:middle;box-shadow:0 0 8px rgba(34,229,143,.65);";
+                name.appendChild(onlineDot);
+            }
+
+            meta.textContent = profile.location ? "📍 " + profile.location : "";
+            bio.textContent = "";
             feedback.textContent = "";
         }
 
@@ -3279,6 +5356,7 @@ img, video, canvas, iframe {
                     feedback.textContent = data.message || "Passed.";
                 }
 
+                sparkBrowseHistory.push(sparkIndex);
                 sparkIndex += 1;
 
                 if (sparkIndex >= sparkProfiles.length) {
@@ -3300,6 +5378,55 @@ img, video, canvas, iframe {
             }
         }
 
+        async function handleSuperSpark() {
+            const profile = sparkProfiles[sparkIndex];
+            if (!profile?.id) return;
+
+            const button = document.getElementById("sparkSuperBtn");
+            const passButton = document.getElementById("sparkPassBtn");
+            const likeButton = document.getElementById("sparkLikeBtn");
+
+            if (button) button.disabled = true;
+            if (passButton) passButton.disabled = true;
+            if (likeButton) likeButton.disabled = true;
+
+            try {
+                const data = await api(`/api/super-spark/${encodeURIComponent(profile.id)}`, {
+                    method: "POST"
+                });
+
+                const feedback = document.getElementById("sparkFeedback");
+                if (feedback) feedback.textContent = data.message || "💙 Super Spark sent!";
+
+                sparkBrowseHistory.push(sparkIndex);
+                sparkIndex += 1;
+
+                if (data.mutual) {
+                    await loadMutualSparks();
+                }
+
+                if (sparkIndex >= sparkProfiles.length) {
+                    await loadSparkProfiles();
+                } else {
+                    showSparkProfile();
+                }
+            } catch (error) {
+                showMikiAppDialog({
+                    title: "Super Spark",
+                    message: error.message || "Unable to send Super Spark.",
+                    icon: "💙",
+                    confirmText: "OK",
+                    showCancel: false
+                });
+            } finally {
+                if (button) button.disabled = false;
+                if (passButton) passButton.disabled = false;
+                if (likeButton) likeButton.disabled = false;
+            }
+        }
+
+        document.getElementById("sparkSuperBtn")?.addEventListener("click", handleSuperSpark);
+
         async function handleSparkLike() {
             const profile = sparkProfiles[sparkIndex];
             if (!profile?.id) return;
@@ -3320,6 +5447,7 @@ img, video, canvas, iframe {
                     feedback.textContent = data.message || "✨ Spark sent!";
                 }
 
+                sparkBrowseHistory.push(sparkIndex);
                 sparkIndex += 1;
 
                 if (data.mutual) {
@@ -3345,8 +5473,129 @@ img, video, canvas, iframe {
             }
         }
 
+        document.getElementById("sparkUndoBtn")?.addEventListener("click", () => {
+            if (!sparkBrowseHistory.length) {
+                showMikiAppDialog({
+                    title: "Undo",
+                    message: "There is no previous profile to restore yet.",
+                    icon: "↶",
+                    confirmText: "OK",
+                    showCancel: false
+                });
+                return;
+            }
+
+            const previousIndex = sparkBrowseHistory.pop();
+            if (previousIndex >= 0 && previousIndex < sparkProfiles.length) {
+                sparkIndex = previousIndex;
+                showSparkProfile();
+            }
+        });
+
+        document.getElementById("sparkInfoBtn")?.addEventListener("click", () => {
+            const profile = sparkProfiles[sparkIndex];
+            if (!profile) return;
+
+            const details = [
+                profile.username || "MikiConnect member",
+                profile.age !== undefined && profile.age !== null && profile.age !== "" ? "Age: " + profile.age : "",
+                profile.location ? "Location: " + profile.location : "",
+                profile.gender ? "Gender: " + profile.gender : "",
+                profile.interestedIn ? "Interested in: " + profile.interestedIn : "",
+                profile.bio || ""
+            ].filter(Boolean).join("\\n\\n");
+
+            showMikiAppDialog({
+                title: "Profile information",
+                message: details,
+                icon: "ⓘ",
+                confirmText: "Close",
+                showCancel: false
+            });
+        });
+
         document.getElementById("sparkPassBtn")?.addEventListener("click", handleSparkPass);
         document.getElementById("sparkLikeBtn")?.addEventListener("click", handleSparkLike);
+
+        // MIKICONNECT SPARK SWIPE GESTURES — BROWSE ONLY
+        (() => {
+            const card = document.getElementById("sparkCard");
+            if (!card) return;
+
+            let startX = 0;
+            let startY = 0;
+            let tracking = false;
+            let busy = false;
+
+            const resetCard = () => {
+                card.style.transition = "transform 180ms ease, opacity 180ms ease";
+                card.style.transform = "";
+                card.style.opacity = "";
+            };
+
+            card.addEventListener("touchstart", event => {
+                if (busy || event.touches.length !== 1) return;
+                startX = event.touches[0].clientX;
+                startY = event.touches[0].clientY;
+                tracking = true;
+                card.style.transition = "none";
+            }, { passive: true });
+
+            card.addEventListener("touchmove", event => {
+                if (!tracking || busy || event.touches.length !== 1) return;
+                const dx = event.touches[0].clientX - startX;
+                const dy = event.touches[0].clientY - startY;
+                if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+                    card.style.transform = `translateX(${dx}px) rotate(${dx * 0.025}deg)`;
+                }
+            }, { passive: true });
+
+            card.addEventListener("touchend", async event => {
+                if (!tracking || busy) return;
+                tracking = false;
+
+                const touch = event.changedTouches[0];
+                if (!touch) {
+                    resetCard();
+                    return;
+                }
+
+                const dx = touch.clientX - startX;
+                const dy = touch.clientY - startY;
+
+                if (Math.abs(dx) < 90 || Math.abs(dx) < Math.abs(dy) * 1.2) {
+                    resetCard();
+                    return;
+                }
+
+                busy = true;
+                card.style.transition = "transform 180ms ease, opacity 180ms ease";
+                card.style.transform =
+                    `translateX(${dx > 0 ? window.innerWidth : -window.innerWidth}px)`;
+                card.style.opacity = "0";
+
+                await new Promise(resolve => setTimeout(resolve, 180));
+
+                try {
+                    if (typeof sparkIndex !== "undefined" &&
+                        sparkIndex < sparkProfiles.length - 1) {
+                        sparkBrowseHistory.push(sparkIndex);
+                        sparkIndex += 1;
+                        showSparkProfile();
+                    } else if (typeof loadSparkProfiles === "function") {
+                        await loadSparkProfiles();
+                    }
+                } finally {
+                    busy = false;
+                    resetCard();
+                }
+            }, { passive: true });
+
+            card.addEventListener("touchcancel", () => {
+                tracking = false;
+                resetCard();
+            }, { passive: true });
+        })();
 
         function circledCount(count) {
             const circled = [
@@ -3579,9 +5828,11 @@ img, video, canvas, iframe {
             panel.dataset.otherUserAvatar = user.avatar || (Array.isArray(user.photos) && user.photos.length ? user.photos[0] : "");
             status.textContent = "Opening secure conversation...";
 
+            status.textContent = "Opening secure conversation...";
+
             if (avatar) {
                 avatar.innerHTML = "";
-                avatar.textContent = "👤";
+                avatar.textContent = "";
                 avatar.style.flex = "0 0 42px";
                 avatar.style.boxSizing = "border-box";
                 avatar.style.cursor = "pointer";
@@ -3619,6 +5870,11 @@ img, video, canvas, iframe {
                     img.style.maxHeight = "100%";
                     img.style.objectFit = "cover";
                     img.style.objectPosition = "center center";
+                    img.style.borderRadius = "50%";
+                    img.style.flex = "0 0 100%";
+                    img.onload = () => {
+                        avatar.textContent = "";
+                    };
                     img.onerror = () => {
                         img.remove();
                         avatar.textContent = "👤";
@@ -3628,6 +5884,7 @@ img, video, canvas, iframe {
             }
             messages.innerHTML = "";
 
+            document.getElementById("app-screen").classList.add("private-chat-open");
             panel.classList.remove("hidden");
             const inbox = document.getElementById("chatInbox");
             if (inbox) inbox.classList.add("hidden");
@@ -3642,6 +5899,30 @@ img, video, canvas, iframe {
 
                 if (!data.conversation) {
                     throw new Error("Unable to open conversation.");
+                }
+
+                const serverParticipant = data.conversation.participant || {};
+                const serverImage =
+                    serverParticipant.avatar ||
+                    (Array.isArray(serverParticipant.photos) && serverParticipant.photos[0]) ||
+                    panel.dataset.otherUserAvatar ||
+                    "";
+
+                if (avatar && serverImage) {
+                    panel.dataset.otherUserAvatar = serverImage;
+                    const img = document.createElement("img");
+                    img.alt = serverParticipant.username || user.username || "MikiConnect member";
+                    img.style.cssText = "display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center;border-radius:50%;";
+                    img.onload = () => {
+                        avatar.replaceChildren(img);
+                    };
+                    img.onerror = () => {
+                        img.remove();
+                    };
+                    img.src = serverImage;
+                    if (img.complete && img.naturalWidth > 0) {
+                        avatar.replaceChildren(img);
+                    }
                 }
 
                 panel.dataset.conversationId = data.conversation.id;
@@ -4196,6 +6477,8 @@ img, video, canvas, iframe {
                 if (replyPreviewText) {
                     replyPreviewText.textContent = "";
                 }
+                const sentReplyMedia = document.getElementById("privateReplyPreviewMedia");
+                if (sentReplyMedia) sentReplyMedia.replaceChildren();
 
                 renderPrivateMessage(data.message);
 
@@ -4286,6 +6569,20 @@ img, video, canvas, iframe {
 
             replyReferenceContent.appendChild(voiceIcon);
             replyReferenceContent.appendChild(voiceText);
+        } else if (message.replyTo.type === "image" && message.replyTo.imageUrl) {
+            const photo = document.createElement("img");
+            photo.src = message.replyTo.imageUrl;
+            photo.alt = "Photo being replied to";
+            photo.loading = "lazy";
+            photo.style.cssText = "display:block;width:64px;height:48px;object-fit:cover;border-radius:6px;";
+            replyReferenceContent.appendChild(photo);
+            const label = document.createElement("span");
+            label.textContent = "📷 Photo";
+            replyReferenceContent.appendChild(label);
+        } else if (message.replyTo.type === "video" && message.replyTo.videoUrl) {
+            const label = document.createElement("span");
+            label.textContent = "🎬 Video";
+            replyReferenceContent.appendChild(label);
         } else {
             replyReferenceContent.textContent =
                 message.replyTo.content || "";
@@ -4296,13 +6593,178 @@ img, video, canvas, iframe {
         body.appendChild(replyReference);
     }
 
-    if (message.type === "voice" && message.audioUrl) {
+    if (message.type === "image" && message.imageUrl) {
+        const photo = document.createElement("img");
+        photo.src = message.imageUrl;
+        photo.alt = "Photo message";
+        photo.loading = "lazy";
+        photo.style.cssText = "display:block;max-width:min(260px,100%);max-height:320px;object-fit:contain;border-radius:12px;cursor:pointer;";
+        photo.addEventListener("click", () => window.open(message.imageUrl, "_blank", "noopener"));
+        body.appendChild(photo);
+    } else if (message.type === "video" && message.videoUrl) {
+        const videoWrap = document.createElement("div");
+        videoWrap.className = "private-custom-video-player";
+        videoWrap.style.cssText = "position:relative;width:min(200px,100%);";
+
+        const video = document.createElement("video");
+        video.src = message.videoUrl;
+        video.controls = false;
+        video.playsInline = true;
+        video.preload = "metadata";
+        video.style.cssText = "display:block;width:100%;max-height:220px;border-radius:12px;background:#000;object-fit:contain;";
+
+        const videoPlayButton = document.createElement("button");
+        videoPlayButton.type = "button";
+        videoPlayButton.className = "private-custom-video-play";
+        videoPlayButton.textContent = "▶";
+        videoPlayButton.setAttribute("aria-label", "Play video");
+        videoPlayButton.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);box-sizing:border-box;width:34px;height:34px;min-width:34px;padding:0;border:1px solid #d1d5db;border-radius:50%;background:#ffffff;color:#111827;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;";
+        videoPlayButton.style.setProperty("background", "#ffffff", "important");
+        videoPlayButton.style.setProperty("background-image", "none", "important");
+        videoPlayButton.style.setProperty("color", "#111827", "important");
+
+        const togglePrivateVideo = async () => {
+            if (video.paused) {
+                document.querySelectorAll("#privateChatMessages video").forEach(otherVideo => {
+                    if (otherVideo !== video) otherVideo.pause();
+                });
+                try {
+                    await video.play();
+                } catch (error) {
+                    videoPlayButton.setAttribute("aria-label", "Unable to play video");
+                }
+            } else {
+                video.pause();
+            }
+        };
+
+        videoPlayButton.addEventListener("click", event => {
+            event.stopPropagation();
+            openPrivateVideoViewer(message.videoUrl);
+        });
+        video.addEventListener("click", event => {
+            event.stopPropagation();
+            openPrivateVideoViewer(message.videoUrl);
+        });
+        video.addEventListener("play", () => stopOtherPrivateMedia(video));
+        video.addEventListener("play", () => {
+            videoPlayButton.style.display = "none";
+            videoPlayButton.textContent = "Ⅱ";
+            videoPlayButton.setAttribute("aria-label", "Pause video");
+        });
+        video.addEventListener("pause", () => {
+            videoPlayButton.style.display = "flex";
+            videoPlayButton.textContent = "▶";
+            videoPlayButton.setAttribute("aria-label", "Play video");
+        });
+        video.addEventListener("ended", () => {
+            videoPlayButton.style.display = "flex";
+            videoPlayButton.textContent = "▶";
+            videoPlayButton.setAttribute("aria-label", "Play video");
+        });
+
+        videoWrap.appendChild(video);
+        videoWrap.appendChild(videoPlayButton);
+        body.appendChild(videoWrap);
+    } else if (message.type === "voice" && message.audioUrl) {
+        const player = document.createElement("div");
+        player.className = "private-custom-voice-player";
+
+        const playButton = document.createElement("button");
+        playButton.type = "button";
+        playButton.className = "private-custom-voice-play";
+        playButton.style.cssText = "box-sizing:border-box;flex:0 0 26px;width:26px;min-width:26px;max-width:26px;height:26px;min-height:26px;max-height:26px;padding:0;font-size:11px;line-height:1;background:#ffffff;color:#111827;border:1px solid #d1d5db;border-radius:50%;";
+        playButton.style.setProperty("background", "#ffffff", "important");
+        playButton.style.setProperty("background-image", "none", "important");
+        playButton.style.setProperty("color", "#111827", "important");
+        playButton.textContent = "▶";
+        playButton.setAttribute("aria-label", "Play voice message");
+
         const audio = document.createElement("audio");
-        audio.controls = true;
         audio.preload = "metadata";
         audio.src = message.audioUrl;
-        audio.style.maxWidth = "100%";
-        body.appendChild(audio);
+        audio.addEventListener("play", () => stopOtherPrivateMedia(audio));
+        audio.setAttribute("aria-label", "Voice message audio");
+        audio.style.cssText = "position:absolute;width:1px;height:1px;opacity:0.01;pointer-events:none;";
+
+        const track = document.createElement("div");
+        track.className = "private-custom-voice-track";
+        track.setAttribute("aria-label", "Voice message progress");
+
+        const waveform = document.createElement("div");
+        waveform.className = "private-custom-voice-waveform";
+        const heights = [6,9,13,7,15,10,6,12,8,16,10,7,13,8,11,6,14,9,12,7,10,15,8,12,6,9,13,7];
+        heights.forEach(height => {
+            const bar = document.createElement("span");
+            bar.style.height = height + "px";
+            waveform.appendChild(bar);
+        });
+
+        const durationLabel = document.createElement("span");
+        durationLabel.className = "private-custom-voice-duration";
+        const formatDuration = seconds => {
+            if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+            const total = Math.floor(seconds);
+            return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
+        };
+        const knownDuration = Number(message.audioDuration);
+        durationLabel.textContent = Number.isFinite(knownDuration) && knownDuration > 0
+            ? formatDuration(knownDuration) : "0:00";
+
+        const updateProgress = () => {
+            const ratio = audio.duration > 0 ? audio.currentTime / audio.duration : 0;
+            [...waveform.children].forEach((bar, index) => {
+                bar.classList.toggle("played", index < Math.floor(ratio * waveform.children.length));
+            });
+            durationLabel.textContent = audio.duration > 0
+                ? formatDuration(Math.max(0, audio.duration - audio.currentTime))
+                : durationLabel.textContent;
+        };
+
+        playButton.addEventListener("click", async () => {
+            if (audio.paused) {
+                try {
+                    await audio.play();
+                } catch (error) {
+                    playButton.setAttribute("aria-label", "Unable to play voice message");
+                }
+            } else {
+                audio.pause();
+            }
+        });
+        audio.addEventListener("play", () => {
+            playButton.textContent = "Ⅱ";
+            playButton.setAttribute("aria-label", "Pause voice message");
+        });
+        audio.addEventListener("pause", () => {
+            playButton.textContent = "▶";
+            playButton.setAttribute("aria-label", "Play voice message");
+        });
+        audio.addEventListener("ended", () => {
+            audio.currentTime = 0;
+            updateProgress();
+            playButton.textContent = "▶";
+        });
+        audio.addEventListener("timeupdate", updateProgress);
+        audio.addEventListener("loadedmetadata", () => {
+            if (!(Number.isFinite(knownDuration) && knownDuration > 0)) {
+                durationLabel.textContent = formatDuration(audio.duration);
+            }
+        });
+        waveform.addEventListener("click", event => {
+            if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+            const rect = waveform.getBoundingClientRect();
+            audio.currentTime = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * audio.duration;
+            updateProgress();
+        });
+        waveform.style.cursor = "pointer";
+
+        track.appendChild(waveform);
+        track.appendChild(durationLabel);
+        player.appendChild(playButton);
+        player.appendChild(track);
+        player.appendChild(audio);
+        body.appendChild(player);
     } else {
         const messageText = document.createElement("div");
         messageText.textContent = message.content || "";
@@ -4345,15 +6807,49 @@ img, video, canvas, iframe {
                 return;
             }
 
+            // Switching to Reply cancels any active Edit state.
+            delete input.dataset.editingMessageId;
+            const editPreview = document.getElementById("privateEditPreview");
+            const editPreviewText = document.getElementById("privateEditPreviewText");
+            if (editPreview) {
+                editPreview.classList.add("hidden");
+                editPreview.setAttribute("aria-hidden", "true");
+            }
+            if (editPreviewText) editPreviewText.textContent = "";
+
             input.dataset.replyToMessageId = message.id || "";
             previewTitle.textContent =
                 "Replying to " + (own ? "your message" : (message.senderUsername || "Member"));
             previewText.textContent =
                 message.type === "voice"
                     ? "🎤 Voice message"
-                    : (message.content || "");
+                    : message.type === "image"
+                    ? "📷 Photo"
+                    : message.type === "video"
+                        ? "🎬 Video"
+                        : (message.content || "");
 
-            preview.classList.remove("hidden");
+            const previewMedia = document.getElementById("privateReplyPreviewMedia");
+if (previewMedia) {
+    previewMedia.replaceChildren();
+
+    if (message.type === "image" && message.imageUrl) {
+        const photo = document.createElement("img");
+        photo.src = message.imageUrl;
+        photo.alt = "Photo being replied to";
+        photo.style.cssText = "display:block;max-width:88px;max-height:64px;object-fit:cover;border-radius:6px;margin-top:4px;";
+        previewMedia.appendChild(photo);
+    } else if (message.type === "video" && message.videoUrl) {
+        const video = document.createElement("video");
+        video.src = message.videoUrl;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = "metadata";
+        video.style.cssText = "display:block;width:88px;height:56px;object-fit:cover;border-radius:6px;background:#000;margin-top:4px;pointer-events:none;";
+        previewMedia.appendChild(video);
+    }
+}
+preview.classList.remove("hidden");
             preview.setAttribute("aria-hidden", "false");
 
             cancelButton.onclick = () => {
@@ -4361,13 +6857,15 @@ img, video, canvas, iframe {
                 preview.classList.add("hidden");
                 preview.setAttribute("aria-hidden", "true");
                 previewText.textContent = "";
+                const cancelledReplyMedia = document.getElementById("privateReplyPreviewMedia");
+                if (cancelledReplyMedia) cancelledReplyMedia.replaceChildren();
                 input.focus();
             };
 
             input.focus();
         });
 
-        if (message.type !== "voice") {
+        if (message.type !== "voice" && message.type !== "image" && message.type !== "video") {
             const copyButton = document.createElement("button");
             copyButton.type = "button";
             copyButton.textContent = "Copy";
@@ -4394,7 +6892,7 @@ img, video, canvas, iframe {
             menu.appendChild(copyButton);
         }
 
-        if (own && message.type !== "voice") {
+        if (own && message.type !== "voice" && message.type !== "image" && message.type !== "video") {
             const editButton = document.createElement("button");
             editButton.type = "button";
             editButton.textContent = "Edit";
@@ -4416,6 +6914,18 @@ img, video, canvas, iframe {
                     document.getElementById("privateEditCancel");
 
                 if (!input) return;
+
+                // Switching to Edit cancels any active Reply state.
+                delete input.dataset.replyToMessageId;
+                const replyPreview = document.getElementById("privateReplyPreview");
+                const replyPreviewText = document.getElementById("privateReplyPreviewText");
+                const replyPreviewMedia = document.getElementById("privateReplyPreviewMedia");
+                if (replyPreview) {
+                    replyPreview.classList.add("hidden");
+                    replyPreview.setAttribute("aria-hidden", "true");
+                }
+                if (replyPreviewText) replyPreviewText.textContent = "";
+                if (replyPreviewMedia) replyPreviewMedia.replaceChildren();
 
                 input.dataset.editingMessageId = message.id || "";
                 input.value = message.content || "";
@@ -4458,6 +6968,13 @@ img, video, canvas, iframe {
         }
 
         menu.appendChild(replyButton);
+        menu.querySelectorAll("button").forEach(button => {
+            button.style.setProperty("background", "#ffffff", "important");
+            button.style.setProperty("background-image", "none", "important");
+            button.style.setProperty("color", "#111827", "important");
+            button.style.setProperty("border", "1px solid #d1d5db", "important");
+            button.style.setProperty("box-shadow", "none", "important");
+        });
         bubble.appendChild(menu);
 
         let pressTimer = null;
@@ -4476,6 +6993,37 @@ img, video, canvas, iframe {
             pressTimer = setTimeout(() => {
                 longPressTriggered = true;
                 menu.classList.add("is-visible");
+
+                menu.style.setProperty("left", "8px", "important");
+                menu.style.setProperty("top", "8px", "important");
+
+                requestAnimationFrame(() => {
+                    if (!menu.classList.contains("is-visible")) return;
+
+                    const bubbleRect = bubble.getBoundingClientRect();
+                    const menuRect = menu.getBoundingClientRect();
+                    const padding = 8;
+                    const gap = 8;
+
+                    let top = bubbleRect.top - menuRect.height - gap;
+                    if (top < padding) {
+                        top = bubbleRect.bottom + gap;
+                    }
+
+                    top = Math.max(
+                        padding,
+                        Math.min(top, window.innerHeight - menuRect.height - padding)
+                    );
+
+                    let left = bubbleRect.left + (bubbleRect.width - menuRect.width) / 2;
+                    left = Math.max(
+                        padding,
+                        Math.min(left, window.innerWidth - menuRect.width - padding)
+                    );
+
+                    menu.style.setProperty("left", `${left}px`, "important");
+                    menu.style.setProperty("top", `${top}px`, "important");
+                });
             }, 500);
         });
 
@@ -5209,6 +7757,8 @@ async function startPrivateVoiceRecording() {
                 if (replyPreviewText) {
                     replyPreviewText.textContent = "";
                 }
+                const sentReplyMedia = document.getElementById("privateReplyPreviewMedia");
+                if (sentReplyMedia) sentReplyMedia.replaceChildren();
 
                 await loadChatConversations();
             } catch (error) {
@@ -5400,6 +7950,7 @@ privateVoiceButton?.addEventListener(
 
         let currentMainTab = "sparks-tab";
         let innerScreenBackTab = null;
+        let sparkProfilesLoaded = false;
         let currentSettingsScreen = null;
 
         const mainTabIds = [
@@ -5422,7 +7973,7 @@ privateVoiceButton?.addEventListener(
 
             const mainNav = document.querySelector(".nav-tabs");
             if (mainNav) {
-                mainNav.classList.toggle("hidden", tabId !== "sparks-tab");
+                mainNav.classList.toggle("hidden", tabId === "sparks-tab");
             }
 
             const headerActions = document.querySelector(".header-actions");
@@ -5487,7 +8038,9 @@ privateVoiceButton?.addEventListener(
             }
 
             if (tabId === "sparks-tab") {
-                loadSparkProfiles();
+                if (!sparkProfilesLoaded || !sparkProfiles.length) {
+                    loadSparkProfiles();
+                }
             }
 
             if (tabId === "radar-tab") {
@@ -5641,6 +8194,14 @@ privateVoiceButton?.addEventListener(
             document.getElementById('app-screen').classList.remove('hidden');
 
             ensurePulseRootHistory();
+
+            // Automatically load Spark profiles when the dashboard opens.
+            if (me) {
+                loadSparkProfiles().catch(error => {
+                    console.error("Spark startup load failed:", error);
+                });
+            }
+
 
             if (me) {
                 const userLabel = document.getElementById('userLabel');
@@ -6008,7 +8569,33 @@ privateVoiceButton?.addEventListener(
                 row.appendChild(content);
                 item.appendChild(row);
 
-                if (!notification.read) {
+                if (['spark', 'super_spark'].includes(notification.type) && notification.actorId) {
+                    item.style.cursor = 'pointer';
+                    item.addEventListener('click', async () => {
+                        if (item.dataset.opening === 'true') return;
+                        item.dataset.opening = 'true';
+
+                        try {
+                            await openPrivateChat({
+                                id: notification.actorId,
+                                username: notification.actorUsername || 'MikiConnect member',
+                                avatar: notification.actorAvatar || ''
+                            });
+
+                            await api(`/api/notifications/${notification.id}`, {
+                                method: 'DELETE'
+                            });
+
+                            notifications = notifications.filter(
+                                entry => entry.id !== notification.id
+                            );
+                            renderNotifications();
+                        } catch (error) {
+                            console.error('Unable to open Spark sender chat or clear alert:', error);
+                            item.dataset.opening = 'false';
+                        }
+                    });
+                } else if (!notification.read) {
                     item.addEventListener('click', async () => {
                         await markNotificationRead(notification.id);
                     });
@@ -6075,16 +8662,22 @@ privateVoiceButton?.addEventListener(
 
         function showNotificationPanel() {
             const panel = document.getElementById('notificationsPanel');
-            if (!panel || !panel.classList.contains('hidden')) return;
+            if (!panel) return;
 
-            notificationsReturnTab = currentMainTab || 'radar-tab';
+            // Tapping the bell again closes Notifications and returns to Spark.
+            if (!panel.classList.contains('hidden')) {
+                notificationsReturnTab = 'sparks-tab';
+                closeNotificationScreen();
+                return;
+            }
+
+            // Always return to Spark when the bell opens Notifications.
+            notificationsReturnTab = 'sparks-tab';
 
             const mainNav = document.querySelector('.nav-tabs');
-            const headerActions = document.querySelector('.header-actions');
             const settingsPanel = document.getElementById('settingsPanel');
 
             if (mainNav) mainNav.classList.add('hidden');
-            if (headerActions) headerActions.classList.add('hidden');
             if (settingsPanel) settingsPanel.classList.add('hidden');
 
             document.querySelectorAll('.tab-content').forEach(tab => {
@@ -6302,7 +8895,7 @@ privateVoiceButton?.addEventListener(
 
                     renderNotifications();
 
-                    if (notification.type === 'spark') {
+                    if (['spark', 'super_spark'].includes(notification.type)) {
                         showSparkNotificationPopup(notification);
                     }
                 });
@@ -7992,7 +10585,12 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
                 };
             }
 
-            window.addEventListener('popstate', () => {
+            window.addEventListener('popstate', (event) => {
+                if (profileImageViewerHistoryActive) {
+                    closeProfileImageViewer(true);
+                    return;
+                }
+                if (closePrivateVideoViewer()) return;
                 if (typeof window.mcHandleBackDuringCall === 'function' &&
                     window.mcHandleBackDuringCall()) {
                     // Minimize the call and continue normal Back navigation.
@@ -8016,6 +10614,7 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
 
                 if (privateChatPanel && !privateChatPanel.classList.contains('hidden')) {
                     privateChatPanel.classList.add('hidden');
+                    document.getElementById('app-screen').classList.remove('private-chat-open');
                     privateChatPanel.dataset.conversationId = '';
                     privateChatPanel.dataset.otherUserId = '';
 
@@ -8035,6 +10634,9 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
                     switchTab('sparks-tab', { fromBack: true });
                     return;
                 }
+
+                const sparkNav = document.querySelector('#app-screen > .container > .nav-tabs');
+                if (sparkNav) sparkNav.classList.remove('hidden');
 
             });
 
@@ -8391,10 +10993,83 @@ const saveProfile = document.getElementById('saveProfileBtn');
                 };
             }
 
-            checkSession();
+
+        async function sendPrivateMedia(file) {
+            const panel = document.getElementById("privateChatPanel");
+            const status = document.getElementById("privateChatStatus");
+            if (!panel || !panel.dataset.conversationId || !file) return;
+
+            const isVideo = file.type.startsWith("video/");
+            const isImage = file.type.startsWith("image/");
+
+            if (!isImage && !isVideo) {
+                if (status) status.textContent = "Please select a photo or video.";
+                return;
+            }
+            if (file.size > 50 * 1024 * 1024) {
+                if (status) status.textContent = "Photo or video must be 50 MB or smaller.";
+                return;
+            }
+
+            try {
+                if (status) status.textContent = isVideo ? "Uploading video…" : "Uploading photo…";
+
+                const form = new FormData();
+                form.append("media", file);
+
+                const uploaded = await api(
+                    `/api/chat/${panel.dataset.conversationId}/media`,
+                    { method: "POST", body: form }
+                );
+
+                if (!uploaded.mediaUrl || !uploaded.mediaType) {
+                    throw new Error(uploaded.error || "Media upload failed.");
+                }
+
+                const messagePayload = uploaded.mediaType === "video"
+                    ? { type: "video", videoUrl: uploaded.mediaUrl }
+                    : { type: "image", imageUrl: uploaded.mediaUrl };
+
+                const data = await api(
+                    `/api/chat/${panel.dataset.conversationId}/messages`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(messagePayload)
+                    }
+                );
+
+                if (!data.message) {
+                    throw new Error(data.error || "Unable to send media.");
+                }
+
+                renderPrivateMessage(data.message);
+                const messages = document.getElementById("privateChatMessages");
+                if (messages) messages.scrollTop = messages.scrollHeight;
+                await loadChatConversations();
+                if (status) status.textContent = "";
+            } catch (err) {
+                if (status) status.textContent = err.message || "Unable to send photo or video.";
+            }
+        }
+
+        const privateChatAttach = document.getElementById("privateChatAttach");
+        const privateChatImagePicker = document.getElementById("privateChatImagePicker");
+
+        if (privateChatAttach && privateChatImagePicker) {
+            privateChatAttach.addEventListener("click", () => privateChatImagePicker.click());
+            privateChatImagePicker.addEventListener("change", () => {
+                if (privateChatImagePicker.files[0]) {
+                    sendPrivateMedia(privateChatImagePicker.files[0]);
+                }
+                privateChatImagePicker.value = "";
+            });
+        }
+
+        checkSession();
         });
     </script>
-<div id="profileImageViewer" class="hidden" role="dialog" aria-modal="true" aria-label="Profile picture viewer" style="position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeProfileImageViewer()"><button type="button" aria-label="Close profile picture" onclick="closeProfileImageViewer()" style="position:absolute;top:16px;right:16px;width:auto;font-size:24px;">×</button><img id="profileImageViewerImage" alt="Enlarged profile picture" style="display:block;max-width:90vw;max-height:85vh;width:auto;height:auto;object-fit:contain;border-radius:12px;"></div>
+<div id="profileImageViewer" class="hidden" role="dialog" aria-modal="true" aria-label="Profile picture viewer" style="position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeProfileImageViewer()"><img id="profileImageViewerImage" alt="Enlarged profile picture" style="display:block;max-width:90vw;max-height:85vh;width:auto;height:auto;object-fit:contain;border-radius:12px;"></div>
 
 <div id="mcFloatingCall" class="hidden" role="region" aria-label="Ongoing call" style="display:none;position:fixed;top:max(8px,env(safe-area-inset-top));left:12px;right:12px;z-index:10002;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:#151d30;color:#fff;border:1px solid #34415c;box-shadow:0 6px 24px #0006;">
   <button id="mcFloatingMute" type="button" aria-label="Mute microphone" title="Mute microphone" style="width:42px;height:42px;min-width:42px;border-radius:50%;background:#28334e;color:#fff;border:0;font-size:0;display:flex;align-items:center;justify-content:center;"><span aria-hidden="true" style="display:block;width:22px;height:22px;background:#fff;-webkit-mask:url(&quot;data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Crect x=%279%27 y=%272%27 width=%276%27 height=%2712%27 rx=%273%27 fill=%27black%27/%3E%3Cpath d=%27M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27/%3E%3C/svg%3E&quot;) center/contain no-repeat;mask:url(&quot;data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Crect x=%279%27 y=%272%27 width=%276%27 height=%2712%27 rx=%273%27 fill=%27black%27/%3E%3Cpath d=%27M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27/%3E%3C/svg%3E&quot;) center/contain no-repeat;"></span></button>
@@ -9090,7 +11765,35 @@ const saveProfile = document.getElementById('saveProfileBtn');
     mcInitCalling();
   }
 })();
+
+// MIKICONNECT AUTO-GROW MESSAGE INPUT
+(() => {
+    const input = document.getElementById("privateChatInput");
+    if (!input || input.tagName !== "TEXTAREA") return;
+
+    const resizeInput = () => {
+        input.style.height = "auto";
+        const maxHeight = 180;
+        input.style.height = Math.min(input.scrollHeight, maxHeight) + "px";
+        input.style.overflowY = input.scrollHeight > maxHeight ? "auto" : "hidden";
+    };
+
+    input.addEventListener("input", resizeInput);
+    input.addEventListener("focus", resizeInput);
+    input.addEventListener("keydown", event => {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            if (input.value.trim()) {
+                document.getElementById("privateChatSend")?.click();
+            }
+        }
+    });
+    resizeInput();
+})();
+
 </script>
+
+
 
 </body>
 </html>

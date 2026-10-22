@@ -29,6 +29,18 @@ const avatarUpload = multer({
   }
 });
 
+const chatMediaUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const mime = (file.mimetype || "").split(";")[0].trim().toLowerCase();
+    if (mime.startsWith("image/") || mime.startsWith("video/")) {
+      return cb(null, true);
+    }
+    cb(new Error("Choose an image or video file."));
+  }
+});
+
 const voiceUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -376,7 +388,7 @@ io.on('connection', socket => {
         });
       }
 
-      if (content.length > 2000) {
+      if (content.length > 10000) {
         return callback?.({
           success: false,
           error: 'Message is too long.'
@@ -1102,7 +1114,7 @@ const MessageSchema = new mongoose.Schema({
 
   type: {
     type: String,
-    enum: ['text', 'voice'],
+    enum: ['text', 'voice', 'image', 'video'],
     default: 'text',
     required: true
   },
@@ -1125,7 +1137,16 @@ const MessageSchema = new mongoose.Schema({
     min: 0,
     default: null
   },
-
+imageUrl: {
+  type: String,
+  trim: true,
+  default: ''
+},
+  videoUrl: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -1152,7 +1173,7 @@ const NotificationSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['spark'],
+    enum: ['spark', 'super_spark'],
     index: true
   },
 
@@ -3298,6 +3319,44 @@ app.post('/api/chat/conversation/:userId', authenticate, async (req, res) => {
   }
 });
 
+app.post("/api/chat/:conversationId/media", authenticate, chatMediaUpload.single("media"), async (req, res) => {
+  try {
+    const conversation = await getAuthorizedConversation(req.params.conversationId, req.user._id);
+    if (!conversation) {
+      return res.status(403).json({ error: "Conversation access denied." });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "Please select a photo or video." });
+    }
+
+    const isVideo = (req.file.mimetype || "").startsWith("video/");
+    const mediaType = isVideo ? "video" : "image";
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "mikiconnect/private-chat-media",
+          resource_type: isVideo ? "video" : "image"
+        },
+        (error, uploaded) => {
+          if (error) return reject(error);
+          resolve(uploaded);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    return res.json({
+      success: true,
+      mediaType,
+      mediaUrl: result.secure_url
+    });
+  } catch (err) {
+    console.error("Private chat media upload error:", err);
+    return res.status(500).json({ error: "Failed to upload photo or video." });
+  }
+});
+
 /* ---------------------------------------------------------
    PRIVATE CHAT MESSAGES
 --------------------------------------------------------- */
@@ -3372,7 +3431,7 @@ app.get('/api/chat/:conversationId/messages', authenticate, async (req, res) => 
       .populate('senderId', 'username')
       .populate({
         path: 'replyToMessageId',
-        select: 'senderId type content audioDuration',
+        select: 'senderId type content audioDuration imageUrl videoUrl',
         populate: {
           path: 'senderId',
           select: 'username'
@@ -3432,13 +3491,17 @@ app.get('/api/chat/:conversationId/messages', authenticate, async (req, res) => 
               senderUsername: message.replyToMessageId.senderId?.username || '',
               type: message.replyToMessageId.type || 'text',
               content: message.replyToMessageId.content || '',
-              audioDuration: message.replyToMessageId.audioDuration ?? null
+              audioDuration: message.replyToMessageId.audioDuration ?? null,
+              imageUrl: message.replyToMessageId.imageUrl || '',
+              videoUrl: message.replyToMessageId.videoUrl || ''
             }
           : null,
         type: message.type || 'text',
         content: message.content || '',
         audioUrl: message.audioUrl || '',
         audioDuration: message.audioDuration ?? null,
+        imageUrl: message.imageUrl || '',
+        videoUrl: message.videoUrl || '',
         createdAt: message.createdAt,
         editedAt: message.editedAt || null,
         deliveredAt: message.deliveredAt || null,
@@ -3521,6 +3584,8 @@ app.post('/api/chat/:conversationId/messages', authenticate, async (req, res) =>
     const type = String(req.body?.type || 'text').trim().toLowerCase();
     const content = String(req.body?.content || '').trim();
     const audioUrl = String(req.body?.audioUrl || '').trim();
+    const imageUrl = String(req.body?.imageUrl || '').trim();
+    const videoUrl = String(req.body?.videoUrl || '').trim();
     const audioDuration = Number(req.body?.audioDuration);
 
     const rawReplyToMessageId = String(req.body?.replyToMessageId || '').trim();
@@ -3551,7 +3616,7 @@ app.post('/api/chat/:conversationId/messages', authenticate, async (req, res) =>
       replyToMessageId = replyTarget._id;
     }
 
-    if (!['text', 'voice'].includes(type)) {
+    if (!['text', 'voice', 'image', 'video'].includes(type)) {
       return res.status(400).json({
         error: 'Invalid message type.'
       });
@@ -3564,11 +3629,18 @@ app.post('/api/chat/:conversationId/messages', authenticate, async (req, res) =>
         });
       }
 
-      if (content.length > 2000) {
+      if (content.length > 10000) {
         return res.status(400).json({
           error: 'Message is too long.'
         });
       }
+    }
+
+    if (type === 'image' && !imageUrl) {
+      return res.status(400).json({ error: 'Image URL is required.' });
+    }
+    if (type === 'video' && !videoUrl) {
+      return res.status(400).json({ error: 'Video URL is required.' });
     }
 
     if (type === 'voice') {
@@ -3600,7 +3672,9 @@ app.post('/api/chat/:conversationId/messages', authenticate, async (req, res) =>
       type,
       content: type === 'text' ? content : '',
       audioUrl: type === 'voice' ? audioUrl : '',
-      audioDuration: type === 'voice' ? audioDuration : null
+      audioDuration: type === 'voice' ? audioDuration : null,
+      imageUrl: type === 'image' ? imageUrl : '',
+      videoUrl: type === 'video' ? videoUrl : ''
     });
 
     console.timeEnd('VOICE_MESSAGE_CREATE');
@@ -3664,12 +3738,16 @@ app.post('/api/chat/:conversationId/messages', authenticate, async (req, res) =>
           senderUsername: replyTarget.senderId?.username || '',
           type: replyTarget.type || 'text',
           content: replyTarget.content || '',
-          audioDuration: replyTarget.audioDuration ?? null
+          audioDuration: replyTarget.audioDuration ?? null,
+          imageUrl: replyTarget.imageUrl || '',
+          videoUrl: replyTarget.videoUrl || ''
         } : null,
         type: message.type || 'text',
         content: message.content || '',
         audioUrl: message.audioUrl || '',
         audioDuration: message.audioDuration ?? null,
+        imageUrl: message.imageUrl || '',
+        videoUrl: message.videoUrl || '',
         createdAt: message.createdAt,
         deliveredAt,
         readAt: null
@@ -3697,7 +3775,7 @@ app.put('/api/chat/messages/:messageId', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Message cannot be empty.' });
     }
 
-    if (content.length > 2000) {
+    if (content.length > 10000) {
       return res.status(400).json({
         error: 'Message is too long.'
       });
@@ -3737,6 +3815,7 @@ app.put('/api/chat/messages/:messageId', authenticate, async (req, res) => {
         content: message.content || '',
         audioUrl: message.audioUrl || '',
         audioDuration: message.audioDuration ?? null,
+        imageUrl: message.imageUrl || '',
         createdAt: message.createdAt,
         editedAt: message.editedAt,
         deliveredAt: message.deliveredAt || null,
@@ -4234,22 +4313,45 @@ app.post('/api/users/:userId/block-and-report', authenticate, async (req, res) =
 app.get('/api/spark/discover', authenticate, async (req, res) => {
   try {
     const currentUserId = req.user._id;
+    const seenIds = [
+      ...(req.user.sparkedUsers || []),
+      ...(req.user.passedUsers || [])
+    ];
 
-    const profiles = await User.find({
+    const baseFilter = {
       _id: {
         $ne: currentUserId,
-        $nin: [
-          ...(req.user.sparkedUsers || []),
-          ...(req.user.passedUsers || []),
-          ...(req.user.blockedUsers || [])
-        ]
+        $nin: [...seenIds, ...(req.user.blockedUsers || [])]
       },
       blockedUsers: { $ne: currentUserId },
       isBanned: { $ne: true }
-    })
+    };
+
+    // Show people not yet Sparked or passed first.
+    let profiles = await User.find(baseFilter)
       .select('username avatar photos age gender interestedIn bio location isPremium showPhotos showLocation')
-      .limit(20)
+
       .lean();
+
+    // When new profiles run out, recycle previously seen profiles.
+    if (!profiles.length) {
+      const blockedIds = req.user.blockedUsers || [];
+
+      profiles = await User.find({
+        _id: {
+          $ne: currentUserId,
+          $nin: blockedIds
+        },
+        blockedUsers: { $ne: currentUserId },
+        isBanned: { $ne: true }
+      })
+        .select('username avatar photos age gender interestedIn bio location isPremium showPhotos showLocation')
+
+        .lean();
+    }
+
+    // Randomize eligible profiles so the same person is not always first.
+    profiles.sort(() => Math.random() - 0.5);
 
     const safeProfiles = profiles.map(profile => ({
       id: String(profile._id),
@@ -4263,7 +4365,8 @@ app.get('/api/spark/discover', authenticate, async (req, res) => {
       interestedIn: profile.interestedIn || '',
       bio: profile.bio || '',
       location: profile.showLocation !== false ? (profile.location || '') : '',
-      isPremium: !!profile.isPremium
+      isPremium: !!profile.isPremium,
+      isOnline: isUserActive(profile._id)
     }));
 
     res.set('Cache-Control', 'no-store');
@@ -4374,6 +4477,83 @@ app.post('/api/spark/:userId', authenticate, async (req, res) => {
 });
 
 
+app.post('/api/super-spark/:userId', authenticate, async (req, res) => {
+  try {
+    const currentUserId = String(req.user._id);
+    const targetUserId = String(req.params.userId || '');
+
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      return res.status(400).json({ error: 'Invalid user.' });
+    }
+    if (currentUserId === targetUserId) {
+      return res.status(400).json({ error: 'You cannot Super Spark yourself.' });
+    }
+
+    const targetUser = await User.findOne({
+      _id: targetUserId,
+      isBanned: { $ne: true }
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const alreadySparked = (req.user.sparkedUsers || [])
+      .some(id => String(id) === targetUserId);
+
+    if (!alreadySparked) {
+      req.user.sparkedUsers.push(targetUser._id);
+      req.user.passedUsers = (req.user.passedUsers || [])
+        .filter(id => String(id) !== targetUserId);
+      await req.user.save();
+    }
+
+    const reciprocalSpark = (targetUser.sparkedUsers || [])
+      .some(id => String(id) === currentUserId);
+
+    const notification = await Notification.findOneAndUpdate(
+      {
+        userId: targetUser._id,
+        actorId: req.user._id,
+        type: 'super_spark'
+      },
+      {
+        $set: {
+          message: `💙 ${req.user.username} sent you a Super Spark!`,
+          read: false
+        },
+        $setOnInsert: {
+          userId: targetUser._id,
+          actorId: req.user._id,
+          type: 'super_spark'
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    io.to(`user:${targetUser._id}`).emit('notification', {
+      id: String(notification._id),
+      type: notification.type,
+      actorId: String(notification.actorId),
+      message: notification.message,
+      read: notification.read,
+      createdAt: notification.createdAt
+    });
+
+    res.set('Cache-Control', 'no-store');
+    return res.json({
+      success: true,
+      mutual: reciprocalSpark,
+      message: reciprocalSpark
+        ? '💙 It’s a mutual Super Spark!'
+        : '💙 Super Spark sent!'
+    });
+  } catch (err) {
+    console.error('Super Spark action error:', err);
+    return res.status(500).json({ error: 'Unable to send Super Spark.' });
+  }
+});
+
 /* ---------------------------------------------------------
    NOTIFICATIONS
 --------------------------------------------------------- */
@@ -4384,7 +4564,7 @@ app.get('/api/notifications', authenticate, async (req, res) => {
       userId: req.user._id
     })
       .sort({ createdAt: -1 })
-      .limit(50)
+      .limit(20)
       .populate('actorId', 'username avatar')
       .lean();
 
@@ -4409,6 +4589,32 @@ app.get('/api/notifications', authenticate, async (req, res) => {
     console.error('Notification list error:', err);
     res.status(500).json({
       error: 'Unable to load notifications.'
+    });
+  }
+});
+
+app.delete('/api/notifications/:notificationId', authenticate, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.notificationId)) {
+      return res.status(400).json({ error: 'Invalid notification.' });
+    }
+
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.notificationId,
+      userId: req.user._id,
+      type: { $in: ['spark', 'super_spark'] }
+    }).lean();
+
+    if (!notification) {
+      return res.status(404).json({ error: 'Spark notification not found.' });
+    }
+
+    res.set('Cache-Control', 'no-store');
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Spark notification delete error:', err);
+    return res.status(500).json({
+      error: 'Unable to clear Spark notification.'
     });
   }
 });
