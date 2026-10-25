@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const jwt = require('jwt-simple');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const https = require('https');
 const path = require('path');
 require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
@@ -811,6 +812,11 @@ const UserSchema = new mongoose.Schema({
     default: ''
   },
 
+  avatarSha256: {
+    type: String,
+    default: ''
+  },
+
   age: {
     type: Number,
     min: 18,
@@ -896,6 +902,10 @@ const UserSchema = new mongoose.Schema({
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     default: []
   },
+  superSparkedUsers: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    default: []
+  },
 
   passedUsers: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
@@ -933,6 +943,73 @@ const UserSchema = new mongoose.Schema({
 });
 
 UserSchema.index({ email: 1 }, { unique: true });
+
+// DELETED_IDENTITY_PROTECTION_V1
+const DeletedAccountHistorySchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  normalizedUsername: { type: String, required: true, index: true },
+  email: { type: String, default: '' },
+  avatarUrl: { type: String, default: '' },
+  avatarSha256: { type: String, default: '', index: true },
+  deletedAt: { type: Date, default: Date.now },
+  deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+}, { collection: 'deletedaccountshistory' });
+
+const DeletedAccountHistory = mongoose.model(
+  'DeletedAccountHistory',
+  DeletedAccountHistorySchema
+);
+
+function normalizeDeletedUsername(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function sha256Buffer(buffer) {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+// Only retrieve Cloudinary-hosted avatars; reject other hosts to avoid SSRF.
+function fingerprintCloudinaryAvatar(avatarUrl) {
+  return new Promise((resolve, reject) => {
+    if (!avatarUrl) return resolve('');
+    let parsed;
+    try {
+      parsed = new URL(String(avatarUrl));
+    } catch {
+      return resolve('');
+    }
+
+    if (
+      parsed.protocol !== 'https:' ||
+      parsed.hostname !== 'res.cloudinary.com'
+    ) {
+      return resolve('');
+    }
+
+    const request = https.get(parsed, response => {
+      if (response.statusCode !== 200) {
+        response.resume();
+        return reject(new Error('Could not retrieve existing Cloudinary avatar for fingerprinting.'));
+      }
+
+      const chunks = [];
+      let total = 0;
+      response.on('data', chunk => {
+        total += chunk.length;
+        if (total > 10 * 1024 * 1024) {
+          request.destroy(new Error('Avatar exceeds fingerprint size limit.'));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      response.on('end', () => resolve(sha256Buffer(Buffer.concat(chunks))));
+      response.on('error', reject);
+    });
+
+    request.setTimeout(10000, () => request.destroy(new Error('Avatar fingerprint request timed out.')));
+    request.on('error', reject);
+  });
+}
 
 const User = mongoose.model('User', UserSchema);
 
@@ -1524,86 +1601,272 @@ app.put('/api/admin/users/ban', authenticate, requireAdmin, async (req, res) => 
 
 
 app.delete('/api/admin/users/:username', authenticate, requireAdmin, async (req, res) => {
+  const session = await mongoose.startSession();
+
   try {
-    const username = String(req.params.username || '').trim();
+    const suppliedId = String(req.body?.userId || '');
+    const suppliedUsername = String(req.body?.username ?? '');
+    const routeUsername = String(req.params.username ?? '');
 
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required.' });
+    if (!mongoose.isValidObjectId(suppliedId) ||
+        !suppliedUsername ||
+        suppliedUsername !== routeUsername) {
+      return res.status(400).json({
+        error: 'A valid account ID and matching username are required.'
+      });
     }
 
-    const targetUser = await User.findOne({ username });
+    const targetId = new mongoose.Types.ObjectId(suppliedId);
+    const db = mongoose.connection.db;
+    const users = db.collection('users');
+    const posts = db.collection('posts');
+    const messages = db.collection('messages');
+    const conversations = db.collection('conversations');
+    const notifications = db.collection('notifications');
+    const reports = db.collection('reports');
+    const audits = db.collection('adminaudits');
 
-    if (!targetUser) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
+    let deletedUsername = '';
 
-    if (String(targetUser._id) === String(req.user._id)) {
-      return res.status(400).json({ error: 'You cannot delete your own admin account here.' });
-    }
+    await session.withTransaction(async () => {
+      const target = await users.findOne(
+        { _id: targetId },
+        { session }
+      );
 
-    const targetUserId = targetUser._id;
+      if (!target) {
+        throw Object.assign(new Error('User not found.'), {
+          statusCode: 404
+        });
+      }
 
-    await User.updateMany(
-      { _id: { $ne: targetUserId } },
-      {
-        $pull: {
-          sparkedUsers: targetUserId,
-          passedUsers: targetUserId,
-          blockedUsers: targetUserId
+      if (target.username !== suppliedUsername) {
+        throw Object.assign(
+          new Error('The account ID and username do not match. Refresh the user list and try again.'),
+          { statusCode: 409 }
+        );
+      }
+
+      if (String(target._id) === String(req.user._id)) {
+        throw Object.assign(
+          new Error('You cannot delete your own admin account here.'),
+          { statusCode: 400 }
+        );
+      }
+
+      deletedUsername = target.username;
+      const deletedAvatarUrl = String(target.avatar || '').trim();
+      let deletedAvatarSha256 = String(target.avatarSha256 || '').trim();
+
+      // Prefer the fingerprint saved when the avatar was uploaded.
+      // Fall back to Cloudinary for older accounts without a saved fingerprint.
+      if (
+        !deletedAvatarSha256 &&
+        deletedAvatarUrl &&
+        deletedAvatarUrl.startsWith('https://res.cloudinary.com/')
+      ) {
+        deletedAvatarSha256 = await fingerprintCloudinaryAvatar(deletedAvatarUrl);
+        if (!deletedAvatarSha256) {
+          throw new Error('Could not fingerprint the existing avatar; account deletion was stopped.');
         }
       }
-    );
 
-    const conversations = await Conversation.find({
-      participants: targetUserId
-    }).select('_id').lean();
+      const historyCollection = db.collection('deletedaccountshistory');
+      const normalizedDeletedUsername = normalizeDeletedUsername(target.username);
 
-    const conversationIds = conversations.map(
-      conversation => conversation._id
-    );
+      await historyCollection.updateOne(
+        {
+          normalizedUsername: normalizedDeletedUsername,
+          $or: [
+            { avatarSha256: { $exists: false } },
+            { avatarSha256: '' },
+            { avatarSha256: null }
+          ]
+        },
+        {
+          $set: {
+            ...(deletedAvatarSha256 ? { avatarSha256: deletedAvatarSha256 } : {})
+          }
+        },
+        { session }
+      );
 
-    if (conversationIds.length) {
-      await Message.deleteMany({
-        conversationId: { $in: conversationIds }
-      });
+      await historyCollection.updateOne(
+        { normalizedUsername: normalizedDeletedUsername },
+        {
+          $setOnInsert: {
+            username: String(target.username || ''),
+            normalizedUsername: normalizedDeletedUsername,
+            email: String(target.email || ''),
+            avatarUrl: deletedAvatarUrl,
+            ...(deletedAvatarSha256 ? { avatarSha256: deletedAvatarSha256 } : {}),
+            deletedAt: new Date(),
+            deletedBy: new mongoose.Types.ObjectId(String(req.user._id))
+          }
+        },
+        { upsert: true, session }
+      );
 
-      await Conversation.deleteMany({
-        _id: { $in: conversationIds }
-      });
-    }
+      const normalizedName = String(target.username || '').trim().toLowerCase();
 
-    await Notification.deleteMany({
-      $or: [
-        { userId: targetUserId },
-        { actorId: targetUserId }
-      ]
+      // Only use a normalized legacy name if no other account shares it.
+      // This protects accounts whose usernames differ only by spaces/case.
+      const allOtherUsers = await users.find(
+        { _id: { $ne: targetId } },
+        { projection: { username: 1 }, session }
+      ).toArray();
+
+      const normalizedCollision = allOtherUsers.some(
+        user => String(user.username || '').trim().toLowerCase() === normalizedName
+      );
+
+      const legacyNames = new Set([target.username]);
+      if (normalizedName && !normalizedCollision) {
+        legacyNames.add(normalizedName);
+      }
+      const names = [...legacyNames];
+
+      // Capture owned posts and comment IDs before deleting them, so reports
+      // attached to those posts/comments can also be cleaned.
+      const ownedPosts = await posts.find({
+        $or: [
+          { username: { $in: names } },
+          { author: { $in: names } }
+        ]
+      }, { session }).toArray();
+
+      const ownedPostIds = ownedPosts.map(post => post._id);
+      const ownedCommentIds = [];
+      for (const post of ownedPosts) {
+        for (const comment of post.comments || []) {
+          if (comment?._id) ownedCommentIds.push(String(comment._id));
+        }
+      }
+
+      const targetConversations = await conversations.find(
+        { participants: targetId },
+        { projection: { _id: 1 }, session }
+      ).toArray();
+      const conversationIds = targetConversations.map(c => c._id);
+
+      // Remove private and legacy username-based messages.
+      await messages.deleteMany({
+        $or: [
+          { conversationId: { $in: conversationIds } },
+          { senderId: targetId },
+          { sender: { $in: names } },
+          { receiver: { $in: names } },
+          { recipient: { $in: names } }
+        ]
+      }, { session });
+
+      await conversations.deleteMany(
+        { participants: targetId },
+        { session }
+      );
+
+      // Remove notifications where the account is the actor or recipient.
+      await notifications.deleteMany({
+        $or: [
+          { userId: targetId },
+          { actorId: targetId },
+          { recipient: { $in: names } },
+          { actor: { $in: names } }
+        ]
+      }, { session });
+
+      // Delete owned posts, then remove the target's likes and comments
+      // from posts belonging to other users.
+      await posts.deleteMany(
+        { _id: { $in: ownedPostIds } },
+        { session }
+      );
+
+      await posts.updateMany(
+        { _id: { $nin: ownedPostIds } },
+        {
+          $pull: {
+            likes: { $in: names },
+            comments: { username: { $in: names } }
+          }
+        },
+        { session }
+      );
+
+      // Remove reports filed by the target, reports against the target,
+      // and reports attached to posts/comments that are being deleted.
+      await reports.deleteMany({
+        $or: [
+          { reporterId: targetId },
+          { reportedUserId: targetId },
+          { reporter: { $in: names } },
+          {
+            targetType: 'user',
+            targetId: { $in: [String(targetId), ...names] }
+          },
+          { targetId: { $in: [
+            ...ownedPostIds.map(String),
+            ...ownedCommentIds
+          ] } }
+        ]
+      }, { session });
+
+      // Remove references from other user documents.
+      await users.updateMany(
+        { _id: { $ne: targetId } },
+        {
+          $pull: {
+            sparkedUsers: targetId,
+            superSparkedUsers: targetId,
+            passedUsers: targetId,
+            blockedUsers: targetId
+          }
+        },
+        { session }
+      );
+
+      await users.updateMany(
+        { _id: { $ne: targetId }, referredBy: targetId },
+        { $set: { referredBy: null } },
+        { session }
+      );
+
+      // Keep the internal audit trail, but do not create user notifications.
+      await audits.insertOne({
+        action: 'user_deleted',
+        actorId: new mongoose.Types.ObjectId(String(req.user._id)),
+        target: String(target.username || '').slice(0, 200),
+        details: 'User account and associated content, conversations, messages, notifications, and references were permanently deleted.',
+        createdAt: new Date()
+      }, { session });
+
+      const deletion = await users.deleteOne(
+        { _id: targetId },
+        { session }
+      );
+
+      if (deletion.deletedCount !== 1) {
+        throw new Error('Account deletion did not complete.');
+      }
     });
 
-    const deleted = await User.deleteOne({
-      _id: targetUserId
-    });
-
-    if (!deleted.deletedCount) {
-      return res.status(404).json({ error: 'User account not found.' });
-    }
-
-    await recordAdminAudit(
-      req,
-      'user_deleted',
-      username,
-      'User account and associated private chat data were permanently deleted.'
-    );
-
-    res.json({
+    return res.json({
       success: true,
-      username
+      id: suppliedId,
+      username: deletedUsername
     });
   } catch (err) {
     console.error('Admin user delete error:', err);
-    res.status(500).json({ error: 'Unable to delete user account.' });
+
+    return res.status(err.statusCode || 500).json({
+      error: err.statusCode
+        ? err.message
+        : 'Unable to complete account cleanup. No partial transaction changes were committed.'
+    });
+  } finally {
+    await session.endSession();
   }
 });
-
 
 /* ---------------------------------------------------------
    ADMIN STATS
@@ -1904,7 +2167,11 @@ app.get('/api/user/invite', authenticate, async (req, res) => {
 
 app.post('/api/auth/register', async (req, res) => {
   try {
-    if (!rateLimit(clientKey(req, 'register'), 8, 15 * 60 * 1000)) {
+    const registrationLimit = process.env.NODE_ENV === 'production'
+      ? 8
+      : Math.max(1, Number.parseInt(process.env.REGISTRATION_RATE_LIMIT || '100', 10) || 100);
+
+    if (!rateLimit(clientKey(req, 'register'), registrationLimit, 15 * 60 * 1000)) {
       return res.status(429).json({
         error: 'Too many registration attempts. Please try again later.'
       });
@@ -1927,6 +2194,16 @@ app.post('/api/auth/register', async (req, res) => {
     if (!validPassword(password)) {
       return res.status(400).json({
         error: 'Password must be between 8 and 128 characters.'
+      });
+    }
+
+    const priorDeletedUsername = await DeletedAccountHistory.findOne({
+      normalizedUsername: normalizeDeletedUsername(username)
+    }).select('_id').lean();
+
+    if (priorDeletedUsername) {
+      return res.status(409).json({
+        error: 'Username blocked by MikiConnect.'
       });
     }
 
@@ -2766,7 +3043,49 @@ app.put('/api/user/profile', authenticate, async (req, res) => {
     }
 
     if (photos !== undefined) user.photos = photos;
-    if (avatar !== undefined) user.avatar = String(avatar);
+
+    if (avatar !== undefined) {
+      const nextAvatar = String(avatar || '').trim();
+
+      if (nextAvatar !== String(user.avatar || '').trim()) {
+        let nextHash = '';
+
+        if (nextAvatar) {
+          const priorUrl = await DeletedAccountHistory.findOne({
+            avatarUrl: nextAvatar
+          }).select('_id').lean();
+
+          if (priorUrl) {
+            return res.status(409).json({
+              error: 'Profile blocked by MikiConnect.'
+            });
+          }
+
+          if (nextAvatar.startsWith('https://res.cloudinary.com/')) {
+            nextHash = await fingerprintCloudinaryAvatar(nextAvatar);
+
+            if (!nextHash) {
+              return res.status(400).json({
+                error: 'Unable to verify this profile picture. Please upload it again.'
+              });
+            }
+
+            const priorImage = await DeletedAccountHistory.findOne({
+              avatarSha256: nextHash
+            }).select('_id').lean();
+
+            if (priorImage) {
+              return res.status(409).json({
+                error: 'Profile blocked by MikiConnect.'
+              });
+            }
+          }
+        }
+
+        user.avatar = nextAvatar;
+        user.avatarSha256 = nextHash;
+      }
+    }
     if (age !== undefined) user.age = Number(age);
 
     if (minAge !== undefined || maxAge !== undefined) {
@@ -2921,6 +3240,17 @@ app.post('/api/media/avatar', authenticate, avatarUpload.single('avatar'), async
       return res.status(400).json({ error: 'Please select an image.' });
     }
 
+    const avatarSha256 = sha256Buffer(req.file.buffer);
+    const blockedImage = await DeletedAccountHistory.findOne({
+      avatarSha256
+    }).select('_id').lean();
+
+    if (blockedImage) {
+      return res.status(409).json({
+        error: 'Profile blocked by MikiConnect.'
+      });
+    }
+
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
@@ -2943,6 +3273,7 @@ app.post('/api/media/avatar', authenticate, avatarUpload.single('avatar'), async
     }
 
     user.avatar = result.secure_url;
+    user.avatarSha256 = avatarSha256;
     await user.save();
 
     res.json({
@@ -3259,7 +3590,7 @@ app.post('/api/chat/conversation/:userId', authenticate, async (req, res) => {
     }
 
     const otherUser = await User.findById(otherUserId)
-      .select('username avatar photos isBanned sparkedUsers')
+      .select('username avatar photos isBanned sparkedUsers superSparkedUsers')
       .lean();
 
     if (!otherUser || otherUser.isBanned === true) {
@@ -3272,9 +3603,18 @@ app.post('/api/chat/conversation/:userId', authenticate, async (req, res) => {
     const otherUserSparked = (otherUser.sparkedUsers || [])
       .some(id => String(id) === currentUserId);
 
-    if (!currentUserSparked || !otherUserSparked) {
+    const currentUserSuperSparked = (req.user.superSparkedUsers || [])
+      .some(id => String(id) === otherUserId);
+    const otherUserSuperSparked = (otherUser.superSparkedUsers || [])
+      .some(id => String(id) === currentUserId);
+
+    if (
+      (!currentUserSparked || !otherUserSparked) &&
+      !currentUserSuperSparked &&
+      !otherUserSuperSparked
+    ) {
       return res.status(403).json({
-        error: 'You can only chat after a mutual Spark.'
+        error: 'You can only chat after a mutual Spark or Super Spark.'
       });
     }
 
@@ -3691,9 +4031,9 @@ app.post('/api/chat/:conversationId/messages', authenticate, async (req, res) =>
     await Conversation.updateOne({ _id: conversation._id }, update);
 
     let deliveredAt = null;
+    const sender = await User.findById(req.user._id).select('username').lean();
 
     if (recipientId) {
-      const sender = await User.findById(req.user._id).select('username').lean();
 
       const recipientRoom = `user:${String(recipientId)}`;
       const recipientSockets = io.sockets.adapter.rooms.get(recipientRoom);
@@ -3718,6 +4058,25 @@ app.post('/api/chat/:conversationId/messages', authenticate, async (req, res) =>
         unreadCount: Number(update.$inc[`unreadCounts.${String(recipientId)}`] || 1)
       });
     }
+
+    io.to(`conversation:${String(conversation._id)}`).emit('privateMessage', {
+      id: String(message._id),
+      conversationId: String(conversation._id),
+      senderId: String(message.senderId),
+      senderUsername: sender?.username || '',
+      replyToMessageId: message.replyToMessageId
+        ? String(message.replyToMessageId)
+        : null,
+      type: message.type || 'text',
+      content: message.content || '',
+      audioUrl: message.audioUrl || '',
+      audioDuration: message.audioDuration ?? null,
+      imageUrl: message.imageUrl || '',
+      videoUrl: message.videoUrl || '',
+      createdAt: message.createdAt,
+      deliveredAt,
+      readAt: null
+    });
 
     res.set('Cache-Control', 'no-store');
 
@@ -4463,6 +4822,7 @@ app.post('/api/spark/:userId', authenticate, async (req, res) => {
 
     return res.json({
       success: true,
+      alreadySparked,
       mutual: reciprocalSpark,
       message: reciprocalSpark
         ? '✨ It’s a mutual Spark!'
@@ -4505,6 +4865,14 @@ app.post('/api/super-spark/:userId', authenticate, async (req, res) => {
       req.user.sparkedUsers.push(targetUser._id);
       req.user.passedUsers = (req.user.passedUsers || [])
         .filter(id => String(id) !== targetUserId);
+      await req.user.save();
+    }
+    req.user.superSparkedUsers = req.user.superSparkedUsers || [];
+    const alreadySuperSparked = req.user.superSparkedUsers
+      .some(id => String(id) === targetUserId);
+
+    if (!alreadySuperSparked) {
+      req.user.superSparkedUsers.push(targetUser._id);
       await req.user.save();
     }
 
@@ -4561,7 +4929,8 @@ app.post('/api/super-spark/:userId', authenticate, async (req, res) => {
 app.get('/api/notifications', authenticate, async (req, res) => {
   try {
     const notifications = await Notification.find({
-      userId: req.user._id
+      userId: req.user._id,
+      type: 'super_spark'
     })
       .sort({ createdAt: -1 })
       .limit(20)
@@ -4602,7 +4971,7 @@ app.delete('/api/notifications/:notificationId', authenticate, async (req, res) 
     const notification = await Notification.findOneAndDelete({
       _id: req.params.notificationId,
       userId: req.user._id,
-      type: { $in: ['spark', 'super_spark'] }
+      type: 'super_spark'
     }).lean();
 
     if (!notification) {
@@ -4628,7 +4997,8 @@ app.post('/api/notifications/:notificationId/read', authenticate, async (req, re
     const notification = await Notification.findOneAndUpdate(
       {
         _id: req.params.notificationId,
-        userId: req.user._id
+        userId: req.user._id,
+        type: 'super_spark'
       },
       {
         $set: { read: true }
@@ -4665,6 +5035,7 @@ app.post('/api/notifications/read-all', authenticate, async (req, res) => {
     await Notification.updateMany(
       {
         userId: req.user._id,
+        type: 'super_spark',
         read: false
       },
       {

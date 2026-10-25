@@ -78,12 +78,13 @@ const MessageSchema = new mongoose.Schema({
   recipient: { type: String, default: '', maxlength: 30, index: true },
   text: { type: String, required: true, maxlength: 2000 },
   roomId: { type: String, default: 'public', maxlength: 100, index: true },
+  read: { type: Boolean, default: false, index: true },
   createdAt: { type: Date, default: Date.now, index: true }
 }, { versionKey: false });
 
 const NotificationSchema = new mongoose.Schema({
   recipient: { type: String, required: true, index: true, maxlength: 30 },
-  type: { type: String, enum: ['follow', 'like', 'comment', 'system'], required: true },
+  type: { type: String, enum: ['follow', 'like', 'comment', 'system', 'spark'], required: true },
   actor: { type: String, default: '', maxlength: 30 },
   text: { type: String, required: true, maxlength: 500 },
   read: { type: Boolean, default: false, index: true },
@@ -428,6 +429,40 @@ app.post('/api/users/:username/follow', authenticate, rateLimit({ windowMs: 60 *
   res.json({ success: true, following: !following, followersCount: other.followers.length, followingCount: meUser.following.length });
 }));
 
+app.post('/api/users/:username/spark', authenticate, rateLimit({ windowMs: 60 * 60 * 1000, max: 30, key: req => `${req.ip}:spark:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
+  const target = cleanUsername(req.params.username);
+  if (!target || target === req.user.username) return res.status(400).json({ error: 'Invalid user.' });
+  const other = await User.findOne({ username: target, isBanned: false });
+  if (!other) return res.status(404).json({ error: 'User not found.' });
+  await Notification.create({
+    recipient: target,
+    type: 'spark',
+    actor: req.user.username,
+    text: `@${req.user.username} sent you a Super Spark.`
+  });
+  res.json({ success: true });
+}));
+
+app.get('/api/sparks', authenticate, asyncRoute(async (req, res) => {
+  const sparks = await Notification.find({
+    recipient: req.user.username,
+    type: 'spark'
+  }).sort({ createdAt: -1 }).limit(100).lean();
+  res.json({ success: true, sparks });
+}));
+
+app.delete('/api/sparks/:id', authenticate, asyncRoute(async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid Spark notification.' });
+  }
+  await Notification.deleteOne({
+    _id: req.params.id,
+    recipient: req.user.username,
+    type: 'spark'
+  });
+  res.json({ success: true });
+}));
+
 app.get('/api/users/:username/followers', rateLimit({ windowMs: 60 * 1000, max: 60 }), asyncRoute(async (req, res) => {
   const user = await User.findOne({ username: cleanUsername(req.params.username), isBanned: false }).lean();
   if (!user) return res.status(404).json({ error: 'User not found.' });
@@ -442,11 +477,11 @@ app.get('/api/users/:username/following', rateLimit({ windowMs: 60 * 1000, max: 
 }));
 
 app.get('/api/notifications', authenticate, asyncRoute(async (req, res) => {
-  const notifications = await Notification.find({ recipient: req.user.username }).sort({ createdAt: -1 }).limit(50).lean();
+  const notifications = await Notification.find({ recipient: req.user.username, type: { $ne: 'spark' } }).sort({ createdAt: -1 }).limit(50).lean();
   res.json({ success: true, notifications, unread: notifications.filter(n => !n.read).length });
 }));
 app.post('/api/notifications/read', authenticate, asyncRoute(async (req, res) => {
-  await Notification.updateMany({ recipient: req.user.username, read: false }, { $set: { read: true } });
+  await Notification.updateMany({ recipient: req.user.username, read: false, type: { $ne: 'spark' } }, { $set: { read: true } });
   res.json({ success: true });
 }));
 
@@ -545,6 +580,50 @@ app.get('/api/messages/public', authenticate, rateLimit({ windowMs: 60 * 1000, m
   const messages = await Message.find({ roomId: 'public', recipient: '' }).sort({ createdAt: -1 }).limit(100).lean();
   res.json({ success: true, messages: messages.reverse() });
 }));
+app.get('/api/messages/conversations', authenticate, rateLimit({ windowMs: 60 * 1000, max: 60, key: req => `${req.ip}:dm-conversations:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
+  const username = req.user.username;
+  const messages = await Message.find({
+    roomId: { $ne: 'public' },
+    $or: [{ sender: username }, { recipient: username }]
+  }).sort({ createdAt: -1 }).limit(1000).lean();
+
+  const conversations = new Map();
+  for (const message of messages) {
+    const other = message.sender === username ? message.recipient : message.sender;
+    if (!other || other === username) continue;
+    if (!conversations.has(other)) {
+      conversations.set(other, {
+        username: other,
+        lastMessage: message.text,
+        lastMessageAt: message.createdAt,
+        unread: 0
+      });
+    }
+    if (message.recipient === username && message.sender === other && !message.read) {
+      conversations.get(other).unread++;
+    }
+  }
+
+  res.json({
+    success: true,
+    conversations: [...conversations.values()].sort(
+      (a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt)
+    )
+  });
+}));
+
+app.post('/api/messages/dm/:username/read', authenticate, rateLimit({ windowMs: 60 * 1000, max: 60, key: req => `${req.ip}:dm-read:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
+  const other = cleanUsername(req.params.username);
+  if (!other || other === req.user.username) return res.status(400).json({ error: 'Invalid recipient.' });
+  const result = await Message.updateMany({
+    sender: other,
+    recipient: req.user.username,
+    roomId: { $ne: 'public' },
+    read: false
+  }, { $set: { read: true } });
+  res.json({ success: true, markedRead: result.modifiedCount });
+}));
+
 app.get('/api/messages/dm/:username', authenticate, rateLimit({ windowMs: 60 * 1000, max: 60, key: req => `${req.ip}:dm-history:${req.user?._id || 'anon'}` }), asyncRoute(async (req, res) => {
   const other = cleanUsername(req.params.username);
   if (!other || other === req.user.username) return res.status(400).json({ error: 'Invalid recipient.' });

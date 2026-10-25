@@ -1267,8 +1267,17 @@
 }
 
 #chat-tab .chat-unread-dot {
-    color: #fff !important;
-    background: linear-gradient(135deg, #ff2a5f, #ff7e5f) !important;
+    box-sizing: border-box !important;
+    width: 9px !important;
+    min-width: 9px !important;
+    height: 9px !important;
+    padding: 0 !important;
+    border: 1px solid #07131d !important;
+    border-radius: 50% !important;
+    background: #f06b73 !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.22) !important;
 }
 
 #privateChatPanel {
@@ -2556,9 +2565,7 @@ img, video, canvas, iframe {
     box-sizing: border-box;
   }
 
-  #app-screen > .container > .nav-tabs #admin-tab-btn {
-    display: none !important;
-  }
+
 
   #app-screen > .container > .tab-content.active {
     flex: 1 1 auto;
@@ -4124,6 +4131,124 @@ body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
   }
 }
 
+
+/* Floating stars for Super Spark */
+#sparkSuperBtn {
+    position: relative;
+    overflow: visible;
+}
+
+.super-spark-star-float {
+    position: absolute;
+    left: 50%;
+    bottom: 65%;
+    pointer-events: none;
+    z-index: 100;
+    font-size: 25px;
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.65);
+    will-change: transform, opacity;
+    animation: superSparkStarFloat 2s ease-out forwards;
+}
+
+@keyframes superSparkStarFloat {
+    0% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--star-drift, 0px)), 8px) scale(0.65) rotate(0deg);
+    }
+    20% {
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--star-drift, 0px)), -85px) scale(1.25) rotate(25deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .super-spark-star-float {
+        animation-name: superSparkStarFloatReduced;
+        animation-duration: 1.5s;
+        animation-timing-function: ease-out;
+    }
+
+    @keyframes superSparkStarFloatReduced {
+        0% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--star-drift, 0px)), 0) scale(0.9);
+        }
+        20%, 80% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--star-drift, 0px)), -12px) scale(1);
+        }
+    }
+}
+
+/* Green floating hearts for repeated Sparks */
+#sparkLikeBtn {
+    position: relative;
+    overflow: visible;
+}
+
+.spark-heart-float {
+    position: absolute;
+    left: 50%;
+    bottom: 65%;
+    pointer-events: none;
+    z-index: 100;
+    color: #22c55e;
+    font-size: 26px;
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.55);
+    will-change: transform, opacity;
+    animation: sparkHeartFloat 2.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+@keyframes sparkHeartFloat {
+    0% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--heart-drift, 0px)), 8px) scale(0.65);
+    }
+    20% {
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--heart-drift, 0px)), -100px) scale(1.35);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spark-heart-float {
+        animation-name: sparkHeartFloatReduced;
+        animation-duration: 1.5s;
+        animation-timing-function: ease-out;
+    }
+
+    @keyframes sparkHeartFloatReduced {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, 0) scale(0.9);
+        }
+        20%, 80% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -12px) scale(1);
+        }
+    }
+}
+
 </style>
 
     <div id="mikiAppDialog" class="miki-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="mikiAppDialogTitle">
@@ -4242,7 +4367,7 @@ body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
         <div id="notificationsPanel" class="card hidden" style="max-width:1050px; margin:16px auto 0; position:relative;">
             <div class="row between">
                 <div>
-                    <h3 style="margin:0;">Notifications</h3>
+                    <h3 style="margin:0;">Super Sparks</h3>
 
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
@@ -5378,6 +5503,26 @@ body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
             }
         }
 
+        function showSuperSparkStars(button) {
+            if (!button) return;
+
+            const stars = [
+                { symbol: '⭐', drift: '-38px', delay: '0ms' },
+                { symbol: '✨', drift: '0px', delay: '160ms' },
+                { symbol: '💙', drift: '38px', delay: '320ms' }
+            ];
+
+            stars.forEach(({ symbol, drift, delay }) => {
+                const star = document.createElement('span');
+                star.className = 'super-spark-star-float';
+                star.textContent = symbol;
+                star.style.setProperty('--star-drift', drift);
+                star.style.animationDelay = delay;
+                button.appendChild(star);
+                star.addEventListener('animationend', () => star.remove(), { once: true });
+            });
+        }
+
         async function handleSuperSpark() {
             const profile = sparkProfiles[sparkIndex];
             if (!profile?.id) return;
@@ -5396,7 +5541,9 @@ body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
                 });
 
                 const feedback = document.getElementById("sparkFeedback");
-                if (feedback) feedback.textContent = data.message || "💙 Super Spark sent!";
+                if (feedback) feedback.textContent = "Mutual Spark";
+
+                showSuperSparkStars(button);
 
                 sparkBrowseHistory.push(sparkIndex);
                 sparkIndex += 1;
@@ -5427,6 +5574,26 @@ body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
 
         document.getElementById("sparkSuperBtn")?.addEventListener("click", handleSuperSpark);
 
+        function showGreenSparkHearts(button) {
+            if (!button) return;
+
+            const hearts = [
+                { symbol: '💕', drift: '-38px', delay: '0ms' },
+                { symbol: '💚', drift: '0px', delay: '180ms' },
+                { symbol: '💕', drift: '38px', delay: '360ms' }
+            ];
+
+            hearts.forEach(({ symbol, drift, delay }) => {
+                const heart = document.createElement('span');
+                heart.className = 'spark-heart-float';
+                heart.textContent = symbol;
+                heart.style.setProperty('--heart-drift', drift);
+                heart.style.animationDelay = delay;
+                button.appendChild(heart);
+                heart.addEventListener('animationend', () => heart.remove(), { once: true });
+            });
+        }
+
         async function handleSparkLike() {
             const profile = sparkProfiles[sparkIndex];
             if (!profile?.id) return;
@@ -5444,7 +5611,11 @@ body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
 
                 const feedback = document.getElementById("sparkFeedback");
                 if (feedback) {
-                    feedback.textContent = data.message || "✨ Spark sent!";
+                    feedback.textContent = "Vibes";
+                }
+
+                if (data.alreadySparked) {
+                    showGreenSparkHearts(button);
                 }
 
                 sparkBrowseHistory.push(sparkIndex);
@@ -5495,50 +5666,50 @@ body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
         document.getElementById("sparkInfoBtn")?.addEventListener("click", () => {
             const profile = sparkProfiles[sparkIndex];
             if (!profile) return;
-
-            const details = [
-                profile.username || "MikiConnect member",
-                profile.age !== undefined && profile.age !== null && profile.age !== "" ? "Age: " + profile.age : "",
-                profile.location ? "Location: " + profile.location : "",
-                profile.gender ? "Gender: " + profile.gender : "",
-                profile.interestedIn ? "Interested in: " + profile.interestedIn : "",
-                profile.bio || ""
-            ].filter(Boolean).join("\\n\\n");
-
-            showMikiAppDialog({
-                title: "Profile information",
-                message: details,
-                icon: "ⓘ",
-                confirmText: "Close",
-                showCancel: false
-            });
+            if (typeof window.openSparkFullProfile === "function") {
+                window.openSparkFullProfile(profile);
+            } else {
+                console.error("Full profile viewer is not ready.");
+            }
         });
 
         document.getElementById("sparkPassBtn")?.addEventListener("click", handleSparkPass);
         document.getElementById("sparkLikeBtn")?.addEventListener("click", handleSparkLike);
 
-        // MIKICONNECT SPARK SWIPE GESTURES — BROWSE ONLY
+        // SPARK SWIPE: animate profile content, never the action buttons.
         (() => {
             const card = document.getElementById("sparkCard");
-            if (!card) return;
+            const photo = document.getElementById("sparkPhoto");
+            const details = card?.querySelector(":scope > div:not(#sparkPhoto)");
+            if (!card || !photo || !details) return;
 
+            const targets = [
+                photo,
+                ...details.querySelectorAll(
+                    ":scope > #sparkName, :scope > #sparkMeta, :scope > #sparkBio, :scope > #sparkFeedback"
+                )
+            ];
             let startX = 0;
             let startY = 0;
             let tracking = false;
             let busy = false;
 
             const resetCard = () => {
-                card.style.transition = "transform 180ms ease, opacity 180ms ease";
-                card.style.transform = "";
-                card.style.opacity = "";
+                targets.forEach(target => {
+                    target.style.transition = "transform 180ms ease, opacity 180ms ease";
+                    target.style.transform = "";
+                    target.style.opacity = "";
+                });
             };
 
             card.addEventListener("touchstart", event => {
                 if (busy || event.touches.length !== 1) return;
+                if (event.target.closest("#sparkControlColumn, button")) return;
+
                 startX = event.touches[0].clientX;
                 startY = event.touches[0].clientY;
                 tracking = true;
-                card.style.transition = "none";
+                targets.forEach(target => target.style.transition = "none");
             }, { passive: true });
 
             card.addEventListener("touchmove", event => {
@@ -5546,7 +5717,9 @@ body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
                 const dx = event.touches[0].clientX - startX;
                 const dy = event.touches[0].clientY - startY;
                 if (Math.abs(dx) > Math.abs(dy) * 1.2) {
-                    card.style.transform = `translateX(${dx}px) rotate(${dx * 0.025}deg)`;
+                    targets.forEach(target => {
+                        target.style.transform = `translateX(${dx}px) rotate(${dx * 0.025}deg)`;
+                    });
                 }
             }, { passive: true });
 
@@ -5569,10 +5742,12 @@ body.theme-spark #app-screen .nav-tabs .nav-tab:first-child.active {
                 }
 
                 busy = true;
-                card.style.transition = "transform 180ms ease, opacity 180ms ease";
-                card.style.transform =
-                    `translateX(${dx > 0 ? window.innerWidth : -window.innerWidth}px)`;
-                card.style.opacity = "0";
+                targets.forEach(target => {
+                    target.style.transition = "transform 180ms ease, opacity 180ms ease";
+                    target.style.transform =
+                        `translateX(${dx > 0 ? window.innerWidth : -window.innerWidth}px)`;
+                    target.style.opacity = "0";
+                });
 
                 await new Promise(resolve => setTimeout(resolve, 180));
 
@@ -7733,8 +7908,9 @@ async function startPrivateVoiceRecording() {
                     );
                 }
 
-                if (pendingVoiceWrap && messageData.message.id) {
-                    pendingVoiceWrap.dataset.messageId = String(messageData.message.id);
+                if (pendingVoiceWrap) {
+                    pendingVoiceWrap.remove();
+                    pendingVoiceWrap = null;
                 }
                 renderPrivateMessage(messageData.message);
 
@@ -7760,7 +7936,11 @@ async function startPrivateVoiceRecording() {
                 const sentReplyMedia = document.getElementById("privateReplyPreviewMedia");
                 if (sentReplyMedia) sentReplyMedia.replaceChildren();
 
-                await loadChatConversations();
+                try {
+                    await loadChatConversations();
+                } catch (refreshError) {
+                    console.warn("Voice message sent, but conversation list refresh failed:", refreshError);
+                }
             } catch (error) {
                 if (pendingVoiceWrap) pendingVoiceWrap.remove();
                 preparingPreview?.remove();
@@ -7960,6 +8140,22 @@ privateVoiceButton?.addEventListener(
             "profile-tab",
             "admin-tab"
         ];
+            // Spark screen: tap non-interactive background to toggle bottom navigation.
+(() => {
+    const sparkScreen = document.getElementById('sparks-tab');
+    const sparkNav = document.querySelector('#app-screen > .container > .nav-tabs');
+    if (!sparkScreen || !sparkNav) return;
+
+    sparkScreen.addEventListener('click', event => {
+        if (currentMainTab !== 'sparks-tab') return;
+        if (event.target.closest('button, a, input, textarea, select, label, [role="button"]')) return;
+        if (event.target.closest('#sparkFullProfile')) return;
+        sparkNav.classList.toggle('hidden');
+    });
+})();
+
+// Keep main navigation visible when the Spark screen opens.
+
 
         function switchTab(tabId, options = {}) {
             const settingsPanel = document.getElementById("settingsPanel");
@@ -7973,12 +8169,12 @@ privateVoiceButton?.addEventListener(
 
             const mainNav = document.querySelector(".nav-tabs");
             if (mainNav) {
-                mainNav.classList.toggle("hidden", tabId === "sparks-tab");
+                mainNav.classList.toggle("hidden", tabId !== "sparks-tab");
             }
 
             const headerActions = document.querySelector(".header-actions");
             if (headerActions) {
-                headerActions.classList.toggle("hidden", tabId !== "sparks-tab");
+                headerActions.classList.remove("hidden");
             }
 
             if (tabId !== "sparks-tab") {
@@ -8207,8 +8403,9 @@ privateVoiceButton?.addEventListener(
                 const userLabel = document.getElementById('userLabel');
                 if (userLabel) userLabel.textContent = (me.username || "").replace(/^@+/, "");
 
-                if (me.role === 'admin') {
-                    document.getElementById('admin-tab-btn')?.classList.remove('hidden');
+                const adminTabBtn = document.getElementById('admin-tab-btn');
+                if (adminTabBtn) {
+                    adminTabBtn.classList.toggle('hidden', me.role !== 'admin');
                 }
 
                 const bio = document.getElementById('profileBio');
@@ -8232,10 +8429,16 @@ privateVoiceButton?.addEventListener(
                 if (interestedIn) interestedIn.value = me.interestedIn || '';
                 if (location) location.value = me.location || '';
 
-                if (avatarPreview && me.avatar) {
-                    avatarPreview.src = me.avatar;
-                    avatarPreview.style.display = 'block';
-                    if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
+                if (avatarPreview) {
+                    if (me.avatar) {
+                        avatarPreview.src = me.avatar;
+                        avatarPreview.style.display = 'block';
+                        if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
+                    } else {
+                        avatarPreview.removeAttribute('src');
+                        avatarPreview.style.display = 'none';
+                        if (avatarPlaceholder) avatarPlaceholder.style.display = 'inline';
+                    }
                 }
             }
 
@@ -8352,6 +8555,17 @@ privateVoiceButton?.addEventListener(
             } catch {}
 
             me = null;
+
+            // Clear the previous account's profile avatar from the screen.
+            const avatarPreview = document.getElementById('profileAvatarPreview');
+            const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+            if (avatarPreview) {
+                avatarPreview.removeAttribute('src');
+                avatarPreview.style.display = 'none';
+            }
+            if (avatarPlaceholder) {
+                avatarPlaceholder.style.display = 'inline';
+            }
 
             // Clear account-specific Spark state when switching accounts.
             sparkProfiles = [];
@@ -8504,7 +8718,7 @@ privateVoiceButton?.addEventListener(
             if (!notifications.length) {
                 const empty = document.createElement('p');
                 empty.className = 'muted';
-                empty.textContent = 'No notifications yet.';
+                empty.textContent = 'No Super Sparks yet.';
                 list.appendChild(empty);
                 updateNotificationBadge(0);
                 return;
@@ -8883,18 +9097,22 @@ privateVoiceButton?.addEventListener(
                 socket.on('notification', notification => {
                     if (!notification || !notification.id) return;
 
-                    const existingIndex = notifications.findIndex(
-                        item => item.id === notification.id
-                    );
+                    // Keep the bell inbox strictly for Super Sparks.
+                    if (notification.type === 'super_spark') {
+                        const existingIndex = notifications.findIndex(
+                            item => item.id === notification.id
+                        );
 
-                    if (existingIndex >= 0) {
-                        notifications[existingIndex] = notification;
-                    } else {
-                        notifications.unshift(notification);
+                        if (existingIndex >= 0) {
+                            notifications[existingIndex] = notification;
+                        } else {
+                            notifications.unshift(notification);
+                        }
+
+                        renderNotifications();
                     }
 
-                    renderNotifications();
-
+                    // Preserve existing Spark toast behavior separately.
                     if (['spark', 'super_spark'].includes(notification.type)) {
                         showSparkNotificationPopup(notification);
                     }
@@ -10586,6 +10804,12 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
             }
 
             window.addEventListener('popstate', (event) => {
+                const sparkFullProfile = document.getElementById('sparkFullProfile');
+                if (sparkFullProfile && !sparkFullProfile.classList.contains('hidden')) {
+                    sparkFullProfile.classList.add('hidden');
+                    document.body.style.overflow = '';
+                    return;
+                }
                 if (profileImageViewerHistoryActive) {
                     closeProfileImageViewer(true);
                     return;
@@ -10636,7 +10860,10 @@ const accountInfoBtn = document.getElementById('accountInfoBtn');
                 }
 
                 const sparkNav = document.querySelector('#app-screen > .container > .nav-tabs');
-                if (sparkNav) sparkNav.classList.remove('hidden');
+                if (sparkNav) {
+                    sparkNav.classList.toggle('hidden');
+                    return;
+                }
 
             });
 
@@ -10997,8 +11224,10 @@ const saveProfile = document.getElementById('saveProfileBtn');
         async function sendPrivateMedia(file) {
             const panel = document.getElementById("privateChatPanel");
             const status = document.getElementById("privateChatStatus");
+            const messages = document.getElementById("privateChatMessages");
             if (!panel || !panel.dataset.conversationId || !file) return;
 
+            const conversationId = panel.dataset.conversationId;
             const isVideo = file.type.startsWith("video/");
             const isImage = file.type.startsWith("image/");
 
@@ -11011,14 +11240,60 @@ const saveProfile = document.getElementById('saveProfileBtn');
                 return;
             }
 
+            let pendingWrap = null;
+            let objectUrl = null;
+
             try {
+                if (messages) {
+                    objectUrl = URL.createObjectURL(file);
+
+                    pendingWrap = document.createElement("div");
+                    pendingWrap.className = "private-message-wrap own";
+                    pendingWrap.dataset.pendingMedia = "true";
+
+                    const bubble = document.createElement("div");
+                    bubble.className = "private-message own";
+
+                    const meta = document.createElement("div");
+                    meta.className = "private-message-meta";
+                    meta.textContent = "You";
+
+                    const body = document.createElement("div");
+
+                    if (isImage) {
+                        const img = document.createElement("img");
+                        img.src = objectUrl;
+                        img.alt = "Photo message";
+                        img.style.cssText = "display:block;max-width:min(260px,100%);max-height:320px;object-fit:contain;border-radius:12px;";
+                        body.appendChild(img);
+                    } else {
+                        const video = document.createElement("video");
+                        video.src = objectUrl;
+                        video.muted = true;
+                        video.playsInline = true;
+                        video.preload = "metadata";
+                        video.style.cssText = "display:block;width:min(200px,100%);max-height:220px;border-radius:12px;background:#000;object-fit:contain;";
+                        body.appendChild(video);
+                    }
+
+                    const pendingStatus = document.createElement("div");
+                    pendingStatus.textContent = "Uploading…";
+                    pendingStatus.style.cssText = "font-size:12px;opacity:.8;margin-top:6px;";
+
+                    bubble.appendChild(meta);
+                    bubble.appendChild(body);
+                    bubble.appendChild(pendingStatus);
+                    pendingWrap.appendChild(bubble);
+                    messages.appendChild(pendingWrap);
+                    messages.scrollTop = messages.scrollHeight;
+                }
+
                 if (status) status.textContent = isVideo ? "Uploading video…" : "Uploading photo…";
 
                 const form = new FormData();
                 form.append("media", file);
-
                 const uploaded = await api(
-                    `/api/chat/${panel.dataset.conversationId}/media`,
+                    `/api/chat/${conversationId}/media`,
                     { method: "POST", body: form }
                 );
 
@@ -11031,7 +11306,7 @@ const saveProfile = document.getElementById('saveProfileBtn');
                     : { type: "image", imageUrl: uploaded.mediaUrl };
 
                 const data = await api(
-                    `/api/chat/${panel.dataset.conversationId}/messages`,
+                    `/api/chat/${conversationId}/messages`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -11043,13 +11318,20 @@ const saveProfile = document.getElementById('saveProfileBtn');
                     throw new Error(data.error || "Unable to send media.");
                 }
 
+                if (pendingWrap) {
+                    pendingWrap.remove();
+                    pendingWrap = null;
+                }
+
                 renderPrivateMessage(data.message);
-                const messages = document.getElementById("privateChatMessages");
                 if (messages) messages.scrollTop = messages.scrollHeight;
                 await loadChatConversations();
                 if (status) status.textContent = "";
             } catch (err) {
+                if (pendingWrap) pendingWrap.remove();
                 if (status) status.textContent = err.message || "Unable to send photo or video.";
+            } finally {
+                if (objectUrl) URL.revokeObjectURL(objectUrl);
             }
         }
 
@@ -11794,6 +12076,128 @@ const saveProfile = document.getElementById('saveProfileBtn');
 </script>
 
 
+
+
+<div id="sparkFullProfile" class="hidden" role="dialog" aria-modal="true" aria-label="Full profile" style="position:fixed;inset:0;z-index:10000;background:#07131d;color:#fff;overflow-y:auto;">
+  <div style="position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:14px;padding:14px 16px;background:#07131d;border-bottom:1px solid rgba(255,255,255,.12);">
+    <h2 id="sparkFullProfileHeading" style="margin:0;font-size:20px;">Profile</h2>
+  </div>
+  <div style="max-width:700px;margin:0 auto;padding:16px 16px 40px;">
+    <div style="position:relative;">
+      <img id="sparkFullProfilePhoto" alt="Profile photo" style="display:block;width:100%;height:min(62vh,520px);object-fit:contain;background:#101e29;border-radius:16px;">
+      <button id="sparkFullProfilePrev" type="button" aria-label="Previous photo" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:24px;">‹</button>
+      <button id="sparkFullProfileNext" type="button" aria-label="Next photo" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:24px;">›</button>
+    </div>
+    <p id="sparkFullProfilePhotoCount" style="text-align:center;color:#b8c8d3;margin:10px 0 22px;"></p>
+    <h1 id="sparkFullProfileName" style="font-size:28px;margin:0 0 10px;"></h1>
+    <p id="sparkFullProfileMeta" style="color:#c4d1da;line-height:1.7;margin:0 0 22px;"></p>
+    <section style="padding:16px;margin-bottom:14px;border-radius:14px;background:#10212d;">
+      <h3 style="margin:0 0 10px;">About me</h3>
+      <p id="sparkFullProfileBio" style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;margin:0;color:#e4edf2;"></p>
+    </section>
+    <section style="padding:16px;border-radius:14px;background:#10212d;">
+      <h3 style="margin:0 0 10px;">Profile details</h3>
+      <div id="sparkFullProfileDetails" style="line-height:1.9;color:#e4edf2;"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const viewer = document.getElementById("sparkFullProfile");
+  if (!viewer) return;
+
+  const $ = id => document.getElementById(id);
+  let photos = [];
+  let photoIndex = 0;
+
+  function renderPhoto() {
+    const image = photos[photoIndex] || "";
+    $("sparkFullProfilePhoto").src = image;
+    $("sparkFullProfilePhoto").style.display = image ? "block" : "none";
+    $("sparkFullProfilePhotoCount").textContent =
+      photos.length ? `${photoIndex + 1} of ${photos.length}` : "No photos available";
+    $("sparkFullProfilePrev").style.display = photos.length > 1 ? "" : "none";
+    $("sparkFullProfileNext").style.display = photos.length > 1 ? "" : "none";
+  }
+
+  function addDetail(label, value) {
+    if (value === undefined || value === null || String(value).trim() === "") return;
+    const row = document.createElement("p");
+    row.style.margin = "0 0 6px";
+    const strong = document.createElement("strong");
+    strong.textContent = label + ": ";
+    row.append(strong, document.createTextNode(String(value)));
+    $("sparkFullProfileDetails").appendChild(row);
+  }
+
+  window.openSparkFullProfile = function openSparkFullProfile(profile) {
+    if (!profile) return;
+    photos = [...new Set([
+      ...(Array.isArray(profile.photos) ? profile.photos : []),
+      profile.avatar || ""
+    ].filter(Boolean))];
+    photoIndex = 0;
+
+    $("sparkFullProfileHeading").textContent = profile.username || "Profile";
+    $("sparkFullProfileName").textContent =
+      `${profile.username || "MikiConnect member"}${profile.age ? ", " + profile.age : ""}`;
+    $("sparkFullProfileMeta").textContent = [
+      profile.location ? "📍 " + profile.location : "",
+      profile.isOnline ? "Online" : "",
+      profile.isPremium ? "Premium member" : ""
+    ].filter(Boolean).join(" · ");
+    $("sparkFullProfileBio").textContent = profile.bio || "No bio provided.";
+    $("sparkFullProfileDetails").replaceChildren();
+    addDetail("Age", profile.age);
+    addDetail("Gender", profile.gender);
+    addDetail("Interested in", profile.interestedIn);
+    if (!profile.age && !profile.gender && !profile.interestedIn) {
+      $("sparkFullProfileDetails").textContent = "No additional details provided.";
+    }
+
+    renderPhoto();
+
+    viewer.classList.remove("hidden");
+    viewer.scrollTop = 0;
+    document.body.style.overflow = "hidden";
+    if (!history.state || !history.state.sparkFullProfile) {
+      history.pushState({ ...(history.state || {}), sparkFullProfile: true }, "", location.href);
+    }
+  }
+
+  function closeProfile() {
+    if (viewer.classList.contains("hidden")) return;
+    viewer.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+
+  $("sparkFullProfilePrev").addEventListener("click", () => {
+    if (photos.length > 1) {
+      photoIndex = (photoIndex - 1 + photos.length) % photos.length;
+      renderPhoto();
+    }
+  });
+  $("sparkFullProfileNext").addEventListener("click", () => {
+    if (photos.length > 1) {
+      photoIndex = (photoIndex + 1) % photos.length;
+      renderPhoto();
+    }
+  });
+
+  $("sparkFullProfilePhoto").addEventListener("error", () => {
+    $("sparkFullProfilePhoto").style.display = "none";
+  });
+
+  document.addEventListener("keydown", event => {
+    if (viewer.classList.contains("hidden")) return;
+    if (event.key === "Escape") closeProfile();
+    if (event.key === "ArrowLeft") $("sparkFullProfilePrev").click();
+    if (event.key === "ArrowRight") $("sparkFullProfileNext").click();
+  });
+
+})();
+</script>
 
 </body>
 </html>
